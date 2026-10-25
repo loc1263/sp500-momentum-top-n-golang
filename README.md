@@ -2,7 +2,9 @@
 
 Estrategia de momentum sobre el S&P 500: cada N meses se compran, con ponderación igual, las N acciones que más
 subieron en los últimos N meses. El proyecto la evalúa con datos históricos (backtest), mide cuánto del resultado
-depende del mes de arranque y muestra todo en una aplicación web local.
+depende del mes de arranque y muestra todo en una aplicación web.
+
+**Ver el sitio: https://loc1263.github.io/sp500-momentum-top-n-golang/** (se actualiza solo cada día hábil).
 
 > **Aviso:** es una herramienta de análisis, no una recomendación de inversión. El backtest cobra solo una comisión
 > de 0,05% por lado, sin impuestos, y tiene sesgos de datos (ver [Limitaciones](TECHNICAL.md#limitaciones)).
