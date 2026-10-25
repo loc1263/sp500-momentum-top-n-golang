@@ -20,14 +20,14 @@ jobs:
     permissions:
       contents: write # commit del historial y del CSV de ETFs
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: backend-go/go.mod
           cache-dependency-path: backend-go/go.sum
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -36,7 +36,7 @@ jobs:
       # La base SQLite es solo caché: si se pierde, se vuelven a bajar los precios y el historial se restaura de
       # backend-go/history/history.json. Cada ejecución guarda su propia clave y restaura la más reciente.
       - name: Restaurar la base SQLite
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: backend-go/data
           key: top3-db-${{ github.run_id }}
@@ -75,7 +75,7 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: frontend/dist
 
@@ -90,4 +90,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
