@@ -64,6 +64,7 @@ recargue la página.
 | La web muestra «No se pudo cargar data/report.json», «Sin Top actual» o «Sin backtest» | Falta el paso 2: ejecute `go run ./cmd/top3 pipeline` en `backend-go/` y recargue |
 | Puerto en uso | `.\start.ps1 -FrontendPort 3000` (Windows) o `FRONTEND_PORT=3000 ./start.sh` |
 | Errores `TOP-NET-...` durante la descarga | Suelen ser límites de Yahoo Finance o de red; reintente más tarde |
+| No aparece el conejito 🐇 de la web | Se oculta si el sistema tiene la reducción de movimiento activada. En Windows 11: Configuración → Accesibilidad → Efectos visuales → **Efectos de animación** en «Activado», y recargue la página |
 
 ## Más información
 
