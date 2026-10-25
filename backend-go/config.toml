@@ -1,0 +1,118 @@
+# Configuración de top3 (top3 <comando>)
+
+[data]
+# Años de histórico a descargar (constituyentes + precios). Debe superar el mayor período de
+# periods_years más el mayor plazo en meses (10 años de backtest + 12 meses de ranking = 11 años).
+history_years = 12
+# Base SQLite donde se guarda todo (datos descargados y resultados)
+db_path = "data/top3.db"
+# CSV con la composición histórica del S&P 500
+historical_url = "https://raw.githubusercontent.com/hanshof/sp500_constituents/main/sp_500_historical_components.csv"
+# Wikipedia: lista actual del S&P 500 y tabla de altas/bajas del índice
+wikipedia_url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+wikipedia_changes_url = "https://en.wikipedia.org/wiki/Historical_components_of_the_S%26P_500"
+user_agent = "Mozilla/5.0"
+# Timeouts de las descargas HTTP, en segundos (Wikipedia / CSV histórico)
+http_timeout = 30
+historical_timeout = 60
+# Tickers por lote al pedir precios a Yahoo, y hilos en paralelo para las acciones en circulación
+batch_size = 100
+shares_workers = 8
+# Actualización incremental de precios: solo se baja lo que falta desde la última descarga.
+# Días de solape con lo ya guardado (para detectar dividendos/splits que cambian el precio ajustado)
+price_overlap_days = 7
+# Un ticker sin datos en los últimos N días se considera dado de baja y no se vuelve a pedir
+stale_days = 30
+# Diferencia relativa en el solape a partir de la cual un ticker se vuelve a bajar completo
+price_drift_tolerance = 0.0001
+
+[backtest]
+# Período a evaluar. Si start_date/end_date están vacíos se usa:
+#   end_date   = hoy
+#   start_date = end_date - backtest_years
+# Formato de fechas: "YYYY-MM-DD"
+start_date = ""
+end_date = ""
+backtest_years = 12
+# Períodos que se simulan (en años hacia atrás desde end_date); el frontend deja elegir entre ellos.
+# Con start_date explícito se simula un único período. Se puede limitar por corrida con --years N.
+periods_years = [2, 4, 6, 8, 10]
+# Plazo del backtest normal, en meses: el ranking mira N meses hacia atrás y se rebalancea cada N meses.
+# Se puede cambiar por corrida con --months N. Se prueban los N calendarios de arranque posibles
+# y se informa el calendario base (primer mes), la mediana y el rango.
+months = 4
+initial_capital = 15000
+# Cantidad de tickers a comprar en cada rebalanceo (ponderación igual)
+top_n = 4
+# Comisión por lado (0.0005 = 0,05%): se cobra al comprar y al vender lo que cambia en cada rebalanceo
+commission = 0.0005
+# Suplentes del Top actual: cuántos puestos posteriores al top_n se muestran como reemplazo posible (0 = ninguno)
+alternates = 4
+# Ruedas bursátiles por mes (para convertir meses en ventana de ranking)
+trading_days_per_month = 21
+
+[tickers.aliases]
+# Símbolo viejo = símbolo actual en Yahoo. Las tablas de Wikipedia usan símbolos distintos
+# para la misma empresa tras un renombre; se unifican para que tengan precios en todo el histórico.
+BK = "BNY"
+FI = "FISV"
+MMC = "MRSH"
+EQR = "VMRK"
+PSKY = "SKYD"
+SATS = "ECHO"
+
+[universe]
+# Con --large-cap solo se consideran empresas con capitalización >= este valor (miles de millones de US$).
+# Large-cap + mega-cap: >= 10. Capitalización aproximada = precio de la fecha × acciones en circulación actuales.
+min_cap_billions = 10
+# Universos que corre --sweep por defecto (sin --large-cap / --min-cap-billions):
+# 0 = índice completo, 10 = large-cap + mega-cap, 200 = mega-cap.
+# Para cada uno se genera el HTML del sweep y el de sensibilidad al arranque (offsets).
+sweep_min_cap_billions = [0, 10, 200]
+
+[output]
+# Carpeta de los reportes HTML (nombre: top3_backtest_YYYYMMDD.html / top3_sweep_YYYYMMDD.html)
+dir = "output"
+# Días de reportes HTML que se conservan (los más viejos se borran al final del pipeline o con `top3 prune`)
+keep_days = 7
+# Subcarpetas dentro de dir y prefijos de archivo (se les agrega el sufijo de universo y _YYYYMMDD.html)
+backtest_subdir = "backtest"
+actual_subdir = "actual"
+backtest_prefix = "top3_backtest"
+sweep_prefix = "top3_sweep"
+offsets_prefix = "top3_offsets"
+actual_prefix = "top3_actual"
+# Logs (nivel DEBUG, se sobrescriben en cada corrida)
+log_dir = "log"
+backtest_log = "top3_backtest.log"
+actual_log = "top3_actual.log"
+export_log = "export_frontend.log"
+# JSON que lee el frontend (resultados del día: Top actual y backtest)
+frontend_data = "../frontend/public/data/report.json"
+
+[simulation]
+# Plazos (en meses) a comparar con --sweep. Cada plazo N usa un ranking de N meses
+# hacia atrás y rebalancea cada N meses (ignora "months" de [backtest]).
+months = [2, 4, 6, 8, 10, 12]
+
+[quant]
+# Modelo por score (top3 quant): score de momentum, de salud financiera y técnico de las acciones del S&P 500, su promedio
+# como score final y Markowitz sobre las mejores. No hace backtest.
+# Peso de cada score en el final: momentum, salud financiera y técnico (1, 1, 1 = promedio simple)
+weights = [1, 1, 1]
+# Peso de cada grupo en el score de salud: rentabilidad, solvencia, liquidez y generación de caja (la caja pesa el doble:
+# una empresa que genera caja de forma sostenida es más confiable)
+health_weights = [1, 1, 1, 2]
+# Acciones del ranking final sobre las que corre Markowitz
+top_n = 10
+# Volatilidad anual máxima de la cartera de máximo retorno, y peso máximo por acción y por sector
+vol_target = 0.20
+w_max = 0.25
+sector_max = 0.40
+# Retorno esperado de cada acción = mu_shrink x su retorno de los últimos 12 meses + el resto x (tasa libre de riesgo +
+# prima de mercado): el retorno pasado de una sola acción es muy ruidoso
+mu_shrink = 0.25
+risk_free = 0.04
+equity_premium = 0.05
+# Días que se reutilizan los datos financieros descargados (cambian por trimestre)
+fundamentals_ttl_days = 7

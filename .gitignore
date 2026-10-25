@@ -1,0 +1,20 @@
+# Datos generados por el backend (se recrean con top3 pipeline)
+backend-go/data/
+backend-go/log/
+backend-go/output/
+backend-go/top3
+backend-go/top3.exe
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/public/data/report.json
+
+# Editor / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Documentación local (no se sube a GitHub)
+docs/
