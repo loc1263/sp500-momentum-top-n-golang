@@ -1,0 +1,93 @@
+name: Actualizar datos y publicar
+
+# Corre el pipeline del backend, guarda el historial en git y publica el frontend en GitHub Pages.
+# Requiere: Settings > Pages > Source = "GitHub Actions".
+on:
+  schedule:
+    - cron: "30 22 * * 1-5" # días hábiles, después del cierre de EE. UU. (hora UTC)
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: write # commit del historial y del CSV de ETFs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend-go/go.mod
+          cache-dependency-path: backend-go/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # La base SQLite es solo caché: si se pierde, se vuelven a bajar los precios y el historial se restaura de
+      # backend-go/history/history.json. Cada ejecución guarda su propia clave y restaura la más reciente.
+      - name: Restaurar la base SQLite
+        uses: actions/cache@v4
+        with:
+          path: backend-go/data
+          key: top3-db-${{ github.run_id }}
+          restore-keys: top3-db-
+
+      - name: Tests del backend
+        working-directory: backend-go
+        run: go test ./...
+
+      - name: Pipeline
+        working-directory: backend-go
+        run: |
+          go build -o top3 ./cmd/top3
+          ./top3 pipeline
+
+      - name: Guardar historial y lista de ETFs en git
+        run: |
+          git add backend-go/history/history.json backend-go/vanguard_etfs.csv
+          if git diff --cached --quiet; then
+            echo "Sin cambios en el historial ni en la lista de ETFs."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Actualiza historial y lista de ETFs ($(date -u +%F))"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Tests del frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+
+      - name: Build del frontend
+        working-directory: frontend
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

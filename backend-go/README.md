@@ -50,6 +50,7 @@ internal/actual     Top actual y rotación
 internal/etf        ranking de ETFs de Vanguard y actualización de la lista
 internal/quant      scores de momentum, salud y técnico, Markowitz (puntos interiores) y el JSON del modelo
 internal/report     el JSON del frontend
+internal/history    historial del Top actual y de ETFs en JSON versionado (la base SQLite es solo caché)
 internal/cleanup    limpieza de reportes, corridas y caché vencida
 internal/pipeline   el pipeline completo
 ```

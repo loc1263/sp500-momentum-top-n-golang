@@ -22,6 +22,7 @@ import (
 	"top3/internal/console"
 	"top3/internal/errs"
 	"top3/internal/etf"
+	"top3/internal/history"
 	"top3/internal/logx"
 	"top3/internal/market"
 	"top3/internal/pipeline"
@@ -123,6 +124,9 @@ func start(path string, logName func(config.Output) string) (config.Config, erro
 		logx.Warnf(errs.CfgMissing.Msg("No existe %s, uso valores por defecto"), path)
 	}
 	logx.Debugf("Configuración efectiva: %+v", cfg)
+	if err := history.Restore(cfg); err != nil {
+		return cfg, err
+	}
 	return cfg, nil
 }
 

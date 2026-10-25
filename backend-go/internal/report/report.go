@@ -19,6 +19,7 @@ import (
 	"top3/internal/config"
 	"top3/internal/dateutil"
 	"top3/internal/db"
+	"top3/internal/history"
 	"top3/internal/logx"
 	"top3/internal/market"
 	"top3/internal/model"
@@ -760,6 +761,9 @@ func Export(cfg config.Config) (string, error) {
 		return "", err
 	}
 	defer d.Close()
+	if err := history.Save(cfg, d); err != nil {
+		return "", err
+	}
 	rep, err := Build(d, cfg, dateutil.Today())
 	if err != nil {
 		return "", err

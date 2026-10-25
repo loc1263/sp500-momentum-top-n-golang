@@ -87,6 +87,7 @@ type Output struct {
 	ExportLog      string `toml:"export_log" json:"export_log"`
 	PruneLog       string `toml:"prune_log" json:"prune_log"`
 	FrontendData   string `toml:"frontend_data" json:"frontend_data"`
+	HistoryFile    string `toml:"history_file" json:"history_file"`
 }
 
 // Etf es [etf]: ranking de los ETFs de Vanguard.
@@ -172,6 +173,7 @@ func Default() Config {
 			BacktestLog: "top3_backtest.log", ActualLog: "top3_actual.log", EtfLog: "top3_etf.log",
 			QuantLog: "top3_quant.log", ExportLog: "export_frontend.log", PruneLog: "top3_prune.log",
 			FrontendData: "../frontend/public/data/report.json",
+			HistoryFile:  "history/history.json",
 		},
 		Etf: Etf{
 			UpdateList:     true,

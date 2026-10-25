@@ -313,6 +313,7 @@ func TestExportWritesJSON(t *testing.T) {
 	cfg := config.Default()
 	cfg.Data.DBPath = filepath.Join(dir, "t.db")
 	cfg.Output.FrontendData = filepath.Join(dir, "x", "report.json")
+	cfg.Output.HistoryFile = filepath.Join(dir, "history.json")
 	cfg.Output.LogDir = dir
 	d, err := db.Open(cfg.Data.DBPath)
 	if err != nil {

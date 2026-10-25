@@ -89,6 +89,8 @@ actual_log = "top3_actual.log"
 export_log = "export_frontend.log"
 # JSON que lee el frontend (resultados del día: Top actual y backtest)
 frontend_data = "../frontend/public/data/report.json"
+# Historial del Top actual y de ETFs (se versiona en git). La base SQLite es solo caché: si no tiene historial, se restaura de aquí
+history_file = "history/history.json"
 
 [simulation]
 # Plazos (en meses) a comparar con --sweep. Cada plazo N usa un ranking de N meses
