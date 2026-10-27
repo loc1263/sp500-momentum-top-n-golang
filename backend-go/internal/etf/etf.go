@@ -313,7 +313,8 @@ func DownloadPrices(ctx context.Context, dl *market.Downloader, cfg config.Confi
 		return nil, err
 	}
 	n := sort.Search(prices.Rows(), func(i int) bool { return prices.Dates[i].After(endDay) })
-	prices = prices.Slice(0, n).DropAllNaN()
+	// Sin las ruedas finales sin cierre (Yahoo tarda en publicar la de hoy): dejarían con hueco a casi todos los ETFs
+	prices = prices.Slice(0, n).TrimEmptyTail().DropAllNaN()
 	var without []string
 	for _, t := range tickers {
 		if !prices.Has(t) {

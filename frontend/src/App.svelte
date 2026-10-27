@@ -97,6 +97,9 @@
 <main>
   <header>
     <div class="corner">
+      <button class="home" class:active={tab === 'actual'} aria-pressed={tab === 'actual'} onclick={() => (tab = 'actual')}>
+        Home
+      </button>
       <button class="about" class:active={tab === 'about'} aria-pressed={tab === 'about'} onclick={() => (tab = 'about')}>
         About
       </button>
@@ -219,7 +222,7 @@
 
 <style>
   main { max-width: 1280px; margin: 0 auto; padding: var(--space-4) var(--space-4) 48px; }
-  header { position: relative; padding-right: 190px; min-height: 40px; }
+  header { position: relative; padding-right: 250px; min-height: 40px; }
   header .sub { margin-bottom: var(--space-3); }
   .corner { position: absolute; top: 0; right: 0; display: flex; gap: var(--space-2); }
   .corner button {
@@ -228,6 +231,7 @@
     transition: border-color .12s ease, color .12s ease;
   }
   .corner button:hover { border-color: var(--muted); }
+  .corner .home.active,
   .corner .about.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
   /* La navegación queda fija arriba al desplazarse por tablas largas */

@@ -153,7 +153,8 @@ type scored struct {
 // Compute arma el ranking por score y Markowitz sobre los mejores.
 func Compute(in ComputeInput, cfg config.Config) (*Payload, error) {
 	q := cfg.Quant
-	prices := in.Prices.Reindex(in.Tickers)
+	// Sin la rueda de hoy si aún no cerró: de las acciones actuales no tiene ningún precio y anularía el momentum de todas
+	prices := in.Prices.Reindex(in.Tickers).TrimEmptyTail()
 	tickers := in.Tickers
 	n := len(tickers)
 

@@ -11,7 +11,7 @@
       // Tema antes del primer render, para evitar el flash
       try {
         const saved = localStorage.getItem('theme');
-        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        const dark = saved ? saved === 'dark' : true;
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
       } catch {
         /* sin localStorage: queda el tema claro */

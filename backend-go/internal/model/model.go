@@ -154,6 +154,25 @@ func (p *Prices) Since(day time.Time) *Prices {
 	return p.Slice(i, p.Rows())
 }
 
+// TrimEmptyTail quita las últimas filas con precio para menos de la mitad de los tickers: la rueda de hoy que Yahoo todavía
+// no publicó, que a veces trae el cierre de unos pocos tickers sueltos.
+func (p *Prices) TrimEmptyTail() *Prices {
+	end := p.Rows()
+	for end > 0 {
+		priced := 0
+		for j := 0; j < p.Cols(); j++ {
+			if !math.IsNaN(p.At(end-1, j)) {
+				priced++
+			}
+		}
+		if priced*2 >= p.Cols() {
+			break
+		}
+		end--
+	}
+	return p.Slice(0, end)
+}
+
 // DropAllNaN quita las columnas sin ningún precio.
 func (p *Prices) DropAllNaN() *Prices {
 	var keep []string

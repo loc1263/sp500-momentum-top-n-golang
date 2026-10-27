@@ -21,7 +21,7 @@ describe('QuantView', () => {
   it('muestra el top con el peso de cada cartera de Markowitz', () => {
     render(QuantView, { quant });
     const table = screen.getByRole('heading', { name: /mejores y sus pesos/ }).parentElement.querySelector('details.more + .wrap');
-    expect(within(table).getByRole('columnheader', { name: 'Mínima varianza' })).toBeInTheDocument();
+    expect(within(table).getByRole('columnheader', { name: /^Min. varianza/ })).toBeInTheDocument();
     const mu = within(table).getAllByRole('row').find((r) => within(r).queryByText('MU'));
     expect(mu).toHaveTextContent('60,0%');
     expect(mu).toHaveTextContent('30,0%');

@@ -101,10 +101,10 @@ export const report = {
       min_vol: 0.25, vol_target: 0.3, w_max: 0.25, sector_max: 0.4, sector_relaxed: false, main: 'max_return',
       tickers: [{ ticker: 'MU', exp_return: 0.32, vol: 0.81 }, { ticker: 'AMD', exp_return: 0.32, vol: 0.68 }],
       portfolios: [
-        { key: 'max_return', label: 'Máximo retorno (volatilidad hasta 30%)', exp_return: 0.25, vol: 0.3, sharpe: 0.71,
+        { key: 'max_return', label: 'Max. Ret. Volatilidad 30%', exp_return: 0.25, vol: 0.3, sharpe: 0.71,
           weights: [{ ticker: 'MU', weight: 0.6 }, { ticker: 'AMD', weight: 0.4 }],
           sectors: [{ sector: 'Technology', weight: 0.4 }, { sector: 'Industrials', weight: 0.6 }] },
-        { key: 'min_var', label: 'Mínima varianza', exp_return: 0.2, vol: 0.25, sharpe: 0.64,
+        { key: 'min_var', label: 'Min. varianza', exp_return: 0.2, vol: 0.25, sharpe: 0.64,
           weights: [{ ticker: 'AMD', weight: 0.7 }, { ticker: 'MU', weight: 0.3 }],
           sectors: [{ sector: 'Industrials', weight: 0.7 }, { sector: 'Technology', weight: 0.3 }] },
       ],

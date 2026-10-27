@@ -1,6 +1,7 @@
 <script>
   import TickerLink from './TickerLink.svelte';
   import Pager from './Pager.svelte';
+  import Hint from './Hint.svelte';
   import { pct, share, sign, slicePage } from './format.js';
 
   let { quant } = $props();
@@ -33,7 +34,42 @@
   let query = $state('');
   const sectors = $derived([...new Set(quant.ranking.map((r) => r.sector))].sort((a, b) => a.localeCompare(b, 'es')));
 
-  const num = (key, label) => ({ key, label, numeric: true });
+  // Descripciones breves que se muestran como ayuda en el encabezado de cada columna
+  const HELP = {
+    score: 'Score final, de 0 a 100: promedio de los scores de momentum, salud financiera y técnico.',
+    momentum: 'Score de 0 a 100 según cuánto subió la acción en 12 y 6 meses, sin contar el último. 100 = la mejor.',
+    health: 'Score de 0 a 100 de la calidad de los últimos balances: rentabilidad, solvencia, liquidez y caja.',
+    technical: 'Score de 0 a 100 del estado del precio y el volumen: tendencia, impulso, volumen y posición.',
+    mom_12_1: 'Retorno de los últimos 12 meses sin contar el último mes.',
+    mom_6_1: 'Retorno de los últimos 6 meses sin contar el último mes.',
+    roe: 'Rentabilidad sobre patrimonio: utilidad neta dividida por el patrimonio de los accionistas.',
+    operating_margin: 'Margen operativo: qué parte de las ventas queda como utilidad operativa.',
+    debt_to_equity: 'Deuda sobre patrimonio. Más bajo = menos apalancada.',
+    current_ratio: 'Liquidez corriente: activos corrientes sobre pasivos corrientes. Mide si puede pagar sus deudas de corto plazo.',
+    fcf_margin: 'Flujo de caja libre (FCF) sobre ventas: cuánta caja sobra por cada dólar vendido.',
+    fcf_yield: 'Flujo de caja libre sobre la capitalización de mercado: la caja que genera respecto de lo que cuesta la empresa.',
+    cash_conversion: 'Flujo de caja libre sobre utilidad neta: qué parte de la utilidad se convierte en caja.',
+    fcf_positive_years: 'Parte de los últimos 4 años con flujo de caja libre positivo.',
+    rsi: 'Índice de fuerza relativa (0-100). Alto = subió mucho últimamente; por encima de 70 suele indicar sobrecompra.',
+    vs_ema50: 'Distancia del precio a su media móvil exponencial de 50 ruedas. Positivo = por encima.',
+    vs_ema200: 'Distancia del precio a su media móvil exponencial de 200 ruedas. Positivo = por encima.',
+    macd_hist: 'Histograma MACD sobre el precio: positivo = impulso alcista, negativo = bajista.',
+    groups: 'Cantidad de grupos de indicadores financieros que se pudieron medir, de 4.',
+    hg_rentabilidad: 'Score de 0 a 100 de ROE, ROA y márgenes.',
+    hg_solvencia: 'Score de 0 a 100 de deuda/patrimonio, deuda neta/EBITDA y caja/deuda.',
+    hg_liquidez: 'Score de 0 a 100 de liquidez corriente y prueba ácida.',
+    hg_caja: 'Score de 0 a 100 del flujo libre y operativo, la conversión de utilidad y los años con flujo positivo.',
+    tg_tendencia: 'Score de 0 a 100 de las medias móviles de 20, 50 y 200 ruedas y el ADX.',
+    tg_impulso: 'Score de 0 a 100 de MACD, RSI, estocástico y Bollinger.',
+    tg_volumen: 'Score de 0 a 100 de OBV y MFI, que miden si el volumen acompaña al precio.',
+    tg_posicion: 'Score de 0 a 100 según el lugar del precio en su rango de 52 semanas.',
+  };
+  const PORTFOLIO_HELP = {
+    max_return: 'Cartera con el mayor retorno esperado cuya volatilidad anual no supera el tope indicado.',
+    max_sharpe: 'Cartera con el mejor Sharpe: la que más retorno da por cada unidad de riesgo asumido.',
+    min_var: 'Cartera de mínima varianza: la de menor volatilidad posible con estas acciones.',
+  };
+  const num = (key, label) => ({ key, label, numeric: true, help: HELP[key] });
   const FIXED = [
     { key: 'rank', label: '#' },
     { key: 'ticker', label: 'Ticker' },
@@ -223,8 +259,13 @@
   <table>
     <thead>
       <tr>
-        <th>Ticker</th><th>Empresa</th><th>Sector</th><th class="r">Score</th><th class="r">Retorno esp.</th><th class="r">Vol. anual</th>
-        {#each mk.portfolios as p (p.key)}<th class="r">{p.label}</th>{/each}
+        <th>Ticker</th><th>Empresa</th><th>Sector</th>
+        <th class="r">Score<Hint text={HELP.score} /></th>
+        <th class="r">Retorno esp.<Hint text="Retorno anual esperado de la acción: mezcla su retorno de 12 meses con un retorno de largo plazo." /></th>
+        <th class="r">Vol. anual<Hint text="Volatilidad anual: cuánto oscila el precio en un año. Más alta = más riesgo." /></th>
+        {#each mk.portfolios as p (p.key)}
+          <th class="r">{p.label}{#if PORTFOLIO_HELP[p.key]}<Hint text={PORTFOLIO_HELP[p.key]} />{/if}</th>
+        {/each}
       </tr>
     </thead>
     <tbody>
@@ -253,7 +294,11 @@
         {#each mk.portfolios as p (p.key)}<td class="r">{share(p.vol)}</td>{/each}
       </tr>
       <tr>
-        <td colspan="6">Sharpe (tasa libre de riesgo de {share(s.risk_free, 0)})</td>
+        <td colspan="6">
+          Sharpe (tasa libre de riesgo de {share(s.risk_free, 0)})<Hint
+            text="Retorno por unidad de riesgo: (retorno esperado − tasa libre de riesgo) ÷ volatilidad. Más alto = mejor retorno para el riesgo asumido."
+          />
+        </td>
         {#each mk.portfolios as p (p.key)}<td class="r">{ratio(p.sharpe)}</td>{/each}
       </tr>
     </tfoot>
@@ -263,7 +308,12 @@
 <div class="wrap narrow">
   <table>
     <thead>
-      <tr><th>Sector</th>{#each mk.portfolios as p (p.key)}<th class="r">{p.label}</th>{/each}</tr>
+      <tr>
+        <th>Sector</th>
+        {#each mk.portfolios as p (p.key)}
+          <th class="r">{p.label}{#if PORTFOLIO_HELP[p.key]}<Hint text={PORTFOLIO_HELP[p.key]} />{/if}</th>
+        {/each}
+      </tr>
     </thead>
     <tbody>
       {#each portfolioSectors as name (name)}
@@ -322,7 +372,7 @@
           <th class:r={column.numeric} aria-sort={ariaSort(column)}>
             <button onclick={() => sortBy(column)}>
               {column.label}{#if sortKey === column.key}<span aria-hidden="true">{descending ? ' ▼' : ' ▲'}</span>{/if}
-            </button>
+            </button>{#if column.help}<Hint text={column.help} />{/if}
           </th>
         {/each}
       </tr>

@@ -371,9 +371,9 @@ func Optimize(tickers []string, mu []float64, sigma [][]float64, volTarget, wMax
 		key, label string
 		w          []float64
 	}{
-		{"max_return", fmt.Sprintf("Máximo retorno (volatilidad hasta %.0f%%)", volTarget*100), maxReturn},
-		{"max_sharpe", "Máximo Sharpe", maxSharpe},
-		{"min_var", "Mínima varianza", minVar},
+		{"max_return", fmt.Sprintf("Max. Ret. Volatilidad %.0f%%", volTarget*100), maxReturn},
+		{"max_sharpe", "Max. Sharpe", maxSharpe},
+		{"min_var", "Min. varianza", minVar},
 	} {
 		if c.w == nil {
 			continue
