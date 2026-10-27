@@ -182,16 +182,6 @@ func mapf(a []float64, f func(float64) float64) []float64 {
 	return out
 }
 
-// zeroToNaN es Series.replace(0, nan).
-func zeroToNaN(a []float64) []float64 {
-	return mapf(a, func(v float64) float64 {
-		if v == 0 {
-			return nan
-		}
-		return v
-	})
-}
-
 // clipLower y clipUpper son Series.clip con un solo extremo; el NaN queda en NaN.
 func clipLower(a []float64, lo float64) []float64 {
 	return mapf(a, func(v float64) float64 {

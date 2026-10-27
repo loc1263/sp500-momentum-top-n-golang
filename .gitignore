@@ -15,6 +15,7 @@ frontend/public/data/report.json
 .idea/
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Documentación local (no se sube a GitHub)
 docs/

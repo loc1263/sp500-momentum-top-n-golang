@@ -235,13 +235,6 @@ func Infof(format string, args ...any)  { logf(Info, format, args...) }
 func Warnf(format string, args ...any)  { logf(Warning, format, args...) }
 func Errorf(format string, args ...any) { logf(Error, format, args...) }
 
-// DebugEnabled dice si el archivo de log está abierto (el DEBUG solo va ahí): sirve para no armar mensajes caros.
-func DebugEnabled() bool {
-	mu.Lock()
-	defer mu.Unlock()
-	return file != nil
-}
-
 // FormatSummary son las líneas del resumen. Cada item trae code, count, level y sample (y steps, si vienen de varios
 // pasos del pipeline).
 func FormatSummary(items []SummaryItem, logPath string) []string {

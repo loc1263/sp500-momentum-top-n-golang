@@ -34,9 +34,6 @@ func Today() time.Time {
 	return Date(n.Year(), n.Month(), n.Day())
 }
 
-// Midnight lleva t a la medianoche UTC de su fecha calendario.
-func Midnight(t time.Time) time.Time { return Date(t.Year(), t.Month(), t.Day()) }
-
 // AddMonths suma n meses sin pasarse de fin de mes (31 de enero + 1 mes = 28/29 de febrero), como pd.DateOffset(months=n).
 func AddMonths(t time.Time, n int) time.Time {
 	total := t.Year()*12 + int(t.Month()) - 1 + n
@@ -52,9 +49,6 @@ func AddMonths(t time.Time, n int) time.Time {
 
 // AddYears suma n años con el mismo recorte de fin de mes (29 de febrero -> 28).
 func AddYears(t time.Time, n int) time.Time { return AddMonths(t, 12*n) }
-
-// AddDays suma n días.
-func AddDays(t time.Time, n int) time.Time { return t.AddDate(0, 0, n) }
 
 func daysIn(y int, m time.Month) int { return time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC).Day() }
 

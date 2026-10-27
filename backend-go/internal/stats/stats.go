@@ -7,12 +7,6 @@ import (
 	"sort"
 )
 
-// NaN es un atajo para math.NaN().
-func NaN() float64 { return math.NaN() }
-
-// IsNaN dice si x es NaN.
-func IsNaN(x float64) bool { return math.IsNaN(x) }
-
 // Mean es el promedio de xs; NaN si hay algún NaN o está vacío (como Series.mean(skipna=False)).
 func Mean(xs []float64) float64 {
 	if len(xs) == 0 {
