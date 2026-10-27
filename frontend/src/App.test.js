@@ -101,6 +101,41 @@ describe('App', () => {
     await waitFor(() => expect(location.hash).toBe('#about'));
   });
 
+  it('muestra los ETFs por gestora y oculta los filtros que no aplican', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json(report)));
+    render(App);
+    await screen.findByText('NVDA');
+    await fireEvent.click(screen.getByRole('tab', { name: 'ETFs por gestora' }));
+    expect(await screen.findByRole('link', { name: 'VOO' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('ETFs por gestora');
+    expect(screen.queryByLabelText('Universo')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Período')).not.toBeInTheDocument();
+    await waitFor(() => expect(location.hash).toBe('#etfq'));
+  });
+
+  it('recuerda los filtros de ETFs por gestora al cambiar de pestaña y volver', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json(report)));
+    render(App);
+    await screen.findByText('NVDA');
+    await fireEvent.click(screen.getByRole('tab', { name: 'ETFs por gestora' }));
+    await fireEvent.change(await screen.findByLabelText('Gestora'), { target: { value: 'Vanguard' } });
+    await fireEvent.click(screen.getByRole('checkbox', { name: /Solo con score final/ }));
+    await fireEvent.click(screen.getByRole('button', { name: /^TER/ }));
+    await fireEvent.click(screen.getByRole('tab', { name: 'ETFs Vanguard' }));
+    await screen.findByText('Ranking global de ETFs de Vanguard');
+    await fireEvent.click(screen.getByRole('tab', { name: 'ETFs por gestora' }));
+    expect(await screen.findByLabelText('Gestora')).toHaveValue('Vanguard');
+    expect(screen.getByRole('checkbox', { name: /Solo con score final/ })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: /^TER/ })).toHaveTextContent('▲');
+  });
+
+  it('avisa si todavía no hay ETFs por gestora', async () => {
+    location.hash = '#etfq';
+    vi.stubGlobal('fetch', vi.fn(async () => json({ ...report, etfq: null })));
+    render(App);
+    expect(await screen.findByText(/Sin ETFs por gestora/)).toBeInTheDocument();
+  });
+
   it('avisa si todavía no hay ranking de ETFs', async () => {
     location.hash = '#etf';
     vi.stubGlobal('fetch', vi.fn(async () => json({ ...report, etf: null })));

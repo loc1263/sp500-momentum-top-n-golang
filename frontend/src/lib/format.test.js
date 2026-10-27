@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { billions, int, pct, share, sign, usd } from './format.js';
+import { aum, billions, dec, int, pct, share, sign, usd } from './format.js';
 
 describe('pct', () => {
   it('lleva signo y coma decimal', () => {
@@ -38,4 +38,21 @@ describe('sign', () => {
     expect(sign(-1)).toBe('neg');
     expect(sign(0)).toBe('');
   });
+});
+
+describe('dec', () => {
+  it('usa coma decimal y los decimales pedidos', () => {
+    expect(dec(0.0945, 2)).toBe('0,09');
+    expect(dec(96.734, 1)).toBe('96,7');
+    expect(dec(100, 0)).toBe('100');
+  });
+});
+
+describe('aum', () => {
+  it('abrevia en miles de millones (B) o millones (M)', () => {
+    expect(aum(1.7293e12)).toBe('1.729,3 B');
+    expect(aum(1.1e9)).toBe('1,1 B');
+    expect(aum(5e8)).toBe('500 M');
+  });
+  it('avisa si falta el dato', () => expect(aum(null)).toBe('n/d'));
 });

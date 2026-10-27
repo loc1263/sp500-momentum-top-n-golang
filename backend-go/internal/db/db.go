@@ -74,6 +74,10 @@ CREATE INDEX IF NOT EXISTS idx_actual_alternates_run ON actual_alternates (run_a
 CREATE INDEX IF NOT EXISTS idx_etf_scores_as_of ON etf_scores (as_of);
 CREATE INDEX IF NOT EXISTS idx_prices_date ON prices (date);
 `},
+	{3, `
+CREATE TABLE IF NOT EXISTS etfq_category (ticker TEXT PRIMARY KEY, category TEXT NOT NULL, fetched TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS etfq_runs (run_at TEXT PRIMARY KEY, as_of TEXT, payload TEXT);
+`},
 }
 
 // LatestVersion es la versión del esquema que conoce este código.

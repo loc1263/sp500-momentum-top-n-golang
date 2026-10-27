@@ -2,7 +2,7 @@
 // lleva su ID.
 //
 // Formato: TOP-<ÁREA>-<NNN>. Áreas: CFG configuración, NET descargas, DAT datos, BKT backtest, ACT Top actual,
-// ETF ETFs de Vanguard, QNT modelo por score. Los IDs no se reutilizan ni se renumeran: documentarlos en la tabla de errores del README.
+// ETF ETFs de Vanguard, GES ETFs por gestora, QNT modelo por score. Los IDs no se reutilizan ni se renumeran: documentarlos en la tabla de errores del README.
 package errs
 
 import "fmt"
@@ -126,6 +126,16 @@ var (
 	EtfListUpdate = code("TOP-ETF-006", "warning", "No se pudo actualizar la lista de ETFs de Vanguard",
 		"Se usa la lista guardada en el CSV. Revisa la conexión; si Vanguard cambió el formato de su "+
 			"respuesta hay que ajustar internal/etf/vanguard.go. Con --no-update o [etf] update_list = false no se intenta.")
+)
+
+// ETFs por gestora
+var (
+	GesNoFamily = code("TOP-GES-001", "warning", "Una gestora no devolvió ETFs",
+		"Yahoo falló o no conoce ese nombre. Revisa [etfq] families: name debe ser el fundFamily de Yahoo (p. ej. 'iShares'). Las demás gestoras siguen.")
+	GesNoCategory = code("TOP-GES-002", "warning", "ETFs sin categoría",
+		"Yahoo no informó la categoría: esos ETFs se comparan entre sí como 'Sin categoría'. Se reintenta en la próxima corrida.")
+	GesEmpty = code("TOP-GES-003", "error", "Ningún ETF de las gestoras se pudo rankear",
+		"Revisa la conexión y [etfq] families; los ETFs nuevos entran cuando acumulan historia para el plazo más largo.")
 )
 
 // Modelo cuantitativo

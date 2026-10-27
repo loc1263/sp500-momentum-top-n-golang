@@ -169,3 +169,42 @@ func TestMaybePruneRunsPrunesEveryTimeButVacuumsOnceADay(t *testing.T) {
 		t.Fatalf("n=%d", n)
 	}
 }
+
+func TestEtfqKeepsOnlyTheLatestRunAndUpdatesCategories(t *testing.T) {
+	d := openTemp(t)
+	if p, err := LatestEtfq(d); p != nil || err != nil {
+		t.Fatalf("sin corridas: %s %v", p, err)
+	}
+	for _, run := range []struct{ at, asOf, payload string }{
+		{"2024-08-29T10:00:00", "2024-08-29", `{"v":1}`}, {"2024-08-30T10:00:00", "2024-08-30", `{"v":2}`}} {
+		if err := SaveLatestEtfq(d, run.at, run.asOf, json.RawMessage(run.payload)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if p, _ := LatestEtfq(d); string(p) != `{"v":2}` {
+		t.Fatalf("último: %s", p)
+	}
+	if n := countRows(t, d, "etfq_runs"); n != 1 {
+		t.Fatalf("%d corridas guardadas", n)
+	}
+
+	if err := SaveEtfqCategories(d, map[string]string{"IVV": "Large Blend", "IWM": "Small Blend"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := SaveEtfqCategories(d, map[string]string{"IWM": "Small Value"}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := EtfqCategories(d)
+	if err != nil || len(got) != 2 || got["IVV"][0] != "Large Blend" || got["IWM"][0] != "Small Value" || got["IWM"][1] != time.Now().Format("2006-01-02") {
+		t.Fatalf("categorías: %v %v", got, err)
+	}
+}
+
+func countRows(t *testing.T, d *sql.DB, table string) int {
+	t.Helper()
+	var n int
+	if err := d.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
+}

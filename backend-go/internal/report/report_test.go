@@ -108,7 +108,7 @@ func TestBuildReportWithEmptyDatabase(t *testing.T) {
 	}
 	var back map[string]any
 	json.Unmarshal(js, &back)
-	if back["backtest"].([]any) == nil || back["actual"].([]any) == nil || back["quant"] != nil || back["etf"] != nil {
+	if back["backtest"].([]any) == nil || back["actual"].([]any) == nil || back["quant"] != nil || back["etfq"] != nil || back["etf"] != nil {
 		t.Fatalf("JSON: %s", js)
 	}
 }
@@ -344,5 +344,19 @@ func TestExportWritesJSON(t *testing.T) {
 	}
 	if _, err := time.Parse("2006-01-02T15:04:05", back.GeneratedAt); err != nil {
 		t.Fatalf("generated_at = %q", back.GeneratedAt)
+	}
+}
+
+func TestEtfqPayloadPassesThroughToTheReport(t *testing.T) {
+	d, cfg := openTemp(t), config.Default()
+	r, err := Build(d, cfg, time.Now())
+	if err != nil || string(r.Etfq) != "null" {
+		t.Fatalf("sin corrida guardada: %s %v", r.Etfq, err)
+	}
+	if err := repo.SaveLatestEtfq(d, "2024-08-30T10:00:00", "2024-08-30", json.RawMessage(`{"as_of":"2024-08-30","rows":[]}`)); err != nil {
+		t.Fatal(err)
+	}
+	if r, err = Build(d, cfg, time.Now()); err != nil || string(r.Etfq) != `{"as_of":"2024-08-30","rows":[]}` {
+		t.Fatalf("con corrida guardada: %s %v", r.Etfq, err)
 	}
 }

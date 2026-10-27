@@ -4,6 +4,7 @@
   import SweepView from './lib/SweepView.svelte';
   import CompareView from './lib/CompareView.svelte';
   import EtfView from './lib/EtfView.svelte';
+  import EtfqView from './lib/EtfqView.svelte';
   import QuantView from './lib/QuantView.svelte';
   import AboutView from './lib/AboutView.svelte';
   import Glossary from './lib/Glossary.svelte';
@@ -21,7 +22,13 @@
         { id: 'compare', label: 'N-0 vs N-1' },
       ],
     },
-    { label: 'ETFs', tabs: [{ id: 'etf', label: 'ETFs Vanguard' }] },
+    {
+      label: 'ETFs',
+      tabs: [
+        { id: 'etf', label: 'ETFs Vanguard' },
+        { id: 'etfq', label: 'ETFs por gestora' },
+      ],
+    },
     { label: 'Acciones', tabs: [{ id: 'quant', label: 'Modelo por score' }] },
   ];
   const tabs = groups.flatMap((g) => g.tabs);
@@ -32,6 +39,8 @@
 
   let tab = $state(initialTab());
   let capKey = $state('0');
+  // Filtros y orden de «ETFs por gestora»: se guardan acá porque la vista se destruye al cambiar de pestaña
+  let etfqFilters = $state({ issuer: '', category: '', scoredOnly: true, sortKey: 'rank', descending: false });
   let chosenYears = $state(null); // null = período por defecto del config
   let report = $state(null);
   let error = $state(null);
@@ -109,6 +118,8 @@
     </div>
     {#if tab === 'etf'}
       <h1>ETFs de Vanguard</h1>
+    {:else if tab === 'etfq'}
+      <h1>ETFs por gestora</h1>
     {:else if tab === 'quant'}
       <h1>Modelo por score</h1>
     {:else if tab === 'about'}
@@ -119,6 +130,8 @@
     <p class="sub">
       {#if tab === 'etf'}
         Momentum ajustado por riesgo: ranking de los ETFs de Vanguard por cuánto subieron por unidad de riesgo.
+      {:else if tab === 'etfq'}
+        Los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum ajustado por riesgo y calidad (costo y tamaño) dentro de cada categoría.
       {:else if tab === 'quant'}
         Scores de momentum, salud financiera y técnico de las acciones del S&amp;P 500, su promedio y Markowitz sobre las mejores.
       {:else if tab === 'about'}
@@ -153,7 +166,7 @@
         {/each}
       </div>
       <div class="filters">
-        {#if tab !== 'actual' && tab !== 'etf' && tab !== 'quant' && tab !== 'about' && periods.length}
+        {#if tab !== 'actual' && tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'about' && periods.length}
           <label>
             Período
             <select value={period?.years} onchange={(e) => (chosenYears = Number(e.currentTarget.value))}>
@@ -165,7 +178,7 @@
             </select>
           </label>
         {/if}
-        {#if tab !== 'etf' && tab !== 'quant' && tab !== 'about'}
+        {#if tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'about'}
           <label>
             Universo
             <select bind:value={capKey}>
@@ -187,6 +200,12 @@
         <EtfView etf={report.etf} />
       {:else}
         <p class="muted">Sin ranking de ETFs. Ejecute top3 etf (en backend-go/).</p>
+      {/if}
+    {:else if tab === 'etfq'}
+      {#if report.etfq}
+        <EtfqView etfq={report.etfq} bind:filters={etfqFilters} />
+      {:else}
+        <p class="muted">Sin ETFs por gestora. Ejecute top3 etfq (en backend-go/).</p>
       {/if}
     {:else if tab === 'quant'}
       {#if report.quant}
@@ -211,7 +230,7 @@
     {/if}
 
     <footer>
-      Generado el {report.generated_at.replace('T', ' ')}. {#if tab === 'quant'}Modelo por score: foto de hoy, sin backtest; los datos financieros son los últimos publicados (Yahoo Finance). {/if}&nbsp;Backtest con comisión de {share(report.settings.commission ?? 0, 2)} por lado, sin impuestos, ponderación igual
+      Generado el {report.generated_at.replace('T', ' ')}. {#if tab === 'etfq'}ETFs por gestora: TER, AUM y categoría de Yahoo Finance; foto de hoy, sin backtest. {/if}{#if tab === 'quant'}Modelo por score: foto de hoy, sin backtest; los datos financieros son los últimos publicados (Yahoo Finance). {/if}&nbsp;Backtest con comisión de {share(report.settings.commission ?? 0, 2)} por lado, sin impuestos, ponderación igual
       entre los tickers seleccionados. Excluye tickers sin datos en Yahoo (sesgo de supervivencia). Herramienta de
       análisis, no una recomendación de inversión.
     </footer>

@@ -78,6 +78,28 @@ export const report = {
         max_dd: -0.04, sma_dist: -0.01, returns: { 3: -0.01, 12: 0.02 } },
     ],
   },
+  etfq: {
+    as_of: '2026-10-19', generated_at: '2026-10-19T10:00:00', horizons: [3, 12], risk_free: 'VUSB', not_ranked: 4,
+    settings: { max_ter: 0.2, min_aum_millions: 100, quality_weight: 0.25, ter_weight: 4, aum_weight: 1 },
+    issuers: [
+      { name: 'iShares', funds: 40, ranked: 2, scored: 1 },
+      { name: 'Vanguard', funds: 30, ranked: 2, scored: 1 },
+    ],
+    rows: [
+      { rank: 1, ticker: 'VOO', name: 'Vanguard S&P 500 ETF', issuer: 'Vanguard', category: 'Large Blend', group_size: 2,
+        momentum_rank: 2, momentum_score: 1.2, returns: { 3: 0.04, 12: 0.2 }, ter: 0.03, aum: 1.7e12, ter_pct: 75, aum_pct: 75,
+        quality: 75, momentum: 25, final: 37.5, excluded: [] },
+      { rank: 2, ticker: 'IVV', name: 'iShares Core S&P 500 ETF', issuer: 'iShares', category: 'Large Blend', group_size: 2,
+        momentum_rank: 1, momentum_score: 1.5, returns: { 3: 0.05, 12: 0.22 }, ter: 0.0945, aum: 8.8e11, ter_pct: 25, aum_pct: 25,
+        quality: 25, momentum: 75, final: 62.5, excluded: [] },
+      { rank: null, ticker: 'CARO', name: 'iShares Caro ETF', issuer: 'iShares', category: 'Sectores', group_size: 0,
+        momentum_rank: 3, momentum_score: 0.9, returns: { 3: -0.01, 12: 0.05 }, ter: 0.45, aum: 5e9, ter_pct: null, aum_pct: null,
+        quality: null, momentum: null, final: null, excluded: ['ter'] },
+      { rank: null, ticker: 'CHICO', name: 'Vanguard Chico ETF', issuer: 'Vanguard', category: 'Sectores', group_size: 0,
+        momentum_rank: 4, momentum_score: 0.5, returns: { 3: 0.01, 12: 0.03 }, ter: 0.05, aum: 2e7, ter_pct: null, aum_pct: null,
+        quality: null, momentum: null, final: null, excluded: ['aum'] },
+    ],
+  },
   quant: {
     as_of: '2026-10-19', generated_at: '2026-10-19T10:00:00',
     settings: { top_n: 2, vol_target: 0.3, w_max: 0.25, sector_max: 0.4, mu_shrink: 0.25, risk_free: 0.04, prior: 0.09, weights: [1, 1, 1] },

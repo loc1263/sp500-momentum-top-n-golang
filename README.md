@@ -15,12 +15,14 @@ depende del mes de arranque y muestra todo en una aplicación web.
 - **N-0 vs. N-1**: el modelo de siempre frente a una variante que ignora el último mes al rankear.
 - **Top actual**: las N acciones líderes hoy, con suplentes, cambios y próximo rebalanceo.
 - **ETFs de Vanguard**: ranking de momentum ajustado por riesgo.
+- **ETFs por gestora**: los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab, con momentum y calidad (costo y tamaño).
 - **Modelo por score**: score de momentum, de salud financiera y técnico para cada acción, y Markowitz sobre las mejores.
 
 ## Requisitos
 
 - [Go](https://go.dev/dl/) 1.26 o superior
 - [Node.js](https://nodejs.org/) 20.19 o superior (incluye `npm`)
+- [Python](https://www.python.org/downloads/) 3.8 o superior (solo para `start.py`)
 - Conexión a internet
 
 ## Cómo ejecutarlo
@@ -48,10 +50,13 @@ cd ..
 
 **3. Abrir la web**
 
-| Sistema | Comando |
-|---|---|
-| Windows (PowerShell) | `.\start.ps1` |
-| macOS / Linux | `./start.sh` |
+```
+python start.py
+```
+
+Antes de levantar el frontend valida el entorno (Python, Node.js 20.19 o superior y npm, dependencias instaladas, puerto libre y que
+`frontend/public/data/report.json` exista, sea válido y no esté viejo). Con `python start.py --refresh` corre antes el pipeline del
+backend (pide Go), y con `--check` solo valida.
 
 Luego abra **http://localhost:5173**. Para detenerlo, `Ctrl+C`. Para actualizar los resultados, repita el paso 2 y
 recargue la página.
@@ -60,9 +65,8 @@ recargue la página.
 
 | Síntoma | Solución |
 |---|---|
-| PowerShell indica que la ejecución de scripts está deshabilitada | `powershell -ExecutionPolicy Bypass -File .\start.ps1`, o `cd frontend && npm run dev` |
 | La web muestra «No se pudo cargar data/report.json», «Sin Top actual» o «Sin backtest» | Falta el paso 2: ejecute `go run ./cmd/top3 pipeline` en `backend-go/` y recargue |
-| Puerto en uso | `.\start.ps1 -FrontendPort 3000` (Windows) o `FRONTEND_PORT=3000 ./start.sh` |
+| Puerto en uso | `python start.py --port 3000` |
 | Errores `TOP-NET-...` durante la descarga | Suelen ser límites de Yahoo Finance o de red; reintente más tarde |
 | No aparece el conejito 🐇 de la web | Se oculta si el sistema tiene la reducción de movimiento activada. En Windows 11: Configuración → Accesibilidad → Efectos visuales → **Efectos de animación** en «Activado», y recargue la página |
 

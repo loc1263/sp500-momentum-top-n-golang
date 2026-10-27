@@ -25,6 +25,7 @@ o sin compilar: `go run ./cmd/top3 pipeline`.
 | `top3 backtest` | `[--sweep] [--offsets] [--months N] [--years N] [--large-cap] [--min-cap-billions N] [--no-cache]` |
 | `top3 actual` | `[--months N] [--top-n N] [--large-cap] [--min-cap-billions N] [--no-cache]` |
 | `top3 etf` | `[--as-of YYYY-MM-DD] [--top-n N] [--csv ruta] [--no-update]` |
+| `top3 etfq` | `[--top-n N]` |
 | `top3 quant` | `[--no-cache]` |
 | `top3 export` | |
 | `top3 prune` | `[--keep-days N]` |
@@ -48,6 +49,7 @@ internal/engine     motor del backtest y matriz de precios con ventanas O(1)
 internal/backtest   corridas por plazo y calendario de arranque, y su flujo
 internal/actual     Top actual y rotación
 internal/etf        ranking de ETFs de Vanguard y actualización de la lista
+internal/etfq       ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM)
 internal/quant      scores de momentum, salud y técnico, Markowitz (puntos interiores) y el JSON del modelo
 internal/report     el JSON del frontend
 internal/history    historial del Top actual y de ETFs en JSON versionado (la base SQLite es solo caché)

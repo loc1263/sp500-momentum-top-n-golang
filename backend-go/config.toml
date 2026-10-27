@@ -97,6 +97,38 @@ history_file = "history/history.json"
 # hacia atrás y rebalancea cada N meses (ignora "months" de [backtest]).
 months = [2, 4, 6, 8, 10, 12]
 
+[etfq]
+# ETFs por gestora (top3 etfq): momentum y calidad (TER y AUM). Independiente de los ETFs de Vanguard ([etf]), pero usa sus
+# plazos, referencia libre de riesgo y volatilidad mínima para el score de momentum. Todo viene de Yahoo Finance.
+# ETFs que se muestran en la consola (el JSON del frontend trae todos)
+top_n = 20
+# Filtro de elegibilidad: TER máximo (% anual) y AUM mínimo (millones de US$); 0 = sin tope / sin mínimo
+max_ter = 0.50
+min_aum_millions = 100
+# Peso de la calidad en el score final (0-1; el resto es momentum) y pesos del TER y del AUM dentro de la calidad
+quality_weight = 0.25
+quality_weights = [4, 1]
+# Días que se reutiliza la categoría guardada de cada ETF
+category_ttl_days = 30
+
+# Gestoras (al final de la sección: lo que sigue a [[etfq.families]] pertenece a esa tabla). name es el fundFamily de Yahoo;
+# label, el nombre que se muestra
+[[etfq.families]]
+name = "iShares"
+label = "iShares"
+[[etfq.families]]
+name = "Vanguard"
+label = "Vanguard"
+[[etfq.families]]
+name = "State Street Investment Management"
+label = "SPDR"
+[[etfq.families]]
+name = "Invesco"
+label = "Invesco"
+[[etfq.families]]
+name = "Schwab ETFs"
+label = "Schwab"
+
 [quant]
 # Modelo por score (top3 quant): score de momentum, de salud financiera y técnico de las acciones del S&P 500, su promedio
 # como score final y Markowitz sobre las mejores. No hace backtest.

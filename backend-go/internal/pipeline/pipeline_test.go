@@ -24,10 +24,10 @@ func TestPipelineSteps(t *testing.T) {
 	if n[0] != "Tests" || !reflect.DeepEqual(n[len(n)-2:], []string{"Exportar JSON del frontend", "Limpieza de datos y reportes viejos"}) {
 		t.Fatalf("pasos: %v", n)
 	}
-	if len(steps) != 1+1+3+1+1+1+1 { // tests + backtest + 3 universos + ETFs + modelo + export + limpieza
+	if len(steps) != 1+1+3+1+1+1+1+1 { // tests + backtest + 3 universos + ETFs + ETFs por gestora + modelo + export + limpieza
 		t.Fatalf("%d pasos: %v", len(steps), n)
 	}
-	if !slices.Contains(n, "Ranking de ETFs de Vanguard") || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "Modelo por score") }) {
+	if !slices.Contains(n, "Ranking de ETFs de Vanguard") || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "ETFs por gestora") }) || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "Modelo por score") }) {
 		t.Fatalf("pasos: %v", n)
 	}
 	bt := steps[1].Cmd
@@ -44,7 +44,7 @@ func TestPipelineSteps(t *testing.T) {
 		t.Fatalf("universos del Top actual: %v", withCap)
 	}
 
-	only := BuildSteps(cfg, Options{Config: "config.toml", SkipBacktest: true, SkipActual: true, SkipEtf: true, SkipQuant: true, SkipPrune: true}, "top3")
+	only := BuildSteps(cfg, Options{Config: "config.toml", SkipBacktest: true, SkipActual: true, SkipEtf: true, SkipEtfq: true, SkipQuant: true, SkipPrune: true}, "top3")
 	if !reflect.DeepEqual(names(only), []string{"Exportar JSON del frontend"}) {
 		t.Fatalf("solo export: %v", names(only))
 	}

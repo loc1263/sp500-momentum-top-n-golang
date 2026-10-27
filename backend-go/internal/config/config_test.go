@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -65,5 +66,15 @@ func TestHistoryStart(t *testing.T) {
 	got := d.HistoryStart(time.Date(2026, 10, 24, 0, 0, 0, 0, time.UTC))
 	if got != "2014-10-24" && got != "2014-10-25" {
 		t.Fatalf("got %s", got)
+	}
+}
+
+func TestShippedConfigKeepsTheDefaultEtfqSettings(t *testing.T) {
+	got, _, err := Load("../../config.toml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got.Etfq, Default().Etfq) {
+		t.Fatalf("[etfq] del config.toml: %+v, por defecto: %+v", got.Etfq, Default().Etfq)
 	}
 }

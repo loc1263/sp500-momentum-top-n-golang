@@ -1,6 +1,6 @@
 // Command top3 es el punto de entrada único del backend: `top3 <comando> [opciones]`.
 //
-// Comandos: backtest, actual, etf, quant, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
+// Comandos: backtest, actual, etf, etfq, quant, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
 package main
 
 import (
@@ -22,6 +22,7 @@ import (
 	"top3/internal/console"
 	"top3/internal/errs"
 	"top3/internal/etf"
+	"top3/internal/etfq"
 	"top3/internal/history"
 	"top3/internal/logx"
 	"top3/internal/market"
@@ -31,7 +32,7 @@ import (
 	"top3/internal/yahoo"
 )
 
-var commands = []string{"backtest", "actual", "etf", "quant", "export", "prune", "pipeline"}
+var commands = []string{"backtest", "actual", "etf", "etfq", "quant", "export", "prune", "pipeline"}
 
 func main() {
 	// El proceso vive pocos segundos y mueve matrices grandes: se deja crecer el heap antes de cada GC (4x en vez de 2x),
@@ -140,6 +141,8 @@ func run(ctx context.Context, name string, args []string) error {
 		return runActual(ctx, args)
 	case "etf":
 		return runEtf(ctx, args)
+	case "etfq":
+		return runEtfq(ctx, args)
 	case "quant":
 		return runQuant(ctx, args)
 	case "export":
@@ -242,6 +245,27 @@ func runEtf(ctx context.Context, args []string) error {
 	if *asOf == "" { // una consulta a una fecha pasada no se guarda, así que no cambia lo que muestra la web
 		_, err = report.Export(cfg)
 	}
+	return err
+}
+
+func runEtfq(ctx context.Context, args []string) error {
+	f := newFlags("etfq", "ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM)")
+	topN := f.Int("top-n", 0, "Cuántos ETFs mostrar en la consola (default: [etfq] top_n del config)")
+	if stop, err := f.parse(args); stop {
+		return err
+	}
+	cfg, err := start(f.config, func(o config.Output) string { return o.EtfqLog })
+	if err != nil {
+		return err
+	}
+	y, err := newYahoo(cfg)
+	if err != nil {
+		return err
+	}
+	if err := etfq.Run(ctx, cfg, y, etfq.Options{TopN: *topN}); err != nil {
+		return err
+	}
+	_, err = report.Export(cfg)
 	return err
 }
 

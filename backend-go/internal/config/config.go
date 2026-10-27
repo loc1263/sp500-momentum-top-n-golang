@@ -83,6 +83,7 @@ type Output struct {
 	BacktestLog    string `toml:"backtest_log" json:"backtest_log"`
 	ActualLog      string `toml:"actual_log" json:"actual_log"`
 	EtfLog         string `toml:"etf_log" json:"etf_log"`
+	EtfqLog        string `toml:"etfq_log" json:"etfq_log"`
 	QuantLog       string `toml:"quant_log" json:"quant_log"`
 	ExportLog      string `toml:"export_log" json:"export_log"`
 	PruneLog       string `toml:"prune_log" json:"prune_log"`
@@ -99,6 +100,27 @@ type Etf struct {
 	TopN           int     `toml:"top_n" json:"top_n"`
 	MinVol         float64 `toml:"min_vol" json:"min_vol"`
 	RiskFreeTicker string  `toml:"risk_free_ticker" json:"risk_free_ticker"`
+}
+
+// Family es una gestora de [etfq]: Name es como la identifica Yahoo Finance (fundFamily) y Label el nombre que se muestra.
+type Family struct {
+	Name  string `toml:"name" json:"name"`
+	Label string `toml:"label" json:"label"`
+}
+
+// Etfq es [etfq]: ETFs de las grandes gestoras, con su calidad (costos y liquidez). La sección de ETFs de Vanguard ([etf]) es
+// independiente; el score de momentum sí usa sus plazos, referencia libre de riesgo y volatilidad mínima.
+type Etfq struct {
+	Families []Family `toml:"families" json:"families"`
+	TopN     int      `toml:"top_n" json:"top_n"`
+	// TER máximo en % anual y AUM mínimo en millones de US$ para ser elegible (0 = sin tope / sin mínimo)
+	MaxTER         float64 `toml:"max_ter" json:"max_ter"`
+	MinAumMillions float64 `toml:"min_aum_millions" json:"min_aum_millions"`
+	// Peso de la calidad en el score final (0-1) y pesos de TER y AUM dentro de la calidad
+	QualityWeight  float64   `toml:"quality_weight" json:"quality_weight"`
+	QualityWeights []float64 `toml:"quality_weights" json:"quality_weights"`
+	// Días que se reutiliza la categoría guardada de cada ETF (casi no cambia)
+	CategoryTTLDays int `toml:"category_ttl_days" json:"category_ttl_days"`
 }
 
 // Quant es [quant]: modelo por score y Markowitz.
@@ -129,6 +151,7 @@ type Config struct {
 	Simulation Simulation `toml:"simulation" json:"simulation"`
 	Output     Output     `toml:"output" json:"output"`
 	Etf        Etf        `toml:"etf" json:"etf"`
+	Etfq       Etfq       `toml:"etfq" json:"etfq"`
 	Quant      Quant      `toml:"quant" json:"quant"`
 	Universe   Universe   `toml:"universe" json:"universe"`
 }
@@ -170,7 +193,7 @@ func Default() Config {
 			Dir: "output", KeepDays: 7, BacktestSubdir: "backtest", ActualSubdir: "actual",
 			BacktestPrefix: "top3_backtest", SweepPrefix: "top3_sweep", OffsetsPrefix: "top3_offsets",
 			ActualPrefix: "top3_actual", EtfSubdir: "etf", EtfPrefix: "top3_etf", LogDir: "log",
-			BacktestLog: "top3_backtest.log", ActualLog: "top3_actual.log", EtfLog: "top3_etf.log",
+			BacktestLog: "top3_backtest.log", ActualLog: "top3_actual.log", EtfLog: "top3_etf.log", EtfqLog: "top3_etfq.log",
 			QuantLog: "top3_quant.log", ExportLog: "export_frontend.log", PruneLog: "top3_prune.log",
 			FrontendData: "../frontend/public/data/report.json",
 			HistoryFile:  "history/history.json",
@@ -183,6 +206,13 @@ func Default() Config {
 			TopN:           15,
 			MinVol:         0.01,
 			RiskFreeTicker: "VUSB",
+		},
+		Etfq: Etfq{
+			Families: []Family{
+				{"iShares", "iShares"}, {"Vanguard", "Vanguard"}, {"State Street Investment Management", "SPDR"},
+				{"Invesco", "Invesco"}, {"Schwab ETFs", "Schwab"},
+			},
+			TopN: 20, MaxTER: 0.50, MinAumMillions: 100, QualityWeight: 0.25, QualityWeights: []float64{4, 1}, CategoryTTLDays: 30,
 		},
 		Quant: Quant{
 			Weights: []float64{1, 1, 1}, HealthWeights: []float64{1, 1, 1, 2}, TopN: 10, VolTarget: 0.20,
