@@ -16,6 +16,7 @@ frontend/public/data/report.json
 .DS_Store
 Thumbs.db
 desktop.ini
+__pycache__/
 
 # Documentación local (no se sube a GitHub)
 docs/
