@@ -172,12 +172,35 @@ def check_port(port):
         fail(f"el puerto {port} ya está en uso. Prueba con otro: python start.py --port {port + 1}")
 
 
+def console_input_restorer():
+    """Guarda el modo de entrada de la consola de Windows y devuelve la función que lo restaura.
+
+    Node/Vite cambian ese modo (entrada "raw") y, si se los mata a la fuerza, lo dejan así: la terminal queda con teclas que no
+    responden. En otros sistemas no hace nada."""
+    if os.name != "nt":
+        return lambda: None
+    try:
+        import ctypes
+
+        kernel = ctypes.windll.kernel32
+        kernel.GetStdHandle.restype = ctypes.c_void_p
+        kernel.SetConsoleMode.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        handle, mode = kernel.GetStdHandle(-10), ctypes.c_uint32()  # -10 = entrada estándar
+        if not kernel.GetConsoleMode(ctypes.c_void_p(handle), ctypes.byref(mode)):
+            return lambda: None  # la entrada no es una consola (redirigida)
+        return lambda: kernel.SetConsoleMode(handle, mode.value)
+    except (OSError, AttributeError):
+        return lambda: None
+
+
 def serve(npm, port):
     env = {**os.environ, "FRONTEND_PORT": str(port)}
     print(paint(f"Frontend -> http://localhost:{port}   (Ctrl+C para detener)", "green"))
     # En Windows el proceso hijo se crea en su propio grupo para poder detenerlo entero con Ctrl+C
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-    proc = subprocess.Popen([npm, "run", "dev"], cwd=FRONTEND, env=env, creationflags=flags)
+    restore_console = console_input_restorer()
+    # Sin entrada (stdin) Vite no toca el modo de la consola ni escucha atajos de teclado (h + enter, etc.)
+    proc = subprocess.Popen([npm, "run", "dev"], cwd=FRONTEND, env=env, creationflags=flags, stdin=subprocess.DEVNULL)
     try:
         # En Windows proc.wait() sin plazo bloquea sin atender Ctrl+C: se espera en tramos cortos para que llegue el KeyboardInterrupt
         while True:
@@ -195,6 +218,8 @@ def serve(npm, port):
         except subprocess.TimeoutExpired:
             proc.kill()
         return 0
+    finally:
+        restore_console()
 
 
 def main():

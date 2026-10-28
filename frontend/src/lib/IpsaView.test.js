@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import IpsaView from './IpsaView.svelte';
 import { report } from '../test/fixtures.js';
@@ -25,5 +25,15 @@ describe('IpsaView: sector en una palabra', () => {
     const cell = [...document.querySelectorAll('td')].find((c) => c.textContent.trim() === 'Financial');
     expect(cell).toBeTruthy();
     expect(cell.getAttribute('title')).toBe('Financial Services');
+  });
+});
+
+describe('IpsaView: sector en la tabla de Markowitz', () => {
+  it('también lo muestra en una palabra', () => {
+    const data = { ...ipsa, ranking: ipsa.ranking.map((r) => ({ ...r, sector: 'Financial Services' })) };
+    render(IpsaView, { ipsa: data });
+    const table = screen.getByRole('heading', { name: /mejores y sus pesos/ }).parentElement.querySelector('details.more + .wrap');
+    expect(within(table).getAllByText('Financial').length).toBeGreaterThan(0);
+    expect(within(table).queryByText('Financial Services')).toBeNull();
   });
 });

@@ -281,7 +281,7 @@
         <tr>
           <td><TickerLink ticker={r.ticker} /></td>
           <td>{r.name}</td>
-          <td class="muted">{r.sector}</td>
+          <td class="muted" title={SHORT_SECTOR[r.sector] ? r.sector : undefined}>{SHORT_SECTOR[r.sector] ?? r.sector}</td>
           <td class="r"><strong>{score(r.score)}</strong></td>
           <td class="r {sign(inputs[r.ticker].exp_return)}">{pct(inputs[r.ticker].exp_return)}</td>
           <td class="r">{share(inputs[r.ticker].vol)}</td>
