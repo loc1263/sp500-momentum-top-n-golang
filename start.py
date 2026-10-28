@@ -46,6 +46,24 @@ def info(text):
     print(paint(text, "cyan"))
 
 
+CHECKS = []  # los chequeos que salieron bien, para repetirlos junto al link del frontend
+
+
+def ok(text):
+    """Línea de un chequeo que salió bien (con una marca verde; texto plano si la consola no admite el símbolo)."""
+    CHECKS.append(text)
+    print(check_line(text))
+
+
+def check_line(text):
+    mark = "✔"
+    try:
+        mark.encode(sys.stdout.encoding or "ascii")
+    except UnicodeEncodeError:
+        mark = "OK"
+    return f"{paint(mark, 'green')} {text}"
+
+
 def warn(text):
     print(paint(f"Aviso: {text}", "yellow"), file=sys.stderr)
 
@@ -72,6 +90,7 @@ def run_capture(cmd):
 def check_python():
     if sys.version_info < MIN_PYTHON:
         fail(f"hace falta Python {'.'.join(map(str, MIN_PYTHON))} o superior (esta es {sys.version.split()[0]}).")
+    ok(f"Python {sys.version.split()[0]}")
 
 
 def check_node():
@@ -80,17 +99,21 @@ def check_node():
     if not node or not npm:
         fail("no se encontró " + ("Node.js" if not node else "npm") + " en el PATH. Instálalo desde https://nodejs.org/ "
              f"(versión {MIN_NODE[0]}.{MIN_NODE[1]} o superior; incluye npm).")
-    found = version_of(run_capture([node, "--version"]) or "")
+    text = run_capture([node, "--version"]) or ""
+    found = version_of(text)
     if found is None:
         warn("no se pudo leer la versión de Node.")
     elif found < MIN_NODE:
         fail(f"Node {found[0]}.{found[1]} es muy viejo: hace falta {MIN_NODE[0]}.{MIN_NODE[1]} o superior.")
+    else:
+        ok(f"Node {text.lstrip('v')} y npm")
     return npm
 
 
 def check_layout():
     if not (FRONTEND / "package.json").is_file():
         fail(f"no existe {FRONTEND / 'package.json'}: ejecuta este script desde la raíz del proyecto.")
+    ok(f"Proyecto en {ROOT}")
 
 
 def dependencies_outdated():
@@ -119,6 +142,8 @@ def check_go():
     wanted, found = (int(m[1]), int(m[2])) if m else None, version_of(run_capture([go, "version"]) or "")
     if wanted and found and found < wanted:
         fail(f"Go {found[0]}.{found[1]} es muy viejo: backend-go/go.mod pide {wanted[0]}.{wanted[1]} o superior.")
+    if found:
+        ok(f"Go {found[0]}.{found[1]}")
     return go
 
 
@@ -127,6 +152,7 @@ def refresh_data():
     info("Generando los datos (go run ./cmd/top3 pipeline); la primera vez tarda varios minutos...")
     if subprocess.run([go, "run", "./cmd/top3", "pipeline"], cwd=BACKEND).returncode != 0:
         fail("el pipeline del backend falló; revisa backend-go/log/.")
+    ok("Pipeline del backend completado: datos actualizados")
 
 
 def check_report():
@@ -146,7 +172,9 @@ def check_report():
     age = (time.time() - REPORT.stat().st_mtime) / 86400
     if age > STALE_DAYS:
         warn(f"los datos tienen {age:.0f} días. {hint}")
-    missing = [name for name, label in (("etf", "ETFs Vanguard"), ("etfq", "ETFs por gestora"), ("quant", "Modelo por score"), ("ipsa", "Chile (IPSA)")) if not report.get(name)]
+    else:
+        ok(f"Datos: {REPORT.relative_to(ROOT)} ({'de hoy' if age < 1 else f'de hace {age:.0f} días'})")
+    missing = [label for name, label in (("etf", "ETFs Vanguard"), ("etfq", "ETFs por gestora"), ("quant", "Modelo por score"), ("ipsa", "Chile (IPSA)")) if not report.get(name)]
     if missing:
         warn("el JSON no trae: " + ", ".join(missing) + ". Esas pestañas saldrán vacías hasta correr el pipeline.")
     return True
@@ -170,6 +198,7 @@ def check_port(port):
         fail(f"el puerto {port} no es válido (1-65535).")
     if port_in_use(port):
         fail(f"el puerto {port} ya está en uso. Prueba con otro: python start.py --port {port + 1}")
+    ok(f"Puerto {port} libre")
 
 
 def console_input_restorer():
@@ -195,7 +224,10 @@ def console_input_restorer():
 
 def serve(npm, port):
     env = {**os.environ, "FRONTEND_PORT": str(port)}
+    print()
     print(paint(f"Frontend -> http://localhost:{port}   (Ctrl+C para detener)", "green"))
+    for text in CHECKS:  # el resumen del entorno queda a la vista junto al link, antes de la salida de Vite
+        print(check_line(text))
     # En Windows el proceso hijo se crea en su propio grupo para poder detenerlo entero con Ctrl+C
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
     restore_console = console_input_restorer()
@@ -229,6 +261,7 @@ def main():
     parser.add_argument("--check", action="store_true", help="solo valida el entorno; no levanta el servidor")
     args = parser.parse_args()
 
+    info("Revisando el entorno...")
     check_python()
     check_layout()
     npm = check_node()
@@ -236,6 +269,9 @@ def main():
         refresh_data()
     if dependencies_outdated():
         install_dependencies(npm)
+        ok("Dependencias del frontend instaladas")
+    else:
+        ok("Dependencias del frontend al día")
     check_report()
     check_port(args.port)
     if args.check:
