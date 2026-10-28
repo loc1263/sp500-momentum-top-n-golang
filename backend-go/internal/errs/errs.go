@@ -2,7 +2,7 @@
 // lleva su ID.
 //
 // Formato: TOP-<ÁREA>-<NNN>. Áreas: CFG configuración, NET descargas, DAT datos, BKT backtest, ACT Top actual,
-// ETF ETFs de Vanguard, GES ETFs por gestora, QNT modelo por score. Los IDs no se reutilizan ni se renumeran: documentarlos en la tabla de errores del README.
+// ETF ETFs de Vanguard, GES ETFs por gestora, QNT modelo por score, IPS IPSA. Los IDs no se reutilizan ni se renumeran: documentarlos en la tabla de errores del README.
 package errs
 
 import "fmt"
@@ -142,4 +142,12 @@ var (
 var (
 	QntNoSignal = code("TOP-QNT-001", "error", "No hay acciones suficientes para el ranking del modelo por score",
 		"Descarga más historia (--no-cache) o baja [quant] top_n; revisa también TOP-DAT-005.")
+)
+
+// IPSA (Bolsa de Santiago)
+var (
+	IpsNoUniverse = code("TOP-IPS-001", "error", "No se pudo obtener la lista de acciones del IPSA",
+		"Revisa [ipsa] wikipedia_url y la conexión; si hay una lista guardada (universe_file) se usa aunque esté vencida.")
+	IpsNoSignal = code("TOP-IPS-002", "error", "No hay acciones suficientes para el ranking del IPSA",
+		"Descarga de nuevo (--no-cache) o baja [ipsa] top_n; Yahoo tiene pocos datos financieros de acciones chilenas.")
 )

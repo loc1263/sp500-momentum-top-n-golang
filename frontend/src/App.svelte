@@ -6,6 +6,7 @@
   import EtfView from './lib/EtfView.svelte';
   import EtfqView from './lib/EtfqView.svelte';
   import QuantView from './lib/QuantView.svelte';
+  import IpsaView from './lib/IpsaView.svelte';
   import AboutView from './lib/AboutView.svelte';
   import Glossary from './lib/Glossary.svelte';
   import Bunny from './lib/Bunny.svelte';
@@ -29,7 +30,13 @@
         { id: 'etfq', label: 'ETFs por gestora' },
       ],
     },
-    { label: 'Acciones', tabs: [{ id: 'quant', label: 'Modelo por score' }] },
+    {
+      label: 'Acciones',
+      tabs: [
+        { id: 'quant', label: 'Modelo por score' },
+        { id: 'ipsa', label: 'IPSA (Chile)' },
+      ],
+    },
   ];
   const tabs = groups.flatMap((g) => g.tabs);
 
@@ -122,6 +129,8 @@
       <h1>ETFs por gestora</h1>
     {:else if tab === 'quant'}
       <h1>Modelo por score</h1>
+    {:else if tab === 'ipsa'}
+      <h1>Modelo por score: IPSA</h1>
     {:else if tab === 'about'}
       <h1>About</h1>
     {:else}
@@ -134,6 +143,8 @@
         Los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum ajustado por riesgo y calidad (costo y tamaño) dentro de cada categoría.
       {:else if tab === 'quant'}
         Scores de momentum, salud financiera y técnico de las acciones del S&amp;P 500, su promedio y Markowitz sobre las mejores.
+      {:else if tab === 'ipsa'}
+        Scores de momentum, salud financiera y técnico de las 30 acciones del IPSA (Bolsa de Santiago, en pesos chilenos), su promedio y Markowitz sobre las mejores.
       {:else if tab === 'about'}
         Qué se muestra en esta aplicación y cómo leerlo.
       {:else}
@@ -166,7 +177,7 @@
         {/each}
       </div>
       <div class="filters">
-        {#if tab !== 'actual' && tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'about' && periods.length}
+        {#if tab !== 'actual' && tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'ipsa' && tab !== 'about' && periods.length}
           <label>
             Período
             <select value={period?.years} onchange={(e) => (chosenYears = Number(e.currentTarget.value))}>
@@ -178,7 +189,7 @@
             </select>
           </label>
         {/if}
-        {#if tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'about'}
+        {#if tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'ipsa' && tab !== 'about'}
           <label>
             Universo
             <select bind:value={capKey}>
@@ -213,6 +224,12 @@
       {:else}
         <p class="muted">Sin modelo por score. Ejecute top3 quant (en backend-go/).</p>
       {/if}
+    {:else if tab === 'ipsa'}
+      {#if report.ipsa}
+        <IpsaView ipsa={report.ipsa} />
+      {:else}
+        <p class="muted">Sin modelo del IPSA. Ejecute top3 ipsa (en backend-go/).</p>
+      {/if}
     {:else if tab === 'actual'}
       {#if actual}
         <ActualView {actual} />
@@ -230,7 +247,7 @@
     {/if}
 
     <footer>
-      Generado el {report.generated_at.replace('T', ' ')}. {#if tab === 'etfq'}ETFs por gestora: TER, AUM y categoría de Yahoo Finance; foto de hoy, sin backtest. {/if}{#if tab === 'quant'}Modelo por score: foto de hoy, sin backtest; los datos financieros son los últimos publicados (Yahoo Finance). {/if}&nbsp;Backtest con comisión de {share(report.settings.commission ?? 0, 2)} por lado, sin impuestos, ponderación igual
+      Generado el {report.generated_at.replace('T', ' ')}. {#if tab === 'etfq'}ETFs por gestora: TER, AUM y categoría de Yahoo Finance; foto de hoy, sin backtest. {/if}{#if tab === 'ipsa'}IPSA: foto de hoy, sin backtest; precios en pesos chilenos y datos financieros de Yahoo Finance. {/if}{#if tab === 'quant'}Modelo por score: foto de hoy, sin backtest; los datos financieros son los últimos publicados (Yahoo Finance). {/if}&nbsp;Backtest con comisión de {share(report.settings.commission ?? 0, 2)} por lado, sin impuestos, ponderación igual
       entre los tickers seleccionados. Excluye tickers sin datos en Yahoo (sesgo de supervivencia). Herramienta de
       análisis, no una recomendación de inversión.
     </footer>

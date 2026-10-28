@@ -4,7 +4,7 @@
   import Hint from './Hint.svelte';
   import { pct, share, sign, slicePage } from './format.js';
 
-  let { quant } = $props();
+  let { quant, title = 'Ranking del S&P 500' } = $props();
 
   let page = $state(0);
 
@@ -330,7 +330,7 @@
 </div>
 <p class="sub note">En negrita, los sectores que llegan al tope de {share(mk.sector_max, 0)}.</p>
 
-<h2>Ranking del S&amp;P 500</h2>
+<h2>{title}</h2>
 <p class="sub">
   Las {cov.ranked} acciones con los tres scores, de mejor a peor score final.
   {#if cov.excluded.sin_momentum.length}Sin un año de precios (no tienen momentum): {cov.excluded.sin_momentum.join(', ')}.{/if}

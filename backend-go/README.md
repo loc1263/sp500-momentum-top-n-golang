@@ -14,7 +14,7 @@ Desde esta carpeta (las rutas del `config.toml` son relativas a ella):
 
 ```
 go build -o top3 ./cmd/top3        # top3.exe en Windows
-./top3 pipeline                    # todo: backtest, Top actual, ETFs, modelo por score, JSON del frontend y limpieza
+./top3 pipeline                    # todo: backtest, Top actual, ETFs, modelo por score, IPSA, JSON del frontend y limpieza
 ```
 
 o sin compilar: `go run ./cmd/top3 pipeline`.

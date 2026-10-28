@@ -1,6 +1,6 @@
 // Command top3 es el punto de entrada único del backend: `top3 <comando> [opciones]`.
 //
-// Comandos: backtest, actual, etf, etfq, quant, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
+// Comandos: backtest, actual, etf, etfq, quant, ipsa, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
 package main
 
 import (
@@ -24,6 +24,7 @@ import (
 	"top3/internal/etf"
 	"top3/internal/etfq"
 	"top3/internal/history"
+	"top3/internal/ipsa"
 	"top3/internal/logx"
 	"top3/internal/market"
 	"top3/internal/pipeline"
@@ -32,7 +33,7 @@ import (
 	"top3/internal/yahoo"
 )
 
-var commands = []string{"backtest", "actual", "etf", "etfq", "quant", "export", "prune", "pipeline"}
+var commands = []string{"backtest", "actual", "etf", "etfq", "quant", "ipsa", "export", "prune", "pipeline"}
 
 func main() {
 	// El proceso vive pocos segundos y mueve matrices grandes: se deja crecer el heap antes de cada GC (4x en vez de 2x),
@@ -145,6 +146,8 @@ func run(ctx context.Context, name string, args []string) error {
 		return runEtfq(ctx, args)
 	case "quant":
 		return runQuant(ctx, args)
+	case "ipsa":
+		return runIpsa(ctx, args)
 	case "export":
 		return runExport(args)
 	case "prune":
@@ -284,6 +287,31 @@ func runQuant(ctx context.Context, args []string) error {
 		return err
 	}
 	payload, err := quant.Run(ctx, cfg, y, !*noCache)
+	if err != nil {
+		return err
+	}
+	for _, l := range payload.Summary() {
+		console.Println(l)
+	}
+	_, err = report.Export(cfg)
+	return err
+}
+
+func runIpsa(ctx context.Context, args []string) error {
+	f := newFlags("ipsa", "Modelo por score de las 30 acciones del IPSA (Bolsa de Santiago, en pesos chilenos) y Markowitz del top")
+	noCache := f.Bool("no-cache", false, "Vuelve a bajar la lista del IPSA y los datos financieros en lugar de reutilizarlos")
+	if stop, err := f.parse(args); stop {
+		return err
+	}
+	cfg, err := start(f.config, func(o config.Output) string { return o.IpsaLog })
+	if err != nil {
+		return err
+	}
+	y, err := newYahoo(cfg)
+	if err != nil {
+		return err
+	}
+	payload, err := ipsa.Run(ctx, cfg, y, !*noCache)
 	if err != nil {
 		return err
 	}

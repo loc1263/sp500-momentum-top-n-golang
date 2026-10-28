@@ -100,6 +100,7 @@ top3 pipeline --skip-actual    # omite el Top actual
 top3 pipeline --skip-etf       # omite el ranking de ETFs de Vanguard
 top3 pipeline --skip-etfq      # omite los ETFs por gestora
 top3 pipeline --skip-quant     # omite el modelo por score
+top3 pipeline --skip-ipsa      # omite el modelo por score del IPSA
 ```
 
 Cada paso corre en su propio proceso y, si uno falla, se corta. Al final imprime el tiempo de cada paso.
@@ -178,6 +179,28 @@ Además del Top, muestra:
   del backtest, pero hace falta acumular selecciones (una por corrida con datos de un día nuevo) antes de que diga algo.
 
 Correr el script dos veces con los mismos datos reemplaza el resultado en lugar de duplicarlo.
+
+### IPSA (`top3 ipsa`)
+
+El mismo modelo por score (momentum, salud financiera y técnico, su promedio y Markowitz sobre las mejores) aplicado a las 30
+acciones del IPSA de la Bolsa de Santiago, en **pesos chilenos**. Es una sección aparte: no usa ni modifica las tablas de
+precios u OHLCV del S&P 500, ni el resultado de `top3 quant`. Reutiliza de `[quant]` los pesos de los scores, el peso de la
+salud y `mu_shrink`; lo propio está en `[ipsa]`.
+
+```
+top3 ipsa             # ~10 segundos (30 acciones)
+top3 ipsa --no-cache  # además vuelve a bajar la lista del IPSA y los datos financieros
+```
+
+- **Lista de acciones**: la tabla de Wikipedia (columna Nemotécnico). Se guarda en `[ipsa] universe_file`
+  (`history/ipsa_universe.json`, versionado en git) con la fecha, y se renueva cuando tiene más de `universe_ttl_days` días
+  (30 = mensual) o con `--no-cache`. Si Wikipedia falla se usa la guardada aunque esté vencida (aviso `TOP-IPS-001` si no hay
+  ninguna). El archivo se puede editar a mano; mientras no esté vencido se respeta.
+- **Tickers de Yahoo**: nemotécnico + `[ipsa] suffix` (`.SN`); `[ipsa.aliases]` cubre renombres (nemotécnico = símbolo de Yahoo sin sufijo).
+- **Moneda y tasa**: precios y capitalización en CLP; tasa libre de riesgo `[ipsa] risk_free` = 5% más `equity_premium` = 6% de prima
+  (retorno de largo plazo esperado de 11%). Markowitz sobre las `top_n` = 6 mejores, con volatilidad objetivo, peso máximo por
+  acción y por sector propios.
+- Yahoo tiene datos financieros menos completos de acciones chilenas que de EE. UU.: las que queden sin algún score salen en `coverage`.
 
 ### Modelo por score (`top3 quant`)
 
@@ -416,6 +439,7 @@ historial en otro entorno basta con clonar el repositorio.
 | `fundamentals` | Últimos datos financieros descargados de cada empresa (JSON) y su fecha |
 | `ohlcv` | Apertura, máximo, mínimo, cierre ajustado y volumen diarios del último año y medio de cada acción del S&P 500 (para los indicadores técnicos) |
 | `quant_runs` | Último resultado del modelo por score (JSON: ranking y Markowitz) |
+| `ipsa_runs` | Último resultado del modelo por score del IPSA (JSON, igual que `quant_runs` más moneda y origen de la lista) |
 | `actual_picks`, `actual_alternates` | Resultados de `top3 actual` (fecha de datos, plazo, ticker, retorno, precio, capitalización) y sus suplentes |
 
 ### Limpieza de la base
@@ -464,6 +488,7 @@ Formato: `TOP-<ÁREA>-<NNN>`.
 | `ETF` | Ranking de ETFs de Vanguard |
 | `GES` | ETFs por gestora |
 | `QNT` | Modelo por score |
+| `IPS` | IPSA (Bolsa de Santiago) |
 
 **Aviso** = se continúa con lo que haya. **Error** = la operación se corta o falla.
 
@@ -507,6 +532,8 @@ Para buscar en el log: `grep TOP-BKT backend-go/log/top3_backtest.log`.
 | `TOP-GES-002` | Aviso | ETFs sin categoría | Yahoo no informó la categoría: esos ETFs se comparan entre sí como 'Sin categoría'. Se reintenta en la próxima corrida. |
 | `TOP-GES-003` | Error | Ningún ETF de las gestoras se pudo rankear | Revisa la conexión y `[etfq] families`; los ETFs nuevos entran cuando acumulan historia para el plazo más largo. |
 | `TOP-QNT-001` | Error | No hay acciones suficientes para el ranking del modelo por score | Descarga más historia (`--no-cache`) o baja `[quant] top_n`; revisa también `TOP-DAT-005`. |
+| `TOP-IPS-001` | Error | No se pudo obtener la lista de acciones del IPSA | Revisa `[ipsa] wikipedia_url` y la conexión. Si hay una lista guardada (`universe_file`) se usa aunque esté vencida (en ese caso es un aviso). |
+| `TOP-IPS-002` | Error | No hay acciones suficientes para el ranking del IPSA | Descarga de nuevo (`--no-cache`) o baja `[ipsa] top_n`; Yahoo tiene pocos datos financieros de acciones chilenas. |
 
 ## Estructura y desarrollo
 
@@ -527,7 +554,8 @@ frontend/             # Aplicación web en Svelte 5 + Vite
 | `top3 etf` | Ranking de momentum ajustado por riesgo de los ETFs de Vanguard (sin backtest) |
 | `top3 etfq` | ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM) dentro de su categoría (sin backtest) |
 | `top3 quant` | Modelo por score: scores de momentum, de salud financiera y técnico del S&P 500 y Markowitz sobre las mejores (sin backtest) |
-| `top3 pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + JSON del frontend + limpieza |
+| `top3 ipsa` | Modelo por score de las 30 acciones del IPSA (Bolsa de Santiago, en CLP) y Markowitz sobre las mejores (sin backtest) |
+| `top3 pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + IPSA + JSON del frontend + limpieza |
 | `top3 prune` | Limpieza de lo viejo: corridas del backtest y caché vencida (el pipeline la corre al final) |
 | `top3 export` | Escribe el JSON en `frontend/public/data/report.json` (lo hacen solos los comandos al terminar) |
 | `backend-go/data/`, `backend-go/log/` | Base SQLite y logs; se crean solos |
@@ -547,6 +575,7 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 | `lib/EtfView.svelte` | Ranking de ETFs de Vanguard |
 | `lib/EtfqView.svelte` | ETFs por gestora: ranking con momentum, calidad (TER y AUM), filtros por gestora y categoría |
 | `lib/QuantView.svelte` | Modelo por score: top 10 con Markowitz y ranking completo con filtros |
+| `lib/IpsaView.svelte` | IPSA (Chile): reutiliza `QuantView` con el ranking del IPSA, aclara la moneda (CLP) y el origen de la lista |
 | `lib/AboutView.svelte` | Pestaña About: qué se muestra en la aplicación, fuentes de datos y límites |
 | `lib/Chart.svelte`, `Range.svelte`, `TickerLink.svelte`, `Glossary.svelte` | Componentes compartidos |
 | `lib/Bunny.svelte` | Detalle decorativo: un conejo que pasea por el pie de la pantalla, se aleja del cursor y saluda al hacer clic (se desactiva con «reducir movimiento» del sistema) |

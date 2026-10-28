@@ -78,6 +78,9 @@ CREATE INDEX IF NOT EXISTS idx_prices_date ON prices (date);
 CREATE TABLE IF NOT EXISTS etfq_category (ticker TEXT PRIMARY KEY, category TEXT NOT NULL, fetched TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS etfq_runs (run_at TEXT PRIMARY KEY, as_of TEXT, payload TEXT);
 `},
+	{4, `
+CREATE TABLE IF NOT EXISTS ipsa_runs (run_at TEXT PRIMARY KEY, as_of TEXT, payload TEXT);
+`},
 }
 
 // LatestVersion es la versión del esquema que conoce este código.

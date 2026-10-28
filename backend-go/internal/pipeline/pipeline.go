@@ -40,6 +40,7 @@ type Options struct {
 	SkipBacktest bool
 	SkipActual   bool
 	SkipQuant    bool
+	SkipIpsa     bool
 	SkipEtf      bool
 	SkipEtfq     bool
 	SkipPrune    bool
@@ -102,6 +103,14 @@ func BuildSteps(cfg config.Config, o Options, self string) []Step {
 	if !o.SkipQuant {
 		steps = append(steps, Step{"Modelo por score: scores de momentum, salud y técnico, y Markowitz", cmd("quant", cache())})
 	}
+	if !o.SkipIpsa {
+		// el IPSA no comparte descargas con los demás pasos (otra bolsa, otra lista): --no-cache le llega siempre
+		var ipsaCache []string
+		if o.NoCache {
+			ipsaCache = []string{"--no-cache"}
+		}
+		steps = append(steps, Step{"IPSA (Bolsa de Santiago): modelo por score y Markowitz, en pesos chilenos", cmd("ipsa", ipsaCache)})
+	}
 	steps = append(steps, Step{"Exportar JSON del frontend", cmd("export")})
 	if !o.SkipPrune {
 		steps = append(steps, Step{"Limpieza de datos y reportes viejos", cmd("prune")})
@@ -126,6 +135,7 @@ func Main(args []string) int {
 	fs.BoolVar(&o.SkipBacktest, "skip-backtest", false, "Omite el backtest")
 	fs.BoolVar(&o.SkipActual, "skip-actual", false, "Omite el Top actual")
 	fs.BoolVar(&o.SkipQuant, "skip-quant", false, "Omite el modelo por score (scores y Markowitz)")
+	fs.BoolVar(&o.SkipIpsa, "skip-ipsa", false, "Omite el modelo por score del IPSA")
 	fs.BoolVar(&o.SkipEtf, "skip-etf", false, "Omite el ranking de ETFs de Vanguard")
 	fs.BoolVar(&o.SkipEtfq, "skip-etfq", false, "Omite los ETFs por gestora (momentum y calidad)")
 	fs.BoolVar(&o.SkipPrune, "skip-prune", false, "Omite la limpieza final de datos y reportes viejos")

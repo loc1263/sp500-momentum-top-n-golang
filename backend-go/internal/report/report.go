@@ -197,6 +197,7 @@ type Report struct {
 	Actual       []Actual        `json:"actual"`
 	Etf          *Etf            `json:"etf"`
 	Quant        json.RawMessage `json:"quant"`
+	Ipsa         json.RawMessage `json:"ipsa"`
 	Etfq         json.RawMessage `json:"etfq"`
 	Backtest     []Universe      `json:"backtest"`
 	BacktestSkip []Universe      `json:"backtest_skip"`
@@ -740,6 +741,13 @@ func Build(d *sql.DB, cfg config.Config, today time.Time) (*Report, error) {
 	if quant == nil {
 		quant = json.RawMessage("null")
 	}
+	ipsaRun, err := repo.LatestIpsa(d)
+	if err != nil {
+		return nil, err
+	}
+	if ipsaRun == nil {
+		ipsaRun = json.RawMessage("null")
+	}
 	etfq, err := repo.LatestEtfq(d)
 	if err != nil {
 		return nil, err
@@ -751,7 +759,7 @@ func Build(d *sql.DB, cfg config.Config, today time.Time) (*Report, error) {
 		GeneratedAt: time.Now().Format("2006-01-02T15:04:05"), RunDate: strPtr(runDay),
 		Settings: Settings{TopN: bt.TopN, Months: bt.Months, InitialCapital: bt.InitialCapital, Commission: bt.Commission,
 			Terms: cfg.Simulation.Months, BacktestYears: bt.BacktestYears, MinCapBillions: cfg.Universe.MinCapBillions, PeriodsYears: years},
-		Actual: act, Etf: etf, Quant: quant, Etfq: etfq, Backtest: nonNil(bk), BacktestSkip: nonNil(skip),
+		Actual: act, Etf: etf, Quant: quant, Ipsa: ipsaRun, Etfq: etfq, Backtest: nonNil(bk), BacktestSkip: nonNil(skip),
 	}, nil
 }
 

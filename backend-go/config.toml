@@ -150,3 +150,22 @@ risk_free = 0.04
 equity_premium = 0.05
 # Días que se reutilizan los datos financieros descargados (cambian por trimestre)
 fundamentals_ttl_days = 7
+
+[ipsa]
+# IPSA (top3 ipsa): el mismo modelo por score que [quant] aplicado a las 30 acciones del IPSA (Bolsa de Santiago), en pesos chilenos.
+# Usa de [quant] los pesos de los scores y mu_shrink; aquí van la lista de acciones, la tasa y los límites de Markowitz.
+# Lista de acciones: tabla de Wikipedia (columna Nemotécnico). Se guarda en universe_file y se renueva cada universe_ttl_days días
+# (o con --no-cache); si Wikipedia falla se usa la guardada. Es un archivo versionado: se puede editar a mano si el índice cambia.
+wikipedia_url = "https://es.wikipedia.org/wiki/%C3%8Dndice_de_Precio_Selectivo_de_Acciones"
+universe_file = "history/ipsa_universe.json"
+universe_ttl_days = 30
+# Yahoo Finance: sufijo de la Bolsa de Santiago y alias (nemotécnico de Wikipedia = símbolo de Yahoo sin sufijo)
+suffix = ".SN"
+# Markowitz sobre las mejores: pocas, porque el índice tiene solo 30 acciones y varias comparten sector
+top_n = 6
+vol_target = 0.20
+w_max = 0.30
+sector_max = 0.40
+# Tasa libre de riesgo de Chile y prima de mercado (el retorno de largo plazo esperado es la suma)
+risk_free = 0.05
+equity_premium = 0.06

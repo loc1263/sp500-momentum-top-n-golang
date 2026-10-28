@@ -1,0 +1,126 @@
+{
+  "updated_at": "2026-10-28",
+  "source": "https://es.wikipedia.org/wiki/%C3%8Dndice_de_Precio_Selectivo_de_Acciones",
+  "stocks": [
+    {
+      "nemo": "AGUAS-A",
+      "name": "Aguas Andinas"
+    },
+    {
+      "nemo": "ANDINA-B",
+      "name": "Coca-Cola Andina"
+    },
+    {
+      "nemo": "BCI",
+      "name": "Banco de Crédito e Inversiones"
+    },
+    {
+      "nemo": "BSANTANDER",
+      "name": "Banco Santander Chile"
+    },
+    {
+      "nemo": "CAP",
+      "name": "CAP"
+    },
+    {
+      "nemo": "CCU",
+      "name": "Compañía de Cervecerías Unidas"
+    },
+    {
+      "nemo": "CENCOMALLS",
+      "name": "Cencosud Shopping S.A."
+    },
+    {
+      "nemo": "CENCOSUD",
+      "name": "Cencosud S.A."
+    },
+    {
+      "nemo": "CHILE",
+      "name": "Banco de Chile"
+    },
+    {
+      "nemo": "CMPC",
+      "name": "Empresas CMPC"
+    },
+    {
+      "nemo": "COLBUN",
+      "name": "Colbún"
+    },
+    {
+      "nemo": "CONCHATORO",
+      "name": "Viña Concha y Toro"
+    },
+    {
+      "nemo": "COPEC",
+      "name": "Copec"
+    },
+    {
+      "nemo": "ECL",
+      "name": "Engie"
+    },
+    {
+      "nemo": "ENELAM",
+      "name": "Enel Américas"
+    },
+    {
+      "nemo": "ENELCHILE",
+      "name": "Enel Chile"
+    },
+    {
+      "nemo": "ENTEL",
+      "name": "Entel Chile"
+    },
+    {
+      "nemo": "FALABELLA",
+      "name": "S.A.C.I. Falabella"
+    },
+    {
+      "nemo": "IAM",
+      "name": "Inversiones Aguas Metropolitanas"
+    },
+    {
+      "nemo": "ILC",
+      "name": "Inversiones La Construcción"
+    },
+    {
+      "nemo": "ITAUCL",
+      "name": "Banco Itaú Chile"
+    },
+    {
+      "nemo": "LTM",
+      "name": "Latam Airlines Group S.A."
+    },
+    {
+      "nemo": "MALLPLAZA",
+      "name": "Mallplaza"
+    },
+    {
+      "nemo": "PARAUCO",
+      "name": "Parque Arauco"
+    },
+    {
+      "nemo": "QUINENCO",
+      "name": "Quiñenco S.A"
+    },
+    {
+      "nemo": "RIPLEY",
+      "name": "Ripley"
+    },
+    {
+      "nemo": "SALFACORP",
+      "name": "SalfaCorp"
+    },
+    {
+      "nemo": "SMU",
+      "name": "SMU S.A."
+    },
+    {
+      "nemo": "SQM-B",
+      "name": "Sociedad Química y Minera de Chile"
+    },
+    {
+      "nemo": "VAPORES",
+      "name": "Compañía Sudamericana de Vapores"
+    }
+  ]
+}
