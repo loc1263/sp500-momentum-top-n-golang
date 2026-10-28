@@ -91,6 +91,16 @@
   });
 
   const key = (u) => String(u.min_cap_billions ?? 0);
+  // Nombre fijo del sitio (título principal) y título de la sección actual (debajo, más chico)
+  const SITE_NAME = 'Momentum y Scores';
+  const SECTION_TITLES = {
+    etf: 'ETFs de Vanguard', etfq: 'ETFs por gestora', quant: 'Modelo por score', ipsa: 'Modelo por score: IPSA', about: 'About',
+  };
+  const sectionTitle = $derived(SECTION_TITLES[tab] ?? `Top ${report?.settings.top_n ?? 'N'} del S&P 500`);
+  $effect(() => {
+    document.title = `${SITE_NAME} · ${sectionTitle}`;
+  });
+
   const universes = $derived(
     report ? [...new Map([...report.actual, ...report.backtest].map((u) => [key(u), u])).values()] : [],
   );
@@ -123,19 +133,8 @@
         {dark ? '☀️ Claro' : '🌙 Oscuro'}
       </button>
     </div>
-    {#if tab === 'etf'}
-      <h1>ETFs de Vanguard</h1>
-    {:else if tab === 'etfq'}
-      <h1>ETFs por gestora</h1>
-    {:else if tab === 'quant'}
-      <h1>Modelo por score</h1>
-    {:else if tab === 'ipsa'}
-      <h1>Modelo por score: IPSA</h1>
-    {:else if tab === 'about'}
-      <h1>About</h1>
-    {:else}
-      <h1>Top {report?.settings.top_n ?? 'N'} del S&amp;P 500</h1>
-    {/if}
+    <h1>{SITE_NAME}</h1>
+    <h2 class="section">{sectionTitle}</h2>
     <p class="sub">
       {#if tab === 'etf'}
         Momentum ajustado por riesgo: ranking de los ETFs de Vanguard por cuánto subieron por unidad de riesgo.
@@ -260,6 +259,11 @@
   main { max-width: 1280px; margin: 0 auto; padding: var(--space-4) var(--space-4) 48px; }
   header { position: relative; padding-right: 250px; min-height: 40px; }
   header .sub { margin-bottom: var(--space-3); }
+  /* h2 global es una etiqueta en mayúsculas con borde; aquí es el título de la sección, en tamaño menor que el del sitio */
+  header .section {
+    font-size: 1.05rem; font-weight: 600; letter-spacing: normal; text-transform: none; margin: 0 0 var(--space-1);
+    padding: 0; border: 0; color: var(--accent);
+  }
   .corner { position: absolute; top: 0; right: 0; display: flex; gap: var(--space-2); }
   .corner button {
     background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius-sm);

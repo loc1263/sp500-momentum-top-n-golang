@@ -46,6 +46,20 @@ describe('App', () => {
     expect(await screen.findByText(/No se pudo cargar/)).toBeInTheDocument();
   });
 
+  it('mantiene el nombre del sitio y cambia el título de la sección y de la pestaña del navegador', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json(report)));
+    render(App);
+    await screen.findByText('NVDA');
+    const site = () => screen.getByRole('heading', { level: 1 });
+    expect(site()).toHaveTextContent('Momentum y Scores');
+    expect(document.querySelector('header h2.section')).toHaveTextContent(/^Top \d+ del S&P 500$/);
+    expect(document.title).toMatch(/^Momentum y Scores · Top \d+ del S&P 500$/);
+    await fireEvent.click(screen.getByRole('tab', { name: 'EEUU' }));
+    expect(site()).toHaveTextContent('Momentum y Scores');
+    expect(document.querySelector('header h2.section')).toHaveTextContent('Modelo por score');
+    await waitFor(() => expect(document.title).toBe('Momentum y Scores · Modelo por score'));
+  });
+
   it('cambia de pestaña y actualiza el hash', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json(report)));
     render(App);
@@ -61,7 +75,7 @@ describe('App', () => {
     await screen.findByText('NVDA');
     await fireEvent.click(screen.getByRole('tab', { name: 'ETFs Vanguard' }));
     expect(await screen.findByText('Ranking global de ETFs de Vanguard')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('ETFs de Vanguard');
+    expect(document.querySelector('header h2.section')).toHaveTextContent('ETFs de Vanguard');
     expect(screen.getByRole('link', { name: 'VONV' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Universo')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Período')).not.toBeInTheDocument();
@@ -75,7 +89,7 @@ describe('App', () => {
     await screen.findByText('NVDA');
     await fireEvent.click(screen.getByRole('tab', { name: 'EEUU' }));
     expect(await screen.findByRole('heading', { name: 'Cómo se calcula' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Modelo por score');
+    expect(document.querySelector('header h2.section')).toHaveTextContent('Modelo por score');
     expect(screen.queryByLabelText('Universo')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Período')).not.toBeInTheDocument();
     await waitFor(() => expect(location.hash).toBe('#quant'));
@@ -95,7 +109,7 @@ describe('App', () => {
     expect(screen.queryByRole('tab', { name: 'About' })).not.toBeInTheDocument(); // no es parte del menú
     await fireEvent.click(screen.getByRole('button', { name: 'About' }));
     expect(await screen.findByText('Qué es esta aplicación')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('About');
+    expect(document.querySelector('header h2.section')).toHaveTextContent('About');
     expect(screen.queryByLabelText('Universo')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Período')).not.toBeInTheDocument();
     await waitFor(() => expect(location.hash).toBe('#about'));
@@ -107,7 +121,7 @@ describe('App', () => {
     await screen.findByText('NVDA');
     await fireEvent.click(screen.getByRole('tab', { name: 'ETFs por gestora' }));
     expect(await screen.findByRole('link', { name: 'VOO' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('ETFs por gestora');
+    expect(document.querySelector('header h2.section')).toHaveTextContent('ETFs por gestora');
     expect(screen.queryByLabelText('Universo')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Período')).not.toBeInTheDocument();
     await waitFor(() => expect(location.hash).toBe('#etfq'));
