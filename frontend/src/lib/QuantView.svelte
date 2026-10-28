@@ -4,7 +4,7 @@
   import Hint from './Hint.svelte';
   import { pct, share, sign, slicePage } from './format.js';
 
-  let { quant, title = 'Ranking del S&P 500' } = $props();
+  let { quant, title = 'Ranking del S&P 500', shortSector = false } = $props();
 
   let page = $state(0);
 
@@ -119,7 +119,10 @@
     switch (key) {
       case 'rank': return { text: r.rank, cls: '' };
       case 'name': return { text: r.name, cls: '' };
-      case 'sector': return { text: r.sector, cls: 'muted' };
+      case 'sector':
+        return shortSector && SHORT_SECTOR[r.sector]
+          ? { text: SHORT_SECTOR[r.sector], cls: 'muted', title: r.sector }
+          : { text: r.sector, cls: 'muted' };
       case 'score': return { text: score(v), cls: 'r strong' };
       case 'groups': return { ...plain(`${v}/4`), title: 'grupos de indicadores financieros medidos, de 4' };
       case 'mom_12_1': case 'mom_6_1': case 'roe': case 'operating_margin': case 'fcf_margin': case 'vs_ema50':
@@ -134,6 +137,11 @@
       default: return plain(score(v)); // los scores (0-100), los de cada grupo y el RSI
     }
   }
+  // Sectores de Yahoo con más de una palabra, en una sola (para tablas angostas); el nombre completo queda de ayuda
+  const SHORT_SECTOR = {
+    'Basic Materials': 'Materials', 'Communication Services': 'Communication', 'Consumer Cyclical': 'Cyclical',
+    'Consumer Defensive': 'Defensive', 'Financial Services': 'Financial', 'Real Estate': 'Realty',
+  };
   const rows = $derived.by(() => {
     const text = query.trim().toLowerCase();
     const kept = quant.ranking.filter(

@@ -6,6 +6,14 @@ import Glossary from './Glossary.svelte';
 import Bunny from './Bunny.svelte';
 
 describe('TickerLink', () => {
+  it('enlaza las acciones de la Bolsa de Santiago a /quote/snse/ en mayúsculas', () => {
+    render(TickerLink, { ticker: 'COPEC.SN' });
+    expect(screen.getByRole('link')).toHaveAttribute('href', 'https://stockanalysis.com/quote/snse/COPEC/');
+  });
+  it('convierte el guion de las series de Santiago en punto', () => {
+    render(TickerLink, { ticker: 'SQM-B.SN' });
+    expect(screen.getByRole('link')).toHaveAttribute('href', 'https://stockanalysis.com/quote/snse/SQM.B/');
+  });
   it('enlaza a stockanalysis.com en minúsculas', () => {
     render(TickerLink, { ticker: 'NVDA' });
     expect(screen.getByRole('link')).toHaveAttribute('href', 'https://stockanalysis.com/stocks/nvda/');

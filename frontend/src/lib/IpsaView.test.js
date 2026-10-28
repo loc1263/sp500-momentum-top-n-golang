@@ -17,3 +17,13 @@ describe('IpsaView', () => {
     expect(screen.getByRole('heading', { name: 'Ranking del IPSA' })).toBeInTheDocument();
   });
 });
+
+describe('IpsaView: sector en una palabra', () => {
+  it('abrevia los sectores de varias palabras y deja el nombre completo de ayuda', () => {
+    const data = { ...ipsa, ranking: ipsa.ranking.map((r, i) => (i === 2 ? { ...r, sector: 'Financial Services' } : r)) };
+    render(IpsaView, { ipsa: data });
+    const cell = [...document.querySelectorAll('td')].find((c) => c.textContent.trim() === 'Financial');
+    expect(cell).toBeTruthy();
+    expect(cell.getAttribute('title')).toBe('Financial Services');
+  });
+});
