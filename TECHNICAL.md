@@ -80,10 +80,11 @@ python start.py                  # valida el entorno y levanta el frontend en ht
 python start.py --port 3000      # otro puerto (o FRONTEND_PORT=3000)
 python start.py --refresh        # antes corre el pipeline del backend (go run ./cmd/top3 pipeline)
 python start.py --check          # solo valida: Python, Node 20.19+, npm, dependencias, puerto y report.json
+python start_with_pipeline.py    # pipeline completo del backend y luego el frontend (acepta las opciones de start.py)
 ```
 
 La página no pide nada al backend: lee `data/report.json`, el archivo estático que dejan al terminar
-`top3 pipeline`, `top3 backtest`, `top3 actual`, `top3 etf` y `top3 etfq` (también `top3 export` a mano). Primero
+`top3 pipeline`, `top3 backtest`, `top3 actual`, `top3 etf`, `top3 etfq`, `top3 quant` y `top3 ipsa` (también `top3 export` a mano). Primero
 hay que haber corrido el pipeline al menos una vez. `npm run build` en `frontend/` genera la versión estática en
 `frontend/dist/`, que se puede publicar en cualquier hosting estático con el JSON de ese momento.
 
@@ -543,7 +544,7 @@ start_with_pipeline.py  # igual, pero corre antes el pipeline completo del backe
 backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, IPSA y base SQLite
   config.toml         # configuración
   history/            # datos que se versionan en git: historial, lista de ETFs de Vanguard y lista del IPSA
-  cmd/top3/           # línea de comandos: backtest, actual, etf, quant, export, prune y pipeline
+  cmd/top3/           # línea de comandos: backtest, actual, etf, etfq, quant, ipsa, export, prune y pipeline
   internal/           # la lógica, un paquete por responsabilidad
 frontend/             # Aplicación web en Svelte 5 + Vite
 ```
@@ -568,7 +569,7 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 
 | Archivo | Responsabilidad |
 |---|---|
-| `App.svelte` | Carga del JSON estático, pestañas, filtros de universo y período, tema |
+| `App.svelte` | Carga del JSON estático, encabezado (nombre fijo del sitio y título de la sección), pestañas, filtros de universo y período, tema |
 | `lib/ActualView.svelte` | Top actual, suplentes y seguimiento de selecciones anteriores |
 | `lib/BacktestView.svelte` | Tarjetas, curva de capital, historial de selecciones y calendarios |
 | `lib/SweepView.svelte` | Comparación de plazos y sensibilidad al arranque |
@@ -577,7 +578,7 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 | `lib/EtfqView.svelte` | ETFs por gestora: ranking con momentum, calidad (TER y AUM), filtros por gestora y categoría |
 | `lib/QuantView.svelte` | Modelo por score: top 10 con Markowitz y ranking completo con filtros |
 | `lib/IpsaView.svelte` | Chile (IPSA): reutiliza `QuantView` con el ranking del IPSA, aclara la moneda (CLP) y el origen de la lista |
-| `lib/AboutView.svelte` | Pestaña About: qué se muestra en la aplicación, fuentes de datos y límites |
+| `lib/AboutView.svelte` | Pestaña About: qué se muestra en la aplicación, tarjetas de conceptos clave, fuentes de datos y límites |
 | `lib/Chart.svelte`, `Range.svelte`, `TickerLink.svelte`, `Glossary.svelte` | Componentes compartidos |
 | `lib/Bunny.svelte` | Detalle decorativo: un conejo que pasea por el pie de la pantalla, se aleja del cursor y saluda al hacer clic (se desactiva con «reducir movimiento» del sistema) |
 | `lib/format.js` | Formato de porcentajes, dinero y signos |

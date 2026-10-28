@@ -27,17 +27,20 @@ o sin compilar: `go run ./cmd/top3 pipeline`.
 | `top3 etf` | `[--as-of YYYY-MM-DD] [--top-n N] [--csv ruta] [--no-update]` |
 | `top3 etfq` | `[--top-n N]` |
 | `top3 quant` | `[--no-cache]` |
+| `top3 ipsa` | `[--no-cache]` |
 | `top3 export` | |
 | `top3 prune` | `[--keep-days N]` |
 
 Todos aceptan `--config otro.toml` y `--help`. `--tests` corre `go test ./...` antes del pipeline.
 
-La base y los logs quedan en `backend-go/data/` y `backend-go/log/`.
+La base y los logs quedan en `backend-go/data/` y `backend-go/log/`; el binario compilado, en `backend-go/bin/`. Lo que se versiona
+en git vive en `backend-go/history/`: el historial (`history.json`), la lista de ETFs de Vanguard (`vanguard_etfs.csv`) y la lista del
+IPSA (`ipsa_universe.json`, que se renueva cada mes).
 
 ## Estructura
 
 ```
-cmd/top3            punto de entrada: los siete comandos
+cmd/top3            punto de entrada: los nueve comandos
 internal/config     config.toml tipado (claves desconocidas = TOP-CFG-004)
 internal/errs       catálogo de códigos TOP-XXX-NNN
 internal/logx       log a consola (colores) y a archivo, y resumen de avisos y errores por código
@@ -51,6 +54,7 @@ internal/actual     Top actual y rotación
 internal/etf        ranking de ETFs de Vanguard y actualización de la lista
 internal/etfq       ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM)
 internal/quant      scores de momentum, salud y técnico, Markowitz (puntos interiores) y el JSON del modelo
+internal/ipsa       el mismo modelo para las 30 acciones del IPSA (lista desde Wikipedia, en pesos chilenos)
 internal/report     el JSON del frontend
 internal/history    historial del Top actual y de ETFs en JSON versionado (la base SQLite es solo caché)
 internal/cleanup    limpieza de reportes, corridas y caché vencida

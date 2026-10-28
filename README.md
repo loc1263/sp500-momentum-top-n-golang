@@ -1,8 +1,9 @@
 # sp500-momentum-top-n-golang
 
-Estrategia de momentum sobre el S&P 500: cada N meses se compran, con ponderación igual, las N acciones que más
-subieron en los últimos N meses. El proyecto la evalúa con datos históricos (backtest), mide cuánto del resultado
-depende del mes de arranque y muestra todo en una aplicación web.
+**Momentum y Scores.** Estrategia de momentum sobre el S&P 500: cada N meses se compran, con ponderación igual, las N
+acciones que más subieron en los últimos N meses. El proyecto la evalúa con datos históricos (backtest), mide cuánto del
+resultado depende del mes de arranque y muestra todo en una aplicación web. Además rankea ETFs y acciones con un modelo
+por score, para EE. UU. y para Chile (IPSA).
 
 **Ver el sitio: https://loc1263.github.io/sp500-momentum-top-n-golang/** (se actualiza solo cada día hábil).
 
@@ -16,14 +17,15 @@ depende del mes de arranque y muestra todo en una aplicación web.
 - **Top actual**: las N acciones líderes hoy, con suplentes, cambios y próximo rebalanceo.
 - **ETFs de Vanguard**: ranking de momentum ajustado por riesgo.
 - **ETFs por gestora**: los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab, con momentum y calidad (costo y tamaño).
-- **Modelo por score**: score de momentum, de salud financiera y técnico para cada acción, y Markowitz sobre las mejores.
+- **Modelo por score (EEUU)**: score de momentum, de salud financiera y técnico para cada acción del S&P 500, y Markowitz sobre las mejores.
 - **Chile (IPSA)**: el mismo modelo por score para las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos.
+- **About**: tarjetas que explican los conceptos (momentum, Sharpe, Markowitz, mínima varianza, scores...), las fuentes y los límites.
 
 ## Requisitos
 
 - [Go](https://go.dev/dl/) 1.26 o superior
 - [Node.js](https://nodejs.org/) 20.19 o superior (incluye `npm`)
-- [Python](https://www.python.org/downloads/) 3.8 o superior (solo para `start.py`)
+- [Python](https://www.python.org/downloads/) 3.8 o superior (solo para `start.py` y `start_with_pipeline.py`)
 - Conexión a internet
 
 ## Cómo ejecutarlo
@@ -56,11 +58,14 @@ python start.py
 ```
 
 Antes de levantar el frontend valida el entorno (Python, Node.js 20.19 o superior y npm, dependencias instaladas, puerto libre y que
-`frontend/public/data/report.json` exista, sea válido y no esté viejo). Con `python start.py --refresh` corre antes el pipeline del
-backend (pide Go), y con `--check` solo valida.
+`frontend/public/data/report.json` exista, sea válido y no esté viejo), muestra cada chequeo con una marca ✔ y los repite junto al
+link. Con `python start.py --refresh` corre antes el pipeline del backend (pide Go), y con `--check` solo valida.
 
-Luego abra **http://localhost:5173**. Para detenerlo, `Ctrl+C`. Para actualizar los resultados, repita el paso 2 y
-recargue la página.
+Los pasos 2 y 3 juntos: `python start_with_pipeline.py` corre el pipeline completo y después levanta la web (acepta las mismas
+opciones que `start.py`; con `--check` solo valida).
+
+Luego abra **http://localhost:5173**. Para detenerlo, `Ctrl+C`. Para actualizar los resultados, repita el paso 2 (o use
+`start_with_pipeline.py`) y recargue la página.
 
 ## Problemas frecuentes
 
