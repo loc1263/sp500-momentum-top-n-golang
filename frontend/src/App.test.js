@@ -73,7 +73,7 @@ describe('App', () => {
     vi.stubGlobal('fetch', vi.fn(async () => json(report)));
     render(App);
     await screen.findByText('NVDA');
-    await fireEvent.click(screen.getByRole('tab', { name: 'Modelo por score' }));
+    await fireEvent.click(screen.getByRole('tab', { name: 'EEUU' }));
     expect(await screen.findByRole('heading', { name: 'Cómo se calcula' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Modelo por score');
     expect(screen.queryByLabelText('Universo')).not.toBeInTheDocument();

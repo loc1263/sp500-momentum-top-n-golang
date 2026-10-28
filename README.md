@@ -17,7 +17,7 @@ depende del mes de arranque y muestra todo en una aplicación web.
 - **ETFs de Vanguard**: ranking de momentum ajustado por riesgo.
 - **ETFs por gestora**: los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab, con momentum y calidad (costo y tamaño).
 - **Modelo por score**: score de momentum, de salud financiera y técnico para cada acción, y Markowitz sobre las mejores.
-- **IPSA (Chile)**: el mismo modelo por score para las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos.
+- **Chile (IPSA)**: el mismo modelo por score para las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos.
 
 ## Requisitos
 

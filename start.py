@@ -146,7 +146,7 @@ def check_report():
     age = (time.time() - REPORT.stat().st_mtime) / 86400
     if age > STALE_DAYS:
         warn(f"los datos tienen {age:.0f} días. {hint}")
-    missing = [name for name, label in (("etf", "ETFs Vanguard"), ("etfq", "ETFs por gestora"), ("quant", "Modelo por score"), ("ipsa", "IPSA (Chile)")) if not report.get(name)]
+    missing = [name for name, label in (("etf", "ETFs Vanguard"), ("etfq", "ETFs por gestora"), ("quant", "Modelo por score"), ("ipsa", "Chile (IPSA)")) if not report.get(name)]
     if missing:
         warn("el JSON no trae: " + ", ".join(missing) + ". Esas pestañas saldrán vacías hasta correr el pipeline.")
     return True

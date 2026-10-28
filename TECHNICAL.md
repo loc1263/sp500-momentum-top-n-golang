@@ -71,7 +71,7 @@ cuando no se filtra.
 ## Uso
 
 Los comandos del backend se corren desde `backend-go/` (las rutas del config son relativas a esa carpeta). Abajo `top3` es
-`go run ./cmd/top3` o el binario que deja `go build -o top3 ./cmd/top3`.
+`go run ./cmd/top3` o el binario que deja `go build -o bin/top3 ./cmd/top3`.
 
 ### Levantar todo
 
@@ -282,7 +282,7 @@ promedio de esos cocientes. La referencia es `[etf] risk_free_ticker` (VUSB, bon
 casi sin riesgo ganaría siempre. Los ETFs de tipo efectivo (volatilidad anual menor a `[etf] min_vol`, como VBIL, VGUS y la propia VUSB) no entran al ranking: con tan poco riesgo cualquier exceso mínimo sobre la referencia daría un score enorme sin ser una señal de momentum; se listan aparte en la consola y el HTML. Además del score la tabla muestra el retorno de cada plazo, la volatilidad anual y la
 caída máxima del plazo más largo, y la distancia del precio a su media de 200 ruedas (positivo = tendencia alcista).
 
-**La lista** está en `backend-go/vanguard_etfs.csv` (`ticker,name,category`). Cada vez que se corre el ranking se
+**La lista** está en `backend-go/history/vanguard_etfs.csv` (`ticker,name,category`). Cada vez que se corre el ranking se
 consulta el servicio que alimenta la página de productos de Vanguard y se **agregan al final del archivo los ETFs que
 falten** (con la categoría que se deduce del estilo que informa Vanguard); las filas que ya existen no se tocan, así
 que nombres y categorías se pueden corregir a mano, y nunca se borra ninguna. Si Vanguard ya no lista un ETF de la
@@ -365,7 +365,7 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 | | `backtest_log`, `actual_log`, `etf_log`, `etfq_log`, `quant_log` | `top3_*.log` | Nombres de los archivos de log |
 | `[etf]` | `update_list` | `true` | Al correr el ranking de ETFs, agrega a la lista los ETFs nuevos que Vanguard publica (nunca borra ni edita filas) |
 | | `list_url` | página de productos de Vanguard | Servicio del que se baja la lista de ETFs de Vanguard |
-| | `csv` | `"vanguard_etfs.csv"` | Lista de ETFs de Vanguard (columnas `ticker`, `name`, `category`) |
+| | `csv` | `"history/vanguard_etfs.csv"` | Lista de ETFs de Vanguard (columnas `ticker`, `name`, `category`) |
 | | `horizons_months` | `[3, 6, 12]` | Plazos del retorno ajustado por riesgo; el score es el promedio de sus cocientes |
 | | `top_n` | `15` | Cuántos ETFs se muestran en la consola (el JSON del frontend trae todos) |
 | | `min_vol` | `0.01` | Volatilidad anual mínima para entrar al ranking (1%): los ETFs por debajo son de tipo efectivo (letras del Tesoro, bonos ultracortos) y quedan fuera; `0` = rankear todos |
@@ -539,9 +539,10 @@ Para buscar en el log: `grep TOP-BKT backend-go/log/top3_backtest.log`.
 
 ```
 start.py              # valida el entorno y levanta el frontend (Windows, macOS y Linux)
-backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score y base SQLite
+start_with_pipeline.py  # igual, pero corre antes el pipeline completo del backend
+backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, IPSA y base SQLite
   config.toml         # configuración
-  vanguard_etfs.csv   # lista de ETFs de Vanguard
+  history/            # datos que se versionan en git: historial, lista de ETFs de Vanguard y lista del IPSA
   cmd/top3/           # línea de comandos: backtest, actual, etf, quant, export, prune y pipeline
   internal/           # la lógica, un paquete por responsabilidad
 frontend/             # Aplicación web en Svelte 5 + Vite
@@ -575,7 +576,7 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 | `lib/EtfView.svelte` | Ranking de ETFs de Vanguard |
 | `lib/EtfqView.svelte` | ETFs por gestora: ranking con momentum, calidad (TER y AUM), filtros por gestora y categoría |
 | `lib/QuantView.svelte` | Modelo por score: top 10 con Markowitz y ranking completo con filtros |
-| `lib/IpsaView.svelte` | IPSA (Chile): reutiliza `QuantView` con el ranking del IPSA, aclara la moneda (CLP) y el origen de la lista |
+| `lib/IpsaView.svelte` | Chile (IPSA): reutiliza `QuantView` con el ranking del IPSA, aclara la moneda (CLP) y el origen de la lista |
 | `lib/AboutView.svelte` | Pestaña About: qué se muestra en la aplicación, fuentes de datos y límites |
 | `lib/Chart.svelte`, `Range.svelte`, `TickerLink.svelte`, `Glossary.svelte` | Componentes compartidos |
 | `lib/Bunny.svelte` | Detalle decorativo: un conejo que pasea por el pie de la pantalla, se aleja del cursor y saluda al hacer clic (se desactiva con «reducir movimiento» del sistema) |
@@ -599,7 +600,7 @@ renumeran; todo aviso o error usa `CODIGO.Msg("texto")` o `CODIGO.Errorf(...)`, 
 push a `main`:
 
 1. Restaura la base SQLite desde el caché de Actions (`backend-go/data`), corre los tests y el pipeline.
-2. Hace commit de `backend-go/history/history.json` y `backend-go/vanguard_etfs.csv` si cambiaron (el commit del bot no
+2. Hace commit de `backend-go/history/history.json`, `backend-go/history/ipsa_universe.json` y `backend-go/history/vanguard_etfs.csv` si cambiaron (el commit del bot no
    dispara otra ejecución).
 3. Prueba y compila el frontend y lo publica en GitHub Pages.
 

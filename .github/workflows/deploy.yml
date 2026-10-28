@@ -49,12 +49,12 @@ jobs:
       - name: Pipeline
         working-directory: backend-go
         run: |
-          go build -o top3 ./cmd/top3
-          ./top3 pipeline
+          go build -o bin/top3 ./cmd/top3
+          ./bin/top3 pipeline
 
       - name: Guardar historial, lista de ETFs y lista del IPSA en git
         run: |
-          git add backend-go/history/history.json backend-go/history/ipsa_universe.json backend-go/vanguard_etfs.csv
+          git add backend-go/history/history.json backend-go/history/ipsa_universe.json backend-go/history/vanguard_etfs.csv
           if git diff --cached --quiet; then
             echo "Sin cambios en el historial ni en la lista de ETFs."
             exit 0

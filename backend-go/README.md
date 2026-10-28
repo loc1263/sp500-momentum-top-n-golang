@@ -13,8 +13,8 @@ una base SQLite y el `report.json` que lee el frontend; los datos de Yahoo Finan
 Desde esta carpeta (las rutas del `config.toml` son relativas a ella):
 
 ```
-go build -o top3 ./cmd/top3        # top3.exe en Windows
-./top3 pipeline                    # todo: backtest, Top actual, ETFs, modelo por score, IPSA, JSON del frontend y limpieza
+go build -o bin/top3 ./cmd/top3    # bin/top3.exe en Windows (bin/ está ignorada por git)
+./bin/top3 pipeline                # todo: backtest, Top actual, ETFs, modelo por score, IPSA, JSON del frontend y limpieza
 ```
 
 o sin compilar: `go run ./cmd/top3 pipeline`.

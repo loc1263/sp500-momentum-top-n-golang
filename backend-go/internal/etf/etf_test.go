@@ -184,7 +184,7 @@ func TestLoadUniverseErrors(t *testing.T) {
 }
 
 func TestTheShippedEtfListIsSane(t *testing.T) {
-	list, err := LoadUniverse("../../vanguard_etfs.csv")
+	list, err := LoadUniverse("../../history/vanguard_etfs.csv")
 	if err != nil || len(list) <= 50 {
 		t.Fatalf("len=%d err=%v", len(list), err)
 	}

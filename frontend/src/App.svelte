@@ -31,10 +31,10 @@
       ],
     },
     {
-      label: 'Acciones',
+      label: 'Acciones por score',
       tabs: [
-        { id: 'quant', label: 'Modelo por score' },
-        { id: 'ipsa', label: 'IPSA (Chile)' },
+        { id: 'quant', label: 'EEUU' },
+        { id: 'ipsa', label: 'Chile (IPSA)' },
       ],
     },
   ];

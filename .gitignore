@@ -2,8 +2,7 @@
 backend-go/data/
 backend-go/log/
 backend-go/output/
-backend-go/top3
-backend-go/top3.exe
+backend-go/bin/
 
 # Frontend
 frontend/node_modules/

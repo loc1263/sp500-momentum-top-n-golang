@@ -10,7 +10,7 @@
     ['N-0 vs N-1', 'El modelo de siempre frente a una variante que ignora el último mes («skip-month»), plazo por plazo y por mitades del período.'],
     ['ETFs Vanguard', 'Ranking sin backtest por retorno ajustado por riesgo a 3, 6 y 12 meses, con tendencia y caída máxima. Los ETFs de efectivo no entran.'],
     ['Modelo por score', 'Scores de momentum, salud financiera y técnico para todo el S&P 500, su promedio y Markowitz sobre las mejores. Es una foto de hoy, sin backtest.'],
-    ['IPSA (Chile)', 'El mismo modelo por score aplicado a las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos, con tasa libre de riesgo propia. La lista sale de Wikipedia y se renueva cada mes.'],
+    ['Chile (IPSA)', 'El mismo modelo por score aplicado a las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos, con tasa libre de riesgo propia. La lista sale de Wikipedia y se renueva cada mes.'],
   ];
 
   const sources = [

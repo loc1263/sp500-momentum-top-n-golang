@@ -223,7 +223,7 @@ func Default() Config {
 		Etf: Etf{
 			UpdateList:     true,
 			ListURL:        "https://investor.vanguard.com/investment-products/list/funddetail/all",
-			CSV:            "vanguard_etfs.csv",
+			CSV:            "history/vanguard_etfs.csv",
 			HorizonsMonths: []int{3, 6, 12},
 			TopN:           15,
 			MinVol:         0.01,
