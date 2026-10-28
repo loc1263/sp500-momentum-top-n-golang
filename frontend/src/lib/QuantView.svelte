@@ -4,7 +4,7 @@
   import Hint from './Hint.svelte';
   import { pct, share, sign, slicePage } from './format.js';
 
-  let { quant, title = 'Ranking del S&P 500', shortSector = false } = $props();
+  let { quant, title = 'Ranking del S&P 500' } = $props();
 
   let page = $state(0);
 
@@ -120,7 +120,7 @@
       case 'rank': return { text: r.rank, cls: '' };
       case 'name': return { text: r.name, cls: '' };
       case 'sector':
-        return shortSector && SHORT_SECTOR[r.sector]
+        return SHORT_SECTOR[r.sector]
           ? { text: SHORT_SECTOR[r.sector], cls: 'muted', title: r.sector }
           : { text: r.sector, cls: 'muted' };
       case 'score': return { text: score(v), cls: 'r strong' };
@@ -137,7 +137,7 @@
       default: return plain(score(v)); // los scores (0-100), los de cada grupo y el RSI
     }
   }
-  // Sectores de Yahoo con más de una palabra, en una sola (para tablas angostas); el nombre completo queda de ayuda
+  // Sectores de Yahoo con más de una palabra, en una sola (columna angosta); el nombre completo queda de ayuda
   const SHORT_SECTOR = {
     'Basic Materials': 'Materials', 'Communication Services': 'Communication', 'Consumer Cyclical': 'Cyclical',
     'Consumer Defensive': 'Defensive', 'Financial Services': 'Financial', 'Real Estate': 'Realty',

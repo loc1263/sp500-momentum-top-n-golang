@@ -146,7 +146,7 @@ def check_report():
     age = (time.time() - REPORT.stat().st_mtime) / 86400
     if age > STALE_DAYS:
         warn(f"los datos tienen {age:.0f} días. {hint}")
-    missing = [name for name, label in (("etf", "ETFs Vanguard"), ("etfq", "ETFs por gestora"), ("quant", "Modelo por score")) if not report.get(name)]
+    missing = [name for name, label in (("etf", "ETFs Vanguard"), ("etfq", "ETFs por gestora"), ("quant", "Modelo por score"), ("ipsa", "IPSA (Chile)")) if not report.get(name)]
     if missing:
         warn("el JSON no trae: " + ", ".join(missing) + ". Esas pestañas saldrán vacías hasta correr el pipeline.")
     return True
@@ -179,7 +179,12 @@ def serve(npm, port):
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
     proc = subprocess.Popen([npm, "run", "dev"], cwd=FRONTEND, env=env, creationflags=flags)
     try:
-        return proc.wait()
+        # En Windows proc.wait() sin plazo bloquea sin atender Ctrl+C: se espera en tramos cortos para que llegue el KeyboardInterrupt
+        while True:
+            try:
+                return proc.wait(timeout=0.5)
+            except subprocess.TimeoutExpired:
+                continue
     except KeyboardInterrupt:
         if os.name == "nt":  # mata el árbol: npm lanza node y éste a vite
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
