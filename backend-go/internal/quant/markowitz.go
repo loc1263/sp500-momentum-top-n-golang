@@ -260,6 +260,38 @@ func normalize(w []float64) []float64 {
 // MinVol, no hay cartera de máximo retorno y se omite. Con menos acciones que 1/wMax, o sectores que no alcanzan para colocar
 // todo con sectorMax, el tope se sube lo mínimo necesario (SectorMax en el resultado). tickers y sectors van alineados con mu.
 func Optimize(tickers []string, mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64, sectors []string, sectorMax float64) (Frontier, error) {
+	return OptimizeMin(tickers, mu, sigma, volTarget, wMax, riskFree, sectors, sectorMax, 0, 0)
+}
+
+// solved son los pesos (alineados con mu; nil si no hay cartera) de las tres carteras de un mismo conjunto de acciones, con
+// MinVol y el tope por sector efectivo.
+type solved struct {
+	minVar, maxSharpe, maxReturn []float64
+	minVol, sectorMax            float64
+}
+
+// sectorGroups devuelve los sectores en orden de aparición y los índices de cada uno.
+func sectorGroups(sectors []string) (order []string, groups [][]int) {
+	bySector := map[string][]int{}
+	for i, s := range sectors {
+		if _, ok := bySector[s]; !ok {
+			order = append(order, s)
+		}
+		bySector[s] = append(bySector[s], i)
+	}
+	groups = make([][]int, len(order))
+	for k, s := range order {
+		groups[k] = bySector[s]
+	}
+	return order, groups
+}
+
+// OptimizeMin es Optimize con un peso mínimo por posición: una acción tiene 0 o al menos wMin (con wMin = 0 no hay mínimo).
+// Cada cartera se resuelve sola: se quita la acción de menor peso por debajo de wMin y se vuelve a optimizar con las restantes,
+// hasta que todas cumplan. Con wStep > 0 (por ejemplo 0.01) los pesos finales se redondean a múltiplos de wStep sumando 1
+// y se recalculan retorno, volatilidad y Sharpe con ellos. Es una heurística (el mínimo hace el problema no convexo), no el óptimo exacto. Si al quitar
+// acciones la cartera de máximo retorno ya no alcanza el riesgo objetivo, queda con las últimas que sí lo alcanzaban.
+func OptimizeMin(tickers []string, mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64, sectors []string, sectorMax, wMin, wStep float64) (Frontier, error) {
 	n := len(mu)
 	wMax = math.Max(wMax, 1/float64(n)+1e-9)
 	if sectors == nil {
@@ -269,20 +301,114 @@ func Optimize(tickers []string, mu []float64, sigma [][]float64, volTarget, wMax
 		}
 	}
 	requested := sectorMax
-	sectorMax = FeasibleSectorCap(sectors, wMax, sectorMax)
-	bySector := map[string][]int{}
-	var order []string
-	for i, s := range sectors {
-		if _, ok := bySector[s]; !ok {
-			order = append(order, s)
-		}
-		bySector[s] = append(bySector[s], i)
+	full, err := solveSet(mu, sigma, volTarget, wMax, riskFree, sectors, sectorMax)
+	if err != nil {
+		return Frontier{}, err
 	}
-	groups := make([][]int, len(order))
-	for k, s := range order {
-		groups[k] = bySector[s]
-	}
+	capUsed := full.sectorMax
+	order, _ := sectorGroups(sectors)
 
+	// refine quita de a una las acciones con peso menor a wMin; pick elige la cartera dentro de cada solución
+	refine := func(w []float64, pick func(solved) []float64) []float64 {
+		if w == nil || wMin <= 0 {
+			return w
+		}
+		active := make([]int, n)
+		for i := range active {
+			active[i] = i
+		}
+		for {
+			worst := -1
+			for i, v := range w {
+				if v > 1e-4 && v < wMin-1e-6 && (worst < 0 || v < w[worst]) {
+					worst = i
+				}
+			}
+			if worst < 0 {
+				return w
+			}
+			kept := active[:0:0]
+			for _, i := range active {
+				if i != worst {
+					kept = append(kept, i)
+				}
+			}
+			subMu, subSec := make([]float64, len(kept)), make([]string, len(kept))
+			subSigma := make([][]float64, len(kept))
+			for a, i := range kept {
+				subMu[a], subSec[a] = mu[i], sectors[i]
+				subSigma[a] = make([]float64, len(kept))
+				for b, j := range kept {
+					subSigma[a][b] = sigma[i][j]
+				}
+			}
+			sub, err := solveSet(subMu, subSigma, volTarget, wMax, riskFree, subSec, sectorMax)
+			if err != nil || pick(sub) == nil {
+				return w
+			}
+			active, w = kept, make([]float64, n)
+			for a, i := range kept {
+				w[i] = pick(sub)[a]
+			}
+			capUsed = math.Max(capUsed, sub.sectorMax)
+		}
+	}
+	minVar := refine(full.minVar, func(x solved) []float64 { return x.minVar })
+	maxSharpe := refine(full.maxSharpe, func(x solved) []float64 { return x.maxSharpe })
+	maxReturn := refine(full.maxReturn, func(x solved) []float64 { return x.maxReturn })
+	if wStep > 0 {
+		minVar = roundWeights(minVar, wStep, wMin, wMax, sectors, capUsed)
+		maxSharpe = roundWeights(maxSharpe, wStep, wMin, wMax, sectors, capUsed)
+		maxReturn = roundWeights(maxReturn, wStep, wMin, wMax, sectors, capUsed)
+	}
+	minVol := full.minVol
+	sectorMax = capUsed
+
+	var portfolios []Portfolio
+	for _, c := range []struct {
+		key, label string
+		w          []float64
+	}{
+		{"max_return", fmt.Sprintf("Max. Ret. Volatilidad %.0f%%", volTarget*100), maxReturn},
+		{"max_sharpe", "Max. Sharpe", maxSharpe},
+		{"min_var", "Min. varianza", minVar},
+	} {
+		if c.w == nil {
+			continue
+		}
+		ret, risk := dot(mu, c.w), volOf(sigma, c.w)
+		p := Portfolio{Key: c.key, Label: c.label, ExpReturn: ret, Vol: risk, Sharpe: (ret - riskFree) / risk}
+		for i, w := range c.w {
+			if w > 1e-4 {
+				p.Weights = append(p.Weights, Weight{tickers[i], w})
+			}
+		}
+		sort.SliceStable(p.Weights, func(a, b int) bool { return p.Weights[a].Weight > p.Weights[b].Weight })
+		sum := map[string]float64{}
+		for i, w := range c.w {
+			sum[sectors[i]] += w
+		}
+		for _, s := range order {
+			if sum[s] > 1e-4 {
+				p.Sectors = append(p.Sectors, SectorWeight{s, sum[s]})
+			}
+		}
+		sort.SliceStable(p.Sectors, func(a, b int) bool { return p.Sectors[a].Weight > p.Sectors[b].Weight })
+		portfolios = append(portfolios, p)
+	}
+	if len(portfolios) == 0 {
+		return Frontier{}, errors.New("no se pudo armar ninguna cartera")
+	}
+	return Frontier{Portfolios: portfolios, MinVol: minVol, VolTarget: volTarget, WMax: wMax, SectorMax: sectorMax,
+		SectorRelaxed: sectorMax > requested+1e-9}, nil
+}
+
+// solveSet resuelve las tres carteras para un conjunto de acciones (mu, sigma y sectors alineados).
+func solveSet(mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64, sectors []string, sectorMax float64) (solved, error) {
+	n := len(mu)
+	wMax = math.Max(wMax, 1/float64(n)+1e-9)
+	sectorMax = FeasibleSectorCap(sectors, wMax, sectorMax)
+	_, groups := sectorGroups(sectors)
 	G, h := limits(n, wMax, sectorMax, groups, false)
 	eq, one := ones(n), []float64{1}
 	start := uniform(n)
@@ -297,7 +423,7 @@ func Optimize(tickers []string, mu []float64, sigma [][]float64, volTarget, wMax
 	}
 	minVarW, err := (&qp{H: H, c: make([]float64, n), A: eq, b: one, G: G, h: h}).solve(start)
 	if err != nil {
-		return Frontier{}, fmt.Errorf("mínima varianza: %w", err)
+		return solved{}, fmt.Errorf("mínima varianza: %w", err)
 	}
 	minVar := normalize(minVarW)
 	minVol := volOf(sigma, minVar)
@@ -365,42 +491,60 @@ func Optimize(tickers []string, mu []float64, sigma [][]float64, volTarget, wMax
 			}
 		}
 	}
+	return solved{minVar: minVar, maxSharpe: maxSharpe, maxReturn: maxReturn, minVol: minVol, sectorMax: sectorMax}, nil
+}
 
-	var portfolios []Portfolio
-	for _, c := range []struct {
-		key, label string
-		w          []float64
-	}{
-		{"max_return", fmt.Sprintf("Max. Ret. Volatilidad %.0f%%", volTarget*100), maxReturn},
-		{"max_sharpe", "Max. Sharpe", maxSharpe},
-		{"min_var", "Min. varianza", minVar},
-	} {
-		if c.w == nil {
-			continue
-		}
-		ret, risk := dot(mu, c.w), volOf(sigma, c.w)
-		p := Portfolio{Key: c.key, Label: c.label, ExpReturn: ret, Vol: risk, Sharpe: (ret - riskFree) / risk}
-		for i, w := range c.w {
-			if w > 1e-4 {
-				p.Weights = append(p.Weights, Weight{tickers[i], w})
-			}
-		}
-		sort.SliceStable(p.Weights, func(a, b int) bool { return p.Weights[a].Weight > p.Weights[b].Weight })
-		sum := map[string]float64{}
-		for i, w := range c.w {
-			sum[sectors[i]] += w
-		}
-		for _, s := range order {
-			if sum[s] > 1e-4 {
-				p.Sectors = append(p.Sectors, SectorWeight{s, sum[s]})
-			}
-		}
-		sort.SliceStable(p.Sectors, func(a, b int) bool { return p.Sectors[a].Weight > p.Sectors[b].Weight })
-		portfolios = append(portfolios, p)
+// roundWeights redondea los pesos a múltiplos de step con suma 1 (método del mayor resto). Respeta el mínimo wMin de las
+// posiciones que se compran y los topes por acción (wMax) y por sector (sectorMax); si no puede, deja el peso sin redondear.
+func roundWeights(w []float64, step, wMin, wMax float64, sectors []string, sectorMax float64) []float64 {
+	if w == nil {
+		return nil
 	}
-	if len(portfolios) == 0 {
-		return Frontier{}, errors.New("no se pudo armar ninguna cartera")
+	const eps = 1e-6
+	units := int(math.Round(1 / step))
+	minU := int(math.Ceil(wMin/step - eps))
+	maxU := int(math.Floor(wMax/step + eps))
+	secU := int(math.Floor(sectorMax/step + eps))
+	base, rem := make([]int, len(w)), make([]float64, len(w))
+	secSum, total := map[string]int{}, 0
+	for i, v := range w {
+		x := v / step
+		base[i] = int(math.Floor(x + eps))
+		rem[i] = x - float64(base[i])
+		if v > 1e-4 && base[i] < minU {
+			base[i], rem[i] = minU, 0
+		}
+		secSum[sectors[i]] += base[i]
+		total += base[i]
 	}
-	return Frontier{Portfolios: portfolios, MinVol: minVol, VolTarget: volTarget, WMax: wMax, SectorMax: sectorMax,
-		SectorRelaxed: sectorMax > requested+1e-9}, nil
+	byRem := make([]int, len(w))
+	for i := range byRem {
+		byRem[i] = i
+	}
+	sort.SliceStable(byRem, func(a, b int) bool { return rem[byRem[a]] > rem[byRem[b]] })
+	for _, i := range byRem {
+		if total >= units {
+			break
+		}
+		if w[i] > 1e-4 && base[i] < maxU && secSum[sectors[i]] < secU {
+			base[i]++
+			secSum[sectors[i]]++
+			total++
+		}
+	}
+	for k := len(byRem) - 1; k >= 0 && total > units; k-- {
+		if i := byRem[k]; base[i] > minU && base[i] > 0 {
+			base[i]--
+			secSum[sectors[i]]--
+			total--
+		}
+	}
+	if total != units {
+		return w
+	}
+	out := make([]float64, len(w))
+	for i, b := range base {
+		out[i] = float64(b) * step
+	}
+	return out
 }

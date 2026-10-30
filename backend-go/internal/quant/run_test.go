@@ -339,3 +339,29 @@ func TestMarkowitzDropsMaxReturnWhenTheRiskTargetIsUnreachable(t *testing.T) {
 		t.Fatalf("carteras: %v", keys)
 	}
 }
+
+func TestOptimizeMinLeavesNoSmallPositions(t *testing.T) {
+	prices := syntheticPrices(10, 300, 0)
+	mu, sigma := Inputs(prices, 0.25, 0.09)
+	for _, wMin := range []float64{0, 0.10} {
+		out, err := OptimizeMin(prices.Tickers, mu, sigma, 0.30, 0.25, 0.04, nil, 1, wMin, 0.01)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, p := range out.Portfolios {
+			sum := 0.0
+			for _, w := range p.Weights {
+				sum += w.Weight
+				if wMin > 0 && w.Weight < wMin-1e-4 {
+					t.Errorf("w_min=%g %s: %s pesa %.4f", wMin, p.Key, w.Ticker, w.Weight)
+				}
+				if w.Weight > 0.25+1e-4 {
+					t.Errorf("%s: %s pesa %.4f, sobre el tope", p.Key, w.Ticker, w.Weight)
+				}
+			}
+			if math.Abs(sum-1) > 1e-6 {
+				t.Errorf("w_min=%g %s: pesos suman %.6f", wMin, p.Key, sum)
+			}
+		}
+	}
+}

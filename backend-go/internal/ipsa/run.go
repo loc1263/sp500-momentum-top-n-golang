@@ -38,7 +38,7 @@ type Payload struct {
 // QuantConfig es la configuración del modelo por score para el IPSA: lo de [quant] con la tasa y los límites de [ipsa] encima.
 func QuantConfig(cfg config.Config) config.Config {
 	c := cfg.Ipsa
-	cfg.Quant.TopN, cfg.Quant.VolTarget, cfg.Quant.WMax, cfg.Quant.SectorMax = c.TopN, c.VolTarget, c.WMax, c.SectorMax
+	cfg.Quant.TopN, cfg.Quant.VolTarget, cfg.Quant.WMax, cfg.Quant.WMin, cfg.Quant.WStep, cfg.Quant.SectorMax = c.TopN, c.VolTarget, c.WMax, c.WMin, c.WStep, c.SectorMax
 	cfg.Quant.RiskFree, cfg.Quant.EquityPremium = c.RiskFree, c.EquityPremium
 	return cfg
 }

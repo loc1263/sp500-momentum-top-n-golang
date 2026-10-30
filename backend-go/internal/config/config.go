@@ -131,6 +131,8 @@ type Quant struct {
 	TopN                int       `toml:"top_n" json:"top_n"`
 	VolTarget           float64   `toml:"vol_target" json:"vol_target"`
 	WMax                float64   `toml:"w_max" json:"w_max"`
+	WMin                float64   `toml:"w_min" json:"w_min"`
+	WStep               float64   `toml:"w_step" json:"w_step"`
 	SectorMax           float64   `toml:"sector_max" json:"sector_max"`
 	MuShrink            float64   `toml:"mu_shrink" json:"mu_shrink"`
 	EquityPremium       float64   `toml:"equity_premium" json:"equity_premium"`
@@ -153,6 +155,8 @@ type Ipsa struct {
 	TopN          int     `toml:"top_n" json:"top_n"`
 	VolTarget     float64 `toml:"vol_target" json:"vol_target"`
 	WMax          float64 `toml:"w_max" json:"w_max"`
+	WMin          float64 `toml:"w_min" json:"w_min"`
+	WStep         float64 `toml:"w_step" json:"w_step"`
 	SectorMax     float64 `toml:"sector_max" json:"sector_max"`
 	RiskFree      float64 `toml:"risk_free" json:"risk_free"`
 	EquityPremium float64 `toml:"equity_premium" json:"equity_premium"`
@@ -238,14 +242,14 @@ func Default() Config {
 		},
 		Quant: Quant{
 			Weights: []float64{1, 1, 1}, HealthWeights: []float64{1, 1, 1, 2}, TopN: 10, VolTarget: 0.20,
-			WMax: 0.25, SectorMax: 0.40, MuShrink: 0.25, EquityPremium: 0.05, RiskFree: 0.04,
+			WMax: 0.25, WMin: 0.10, WStep: 0.01, SectorMax: 0.40, MuShrink: 0.25, EquityPremium: 0.05, RiskFree: 0.04,
 			FundamentalsTTLDays: 7,
 		},
 		Ipsa: Ipsa{
 			WikipediaURL:    "https://es.wikipedia.org/wiki/%C3%8Dndice_de_Precio_Selectivo_de_Acciones",
 			UniverseFile:    "history/ipsa_universe.json",
 			UniverseTTLDays: 30, Suffix: ".SN", Aliases: map[string]string{},
-			TopN: 6, VolTarget: 0.20, WMax: 0.30, SectorMax: 0.40, RiskFree: 0.05, EquityPremium: 0.06,
+			TopN: 6, VolTarget: 0.20, WMax: 0.30, WMin: 0.10, WStep: 0.01, SectorMax: 0.40, RiskFree: 0.05, EquityPremium: 0.06,
 		},
 		Universe: Universe{MinCapBillions: 10, SweepMinCapBillions: []float64{0, 10, 200}},
 	}

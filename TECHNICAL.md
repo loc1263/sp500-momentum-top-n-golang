@@ -248,7 +248,7 @@ top3 quant --no-cache  # vuelve a descargar precios, OHLCV y datos financieros
 4. **Score final**: promedio de los tres (`[quant] weights` permite darles otro peso). La tabla definitiva ordena por él (las
    acciones sin momentum, por tener menos de un año de precios, sin datos financieros o sin datos técnicos quedan fuera y
    se listan).
-5. **Markowitz** sobre las `top_n` (10) primeras, sin posiciones cortas y con un máximo de `w_max` por acción y de `sector_max` por sector (el sector sale de Yahoo; si con los
+5. **Markowitz** sobre las `top_n` (10) primeras, sin posiciones cortas y con un máximo de `w_max` por acción, un mínimo de `w_min` en las que se compran (0 o al menos `w_min`; se quitan de a una las de menor peso y se reoptimiza, una heurística) y de `sector_max` por sector (el sector sale de Yahoo; si con los
    sectores de las 10 acciones no se puede invertir todo, el tope se sube lo mínimo necesario y la web lo avisa). Tres carteras: máximo
    retorno con volatilidad anual de hasta `vol_target`, máximo Sharpe y mínima varianza (si el riesgo objetivo es menor que la
    mínima volatilidad posible, la primera se omite y la web lo avisa). La covarianza es la de Ledoit-Wolf de los últimos 252
@@ -382,6 +382,8 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 | | `health_weights` | `[1, 1, 1, 2]` | Peso de cada grupo en el score de salud: rentabilidad, solvencia, liquidez y caja (un grupo sin datos no cuenta) |
 | | `top_n` | `10` | Acciones del ranking final sobre las que corre Markowitz |
 | | `vol_target`, `w_max`, `sector_max` | `0.20`, `0.25`, `0.40` | Volatilidad anual máxima de la cartera de máximo retorno, y peso máximo por acción y por sector |
+| | `w_min` | `0.10` | Peso mínimo de cada posición (0 o al menos `w_min`; `0` lo desactiva) |
+| | `w_step` | `0.01` | Los pesos finales se redondean a múltiplos de `w_step` (`0.01` = porcentajes enteros; `0` = sin redondear) |
 | | `mu_shrink`, `risk_free`, `equity_premium` | `0.25`, `0.04`, `0.05` | Retorno esperado = `mu_shrink` x retorno de los últimos 12 meses + el resto x (`risk_free` + `equity_premium`); `risk_free` también para el Sharpe |
 | | `fundamentals_ttl_days` | `7` | Días que se reutilizan los datos financieros descargados |
 | `[simulation]` | `months` | `[3, 4, 6, 8, 12]` | Plazos que comparan `--sweep` y `--offsets` |

@@ -142,6 +142,11 @@ top_n = 10
 # Volatilidad anual máxima de la cartera de máximo retorno, y peso máximo por acción y por sector
 vol_target = 0.20
 w_max = 0.25
+# Peso mínimo de cada posición: una acción tiene 0 o al menos w_min (0 = sin mínimo). Se quitan de a una las de menor peso
+# y se vuelve a optimizar; es una heurística, no el óptimo exacto
+w_min = 0.10
+# Los pesos finales se redondean a múltiplos de w_step (0.01 = porcentajes enteros; 0 = sin redondear)
+w_step = 0.01
 sector_max = 0.40
 # Retorno esperado de cada acción = mu_shrink x su retorno de los últimos 12 meses + el resto x (tasa libre de riesgo +
 # prima de mercado): el retorno pasado de una sola acción es muy ruidoso
@@ -165,6 +170,9 @@ suffix = ".SN"
 top_n = 6
 vol_target = 0.20
 w_max = 0.30
+w_min = 0.10
+# Los pesos finales se redondean a múltiplos de w_step (0.01 = porcentajes enteros; 0 = sin redondear)
+w_step = 0.01
 sector_max = 0.40
 # Tasa libre de riesgo de Chile y prima de mercado (el retorno de largo plazo esperado es la suma)
 risk_free = 0.05

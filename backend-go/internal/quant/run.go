@@ -83,6 +83,8 @@ type Settings struct {
 	TopN          int                `json:"top_n"`
 	VolTarget     float64            `json:"vol_target"`
 	WMax          float64            `json:"w_max"`
+	WMin          float64            `json:"w_min"`
+	WStep         float64            `json:"w_step"`
 	SectorMax     float64            `json:"sector_max"`
 	MuShrink      float64            `json:"mu_shrink"`
 	RiskFree      float64            `json:"risk_free"`
@@ -240,7 +242,7 @@ func Compute(in ComputeInput, cfg config.Config) (*Payload, error) {
 	}
 	prior := q.RiskFree + q.EquityPremium
 	mu, sigma := Inputs(prices.Select(top), q.MuShrink, prior)
-	frontier, err := Optimize(top, mu, sigma, q.VolTarget, q.WMax, q.RiskFree, sectors, q.SectorMax)
+	frontier, err := OptimizeMin(top, mu, sigma, q.VolTarget, q.WMax, q.RiskFree, sectors, q.SectorMax, q.WMin, q.WStep)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +255,7 @@ func Compute(in ComputeInput, cfg config.Config) (*Payload, error) {
 	out := &Payload{
 		AsOf:        dateutil.Day(prices.Dates[prices.Rows()-1]),
 		GeneratedAt: time.Now().Format("2006-01-02T15:04:05"),
-		Settings: Settings{TopN: topN, VolTarget: q.VolTarget, WMax: q.WMax, SectorMax: q.SectorMax, MuShrink: q.MuShrink,
+		Settings: Settings{TopN: topN, VolTarget: q.VolTarget, WMax: q.WMax, WMin: q.WMin, WStep: q.WStep, SectorMax: q.SectorMax, MuShrink: q.MuShrink,
 			RiskFree: q.RiskFree, Prior: prior, Weights: weights, HealthWeights: hw},
 		Coverage: coverage(tickers, momentum, health, withData, techs, len(ranked)),
 	}

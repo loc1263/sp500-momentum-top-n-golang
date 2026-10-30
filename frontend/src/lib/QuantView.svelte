@@ -11,6 +11,8 @@
   const s = $derived(quant.settings);
   const cov = $derived(quant.coverage);
   const mk = $derived(quant.markowitz);
+  // con pesos redondeados a porcentajes enteros no se muestran decimales
+  const wDigits = $derived(s.w_step >= 0.01 ? 0 : 1);
   const top = $derived(quant.ranking.slice(0, s.top_n));
   const inputs = $derived(Object.fromEntries(mk.tickers.map((t) => [t.ticker, t])));
   const weightOf = (portfolio, ticker) => portfolio.weights.find((w) => w.ticker === ticker)?.weight;
@@ -240,7 +242,7 @@
 
 <h2>Las {s.top_n} mejores y sus pesos (Markowitz)</h2>
 <p class="sub">
-  Tres carteras sin posiciones cortas, con máximo de {share(s.w_max, 0)} por acción y {share(mk.sector_max, 0)} por sector.
+  Tres carteras sin posiciones cortas, con máximo de {share(s.w_max, 0)} por acción y {share(mk.sector_max, 0)} por sector{#if s.w_min}; cada posición pesa 0 o al menos {share(s.w_min, 0)}{/if}.
   Los pesos dependen sobre todo del riesgo: tómalos como orientativos.
 </p>
 <details class="more">
@@ -287,7 +289,7 @@
           <td class="r">{share(inputs[r.ticker].vol)}</td>
           {#each mk.portfolios as p (p.key)}
             {@const w = weightOf(p, r.ticker)}
-            <td class="r" class:main={p.key === mk.main}>{w ? share(w) : ''}</td>
+            <td class="r" class:main={p.key === mk.main}>{w ? share(w, wDigits) : ''}</td>
           {/each}
         </tr>
       {/each}
@@ -329,7 +331,7 @@
           <td>{name}</td>
           {#each mk.portfolios as p (p.key)}
             {@const w = sectorWeightOf(p, name)}
-            <td class="r" class:atcap={w >= mk.sector_max - 1e-4}>{w ? share(w) : ''}</td>
+            <td class="r" class:atcap={w >= mk.sector_max - 1e-4}>{w ? share(w, wDigits) : ''}</td>
           {/each}
         </tr>
       {/each}

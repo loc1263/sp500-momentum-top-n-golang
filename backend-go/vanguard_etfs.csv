@@ -1,0 +1,117 @@
+ticker,name,category
+VTI,Total Stock Market,Acciones EE. UU. amplio
+VOO,S&P 500,Acciones EE. UU. amplio
+VV,Large-Cap,Acciones EE. UU. amplio
+MGC,Mega Cap,Acciones EE. UU. amplio
+VTHR,Russell 3000,Acciones EE. UU. amplio
+VONE,Russell 1000,Acciones EE. UU. amplio
+VO,Mid-Cap,Acciones EE. UU. amplio
+VB,Small-Cap,Acciones EE. UU. amplio
+VTWO,Russell 2000,Acciones EE. UU. amplio
+IVOO,S&P Mid-Cap 400,Acciones EE. UU. amplio
+VIOO,S&P Small-Cap 600,Acciones EE. UU. amplio
+VXF,Extended Market,Acciones EE. UU. amplio
+VUG,Growth,Acciones EE. UU. estilo
+VTV,Value,Acciones EE. UU. estilo
+VOOG,S&P 500 Growth,Acciones EE. UU. estilo
+VOOV,S&P 500 Value,Acciones EE. UU. estilo
+MGK,Mega Cap Growth,Acciones EE. UU. estilo
+MGV,Mega Cap Value,Acciones EE. UU. estilo
+VONG,Russell 1000 Growth,Acciones EE. UU. estilo
+VONV,Russell 1000 Value,Acciones EE. UU. estilo
+VOT,Mid-Cap Growth,Acciones EE. UU. estilo
+VOE,Mid-Cap Value,Acciones EE. UU. estilo
+VBK,Small-Cap Growth,Acciones EE. UU. estilo
+VBR,Small-Cap Value,Acciones EE. UU. estilo
+IVOG,S&P Mid-Cap 400 Growth,Acciones EE. UU. estilo
+IVOV,S&P Mid-Cap 400 Value,Acciones EE. UU. estilo
+VIOG,S&P Small-Cap 600 Growth,Acciones EE. UU. estilo
+VIOV,S&P Small-Cap 600 Value,Acciones EE. UU. estilo
+VTWG,Russell 2000 Growth,Acciones EE. UU. estilo
+VTWV,Russell 2000 Value,Acciones EE. UU. estilo
+VIG,Dividend Appreciation,Dividendos
+VYM,High Dividend Yield,Dividendos
+VIGI,International Dividend Appreciation,Dividendos
+VYMI,International High Dividend Yield,Dividendos
+VGT,Information Technology,Sectores
+VHT,Health Care,Sectores
+VFH,Financials,Sectores
+VDE,Energy,Sectores
+VCR,Consumer Discretionary,Sectores
+VDC,Consumer Staples,Sectores
+VIS,Industrials,Sectores
+VAW,Materials,Sectores
+VPU,Utilities,Sectores
+VOX,Communication Services,Sectores
+VNQ,Real Estate,Inmobiliario
+VNQI,Global ex-US Real Estate,Inmobiliario
+VT,Total World Stock,Acciones internacionales
+VXUS,Total International Stock,Acciones internacionales
+VEA,FTSE Developed Markets,Acciones internacionales
+VWO,FTSE Emerging Markets,Acciones internacionales
+VEU,FTSE All-World ex-US,Acciones internacionales
+VGK,FTSE Europe,Acciones internacionales
+VPL,FTSE Pacific,Acciones internacionales
+VSS,FTSE All-World ex-US Small-Cap,Acciones internacionales
+VFMO,U.S. Momentum Factor,Factores
+VFVA,U.S. Value Factor,Factores
+VFQY,U.S. Quality Factor,Factores
+VFMV,U.S. Minimum Volatility,Factores
+VFMF,U.S. Multifactor,Factores
+ESGV,ESG U.S. Stock,ESG
+VSGX,ESG International Stock,ESG
+BND,Total Bond Market,Bonos EE. UU.
+BIV,Intermediate-Term Bond,Bonos EE. UU.
+BSV,Short-Term Bond,Bonos EE. UU.
+BLV,Long-Term Bond,Bonos EE. UU.
+VCIT,Intermediate-Term Corporate Bond,Bonos EE. UU.
+VCSH,Short-Term Corporate Bond,Bonos EE. UU.
+VCLT,Long-Term Corporate Bond,Bonos EE. UU.
+VTC,Total Corporate Bond,Bonos EE. UU.
+VGIT,Intermediate-Term Treasury,Bonos EE. UU.
+VGSH,Short-Term Treasury,Bonos EE. UU.
+VGLT,Long-Term Treasury,Bonos EE. UU.
+VTIP,Short-Term Inflation-Protected Securities,Bonos EE. UU.
+VMBS,Mortgage-Backed Securities,Bonos EE. UU.
+VUSB,Ultra-Short Bond,Bonos EE. UU.
+VBIL,0-3 Month Treasury Bill,Bonos EE. UU.
+VGUS,Ultra-Short Treasury,Bonos EE. UU.
+VCRB,Core Bond,Bonos EE. UU.
+VPLS,Core-Plus Bond,Bonos EE. UU.
+VCEB,ESG U.S. Corporate Bond,Bonos EE. UU.
+VTEB,Tax-Exempt Bond,Bonos EE. UU.
+VTES,Short-Term Tax-Exempt Bond,Bonos EE. UU.
+VCRM,Core Tax-Exempt Bond,Bonos EE. UU.
+VTEC,California Tax-Exempt Bond,Bonos EE. UU.
+BNDX,Total International Bond,Bonos internacionales
+BNDW,Total World Bond,Bonos internacionales
+VWOB,Emerging Markets Government Bond,Bonos internacionales
+BNDP,Core-Plus Bond Index,Bonos EE. UU.
+EDV,Extended Duration Treasury,Bonos EE. UU.
+MUNY,New York Tax-Exempt Bond,Bonos EE. UU.
+VBCA,Target Maturity 2027 Corporate Bond,Bonos EE. UU.
+VBCB,Target Maturity 2028 Corporate Bond,Bonos EE. UU.
+VBCC,Target Maturity 2029 Corporate Bond,Bonos EE. UU.
+VBCD,Target Maturity 2030 Corporate Bond,Bonos EE. UU.
+VBCE,Target Maturity 2031 Corporate Bond,Bonos EE. UU.
+VBCF,Target Maturity 2032 Corporate Bond,Bonos EE. UU.
+VBCG,Target Maturity 2033 Corporate Bond,Bonos EE. UU.
+VBCH,Target Maturity 2034 Corporate Bond,Bonos EE. UU.
+VBCI,Target Maturity 2035 Corporate Bond,Bonos EE. UU.
+VBCJ,Target Maturity 2036 Corporate Bond,Bonos EE. UU.
+VCHY,U.S. High-Yield Corporate Bond Index,Bonos EE. UU.
+VDG,Developed Markets ex-US Growth Index,Acciones internacionales
+VDIG,Wellington Dividend Growth Active,Acciones EE. UU. amplio
+VDV,Developed Markets ex-US Value Index,Acciones internacionales
+VEXC,Emerging Markets ex-China,Acciones internacionales
+VGHY,High-Yield Active,Bonos EE. UU.
+VGMS,Multi-Sector Income Bond,Bonos EE. UU.
+VGVT,Government Securities Active,Bonos EE. UU.
+VSDB,Short Duration Bond,Bonos EE. UU.
+VSDM,Short Duration Tax-Exempt Bond,Bonos EE. UU.
+VTEI,Intermediate-Term Tax-Exempt Bond,Bonos EE. UU.
+VTEL,Long-Term Tax-Exempt Bond,Bonos EE. UU.
+VTG,Total Treasury,Bonos EE. UU.
+VTP,Total Inflation-Protected Securities,Bonos EE. UU.
+VUSG,Wellington U.S. Growth Active,Acciones EE. UU. amplio
+VUSV,Wellington U.S. Value Active,Acciones EE. UU. amplio
