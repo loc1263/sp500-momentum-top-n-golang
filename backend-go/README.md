@@ -14,7 +14,7 @@ Desde esta carpeta (las rutas del `config.toml` son relativas a ella):
 
 ```
 go build -o bin/top3 ./cmd/top3    # bin/top3.exe en Windows (bin/ está ignorada por git)
-./bin/top3 pipeline                # todo: backtest, Top actual, ETFs, modelo por score, IPSA, JSON del frontend y limpieza
+./bin/top3 pipeline                # todo: backtest, Top actual, ETFs, modelo por score, IPSA, evaluador, JSON del frontend y limpieza
 ```
 
 o sin compilar: `go run ./cmd/top3 pipeline`.
@@ -28,6 +28,7 @@ o sin compilar: `go run ./cmd/top3 pipeline`.
 | `top3 etfq` | `[--top-n N]` |
 | `top3 quant` | `[--no-cache]` |
 | `top3 ipsa` | `[--no-cache]` |
+| `top3 evaluator` | `[--no-cache]` |
 | `top3 export` | |
 | `top3 prune` | `[--keep-days N]` |
 
@@ -55,6 +56,7 @@ internal/etf        ranking de ETFs de Vanguard y actualización de la lista
 internal/etfq       ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM)
 internal/quant      scores de momentum, salud y técnico, Markowitz (puntos interiores) y el JSON del modelo
 internal/ipsa       el mismo modelo para las 30 acciones del IPSA (lista desde Wikipedia, en pesos chilenos)
+internal/evaluator  evaluador de empresas: análisis fundamental del S&P 500 y el IPSA (propio, solo usa gohoo y las listas de tickers)
 internal/report     el JSON del frontend
 internal/history    historial del Top actual y de ETFs en JSON versionado (la base SQLite es solo caché)
 internal/cleanup    limpieza de reportes, corridas y caché vencida

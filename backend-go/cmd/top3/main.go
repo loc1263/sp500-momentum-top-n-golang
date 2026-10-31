@@ -1,6 +1,6 @@
 // Command top3 es el punto de entrada único del backend: `top3 <comando> [opciones]`.
 //
-// Comandos: backtest, actual, etf, etfq, quant, ipsa, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
+// Comandos: backtest, actual, etf, etfq, quant, ipsa, evaluator, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
 package main
 
 import (
@@ -23,6 +23,7 @@ import (
 	"top3/internal/errs"
 	"top3/internal/etf"
 	"top3/internal/etfq"
+	"top3/internal/evaluator"
 	"top3/internal/history"
 	"top3/internal/ipsa"
 	"top3/internal/logx"
@@ -33,7 +34,7 @@ import (
 	"top3/internal/yahoo"
 )
 
-var commands = []string{"backtest", "actual", "etf", "etfq", "quant", "ipsa", "export", "prune", "pipeline"}
+var commands = []string{"backtest", "actual", "etf", "etfq", "quant", "ipsa", "evaluator", "export", "prune", "pipeline"}
 
 func main() {
 	// El proceso vive pocos segundos y mueve matrices grandes: se deja crecer el heap antes de cada GC (4x en vez de 2x),
@@ -148,6 +149,8 @@ func run(ctx context.Context, name string, args []string) error {
 		return runQuant(ctx, args)
 	case "ipsa":
 		return runIpsa(ctx, args)
+	case "evaluator":
+		return runEvaluator(ctx, args)
 	case "export":
 		return runExport(args)
 	case "prune":
@@ -320,6 +323,30 @@ func runIpsa(ctx context.Context, args []string) error {
 	}
 	_, err = report.Export(cfg)
 	return err
+}
+
+func runEvaluator(ctx context.Context, args []string) error {
+	f := newFlags("evaluator", "Evaluador de empresas: análisis fundamental de las acciones del S&P 500 y del IPSA")
+	noCache := f.Bool("no-cache", false, "Vuelve a bajar la lista del IPSA en lugar de reutilizar la guardada")
+	if stop, err := f.parse(args); stop {
+		return err
+	}
+	cfg, err := start(f.config, func(o config.Output) string { return o.EvaluatorLog })
+	if err != nil {
+		return err
+	}
+	y, err := newYahoo(cfg)
+	if err != nil {
+		return err
+	}
+	payload, err := evaluator.Run(ctx, cfg, y, !*noCache)
+	if err != nil {
+		return err
+	}
+	for _, l := range payload.Summary() {
+		console.Println(l)
+	}
+	return nil
 }
 
 func runExport(args []string) error {

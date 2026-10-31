@@ -19,6 +19,7 @@ por score, para EE. UU. y para Chile (IPSA).
 - **ETFs por gestora**: los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab, con momentum y calidad (costo y tamaño).
 - **Modelo por score (EEUU)**: score de momentum, de salud financiera y técnico para cada acción del S&P 500, y Markowitz sobre las mejores.
 - **Chile (IPSA)**: el mismo modelo por score para las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos.
+- **Evaluador de empresas**: análisis fundamental propio de cada acción del S&P 500 y del IPSA (rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores), con un veredicto por categoría. Es independiente de los scores.
 - **About**: tarjetas que explican los conceptos (momentum, Sharpe, Markowitz, mínima varianza, scores...), las fuentes y los límites.
 
 ## Requisitos

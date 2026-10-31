@@ -42,6 +42,13 @@ jobs:
           key: top3-db-${{ github.run_id }}
           restore-keys: top3-db-
 
+      # Se compila con el Go de go.mod (staticcheck debe estar hecho con una versión igual o más nueva que la del módulo)
+      - name: Linter del backend (staticcheck)
+        working-directory: backend-go
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          staticcheck ./...
+
       - name: Tests del backend
         working-directory: backend-go
         run: go test ./...

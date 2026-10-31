@@ -86,6 +86,7 @@ type Output struct {
 	EtfqLog        string `toml:"etfq_log" json:"etfq_log"`
 	QuantLog       string `toml:"quant_log" json:"quant_log"`
 	IpsaLog        string `toml:"ipsa_log" json:"ipsa_log"`
+	EvaluatorLog   string `toml:"evaluator_log" json:"evaluator_log"`
 	ExportLog      string `toml:"export_log" json:"export_log"`
 	PruneLog       string `toml:"prune_log" json:"prune_log"`
 	FrontendData   string `toml:"frontend_data" json:"frontend_data"`
@@ -162,6 +163,20 @@ type Ipsa struct {
 	EquityPremium float64 `toml:"equity_premium" json:"equity_premium"`
 }
 
+// Evaluator es [evaluator]: evaluador de empresas por análisis fundamental. Es una sección aparte: no usa los scores ni las tablas
+// de los otros modelos; solo toma de ellos las listas de tickers (S&P 500 actual e IPSA).
+type Evaluator struct {
+	// JSON que lee la pestaña del frontend
+	Output string `toml:"output" json:"output"`
+	// Competidores con los que se compara cada empresa (misma industria y mercado, capitalización parecida)
+	Peers int `toml:"peers" json:"peers"`
+	// Empresas del S&P 500 y del IPSA a evaluar
+	Sp500 bool `toml:"sp500" json:"sp500"`
+	Ipsa  bool `toml:"ipsa" json:"ipsa"`
+	// Fracción mínima de las empresas con datos para guardar el resultado (protege de una caída de Yahoo)
+	MinCoverage float64 `toml:"min_coverage" json:"min_coverage"`
+}
+
 // Universe es [universe]: filtro por capitalización.
 type Universe struct {
 	MinCapBillions      float64   `toml:"min_cap_billions" json:"min_cap_billions"`
@@ -179,6 +194,7 @@ type Config struct {
 	Etfq       Etfq       `toml:"etfq" json:"etfq"`
 	Quant      Quant      `toml:"quant" json:"quant"`
 	Ipsa       Ipsa       `toml:"ipsa" json:"ipsa"`
+	Evaluator  Evaluator  `toml:"evaluator" json:"evaluator"`
 	Universe   Universe   `toml:"universe" json:"universe"`
 }
 
@@ -220,7 +236,7 @@ func Default() Config {
 			BacktestPrefix: "top3_backtest", SweepPrefix: "top3_sweep", OffsetsPrefix: "top3_offsets",
 			ActualPrefix: "top3_actual", EtfSubdir: "etf", EtfPrefix: "top3_etf", LogDir: "log",
 			BacktestLog: "top3_backtest.log", ActualLog: "top3_actual.log", EtfLog: "top3_etf.log", EtfqLog: "top3_etfq.log",
-			QuantLog: "top3_quant.log", IpsaLog: "top3_ipsa.log", ExportLog: "export_frontend.log", PruneLog: "top3_prune.log",
+			QuantLog: "top3_quant.log", IpsaLog: "top3_ipsa.log", EvaluatorLog: "top3_evaluator.log", ExportLog: "export_frontend.log", PruneLog: "top3_prune.log",
 			FrontendData: "../frontend/public/data/report.json",
 			HistoryFile:  "history/history.json",
 		},
@@ -251,7 +267,8 @@ func Default() Config {
 			UniverseTTLDays: 30, Suffix: ".SN", Aliases: map[string]string{},
 			TopN: 6, VolTarget: 0.20, WMax: 0.30, WMin: 0.10, WStep: 0.01, SectorMax: 0.40, RiskFree: 0.05, EquityPremium: 0.06,
 		},
-		Universe: Universe{MinCapBillions: 10, SweepMinCapBillions: []float64{0, 10, 200}},
+		Evaluator: Evaluator{Output: "../frontend/public/data/evaluator.json", Peers: 3, Sp500: true, Ipsa: true, MinCoverage: 0.5},
+		Universe:  Universe{MinCapBillions: 10, SweepMinCapBillions: []float64{0, 10, 200}},
 	}
 }
 

@@ -8,6 +8,7 @@ backend-go/bin/
 frontend/node_modules/
 frontend/dist/
 frontend/public/data/report.json
+frontend/public/data/evaluator.json
 
 # Editor / sistema
 .vscode/

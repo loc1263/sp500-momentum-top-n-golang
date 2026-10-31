@@ -151,3 +151,12 @@ var (
 	IpsNoSignal = code("TOP-IPS-002", "error", "No hay acciones suficientes para el ranking del IPSA",
 		"Descarga de nuevo (--no-cache) o baja [ipsa] top_n; Yahoo tiene pocos datos financieros de acciones chilenas.")
 )
+
+// Evaluador de empresas
+var (
+	EvaNoData = code("TOP-EVA-001", "warning", "Empresas sin datos fundamentales en Yahoo",
+		"Quedan fuera del evaluador; se reintentan en la próxima corrida. Es normal en algunas acciones chilenas.")
+	EvaTooFew = code("TOP-EVA-002", "error", "Se obtuvieron datos de muy pocas empresas",
+		"No se guardó el resultado para no reemplazar el anterior con uno incompleto. Suele ser un límite de Yahoo: reintenta más tarde "+
+			"o baja [evaluator] min_coverage.")
+)

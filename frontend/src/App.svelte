@@ -7,21 +7,17 @@
   import EtfqView from './lib/EtfqView.svelte';
   import QuantView from './lib/QuantView.svelte';
   import IpsaView from './lib/IpsaView.svelte';
+  import EvaluatorView from './lib/EvaluatorView.svelte';
   import AboutView from './lib/AboutView.svelte';
   import Glossary from './lib/Glossary.svelte';
   import Bunny from './lib/Bunny.svelte';
   import { share } from './lib/format.js';
 
-  // Las cuatro primeras son la misma estrategia de momentum; ETFs y Modelo por score son análisis aparte
+  // Top actual, ETFs, modelo por score y evaluador son datos de portafolios y empresas; el Lab agrupa las vistas de backtest
   const groups = [
     {
-      label: 'Estrategia de momentum',
-      tabs: [
-        { id: 'actual', label: 'Top actual' },
-        { id: 'backtest', label: 'Backtest' },
-        { id: 'sweep', label: 'Plazos y sensibilidad' },
-        { id: 'compare', label: 'N-0 vs N-1' },
-      ],
+      label: 'Momentum',
+      tabs: [{ id: 'actual', label: 'Top actual' }],
     },
     {
       label: 'ETFs',
@@ -35,6 +31,18 @@
       tabs: [
         { id: 'quant', label: 'EEUU' },
         { id: 'ipsa', label: 'Chile (IPSA)' },
+      ],
+    },
+    {
+      label: 'Análisis fundamental',
+      tabs: [{ id: 'evaluador', label: 'Evaluador de empresas' }],
+    },
+    {
+      label: 'Lab',
+      tabs: [
+        { id: 'backtest', label: 'Backtest' },
+        { id: 'sweep', label: 'Plazos y sensibilidad' },
+        { id: 'compare', label: 'N-0 vs N-1' },
       ],
     },
   ];
@@ -94,7 +102,8 @@
   // Nombre fijo del sitio (título principal) y título de la sección actual (debajo, más chico)
   const SITE_NAME = 'Momentum y Scores';
   const SECTION_TITLES = {
-    etf: 'ETFs de Vanguard', etfq: 'ETFs por gestora', quant: 'Modelo por score', ipsa: 'Modelo por score: IPSA', about: 'About',
+    etf: 'ETFs de Vanguard', etfq: 'ETFs por gestora', quant: 'Modelo por score', ipsa: 'Modelo por score: IPSA', evaluador: 'Evaluador de empresas', about: 'About',
+    backtest: 'Lab: Backtest', sweep: 'Lab: Plazos y sensibilidad', compare: 'Lab: N-0 vs N-1',
   };
   const sectionTitle = $derived(SECTION_TITLES[tab] ?? `Top ${report?.settings.top_n ?? 'N'} del S&P 500`);
   $effect(() => {
@@ -144,6 +153,8 @@
         Scores de momentum, salud financiera y técnico de las acciones del S&amp;P 500, su promedio y Markowitz sobre las mejores.
       {:else if tab === 'ipsa'}
         Scores de momentum, salud financiera y técnico de las 30 acciones del IPSA (Bolsa de Santiago, en pesos chilenos), su promedio y Markowitz sobre las mejores.
+      {:else if tab === 'evaluador'}
+        Análisis fundamental de cada acción del S&amp;P 500 y del IPSA: rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores. Es independiente de los scores.
       {:else if tab === 'about'}
         Qué se muestra en esta aplicación y cómo leerlo.
       {:else}
@@ -176,7 +187,7 @@
         {/each}
       </div>
       <div class="filters">
-        {#if tab !== 'actual' && tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'ipsa' && tab !== 'about' && periods.length}
+        {#if tab !== 'actual' && tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'ipsa' && tab !== 'evaluador' && tab !== 'about' && periods.length}
           <label>
             Período
             <select value={period?.years} onchange={(e) => (chosenYears = Number(e.currentTarget.value))}>
@@ -188,7 +199,7 @@
             </select>
           </label>
         {/if}
-        {#if tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'ipsa' && tab !== 'about'}
+        {#if tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'ipsa' && tab !== 'evaluador' && tab !== 'about'}
           <label>
             Universo
             <select bind:value={capKey}>
@@ -229,6 +240,8 @@
       {:else}
         <p class="muted">Sin modelo del IPSA. Ejecute top3 ipsa (en backend-go/).</p>
       {/if}
+    {:else if tab === 'evaluador'}
+      <EvaluatorView />
     {:else if tab === 'actual'}
       {#if actual}
         <ActualView {actual} />
@@ -246,7 +259,7 @@
     {/if}
 
     <footer>
-      Generado el {report.generated_at.replace('T', ' ')}. {#if tab === 'etfq'}ETFs por gestora: TER, AUM y categoría de Yahoo Finance; foto de hoy, sin backtest. {/if}{#if tab === 'ipsa'}IPSA: foto de hoy, sin backtest; precios en pesos chilenos y datos financieros de Yahoo Finance. {/if}{#if tab === 'quant'}Modelo por score: foto de hoy, sin backtest; los datos financieros son los últimos publicados (Yahoo Finance). {/if}&nbsp;Backtest con comisión de {share(report.settings.commission ?? 0, 2)} por lado, sin impuestos, ponderación igual
+      Generado el {report.generated_at.replace('T', ' ')}. {#if tab === 'etfq'}ETFs por gestora: TER, AUM y categoría de Yahoo Finance; foto de hoy, sin backtest. {/if}{#if tab === 'ipsa'}IPSA: foto de hoy, sin backtest; precios en pesos chilenos y datos financieros de Yahoo Finance. {/if}{#if tab === 'evaluador'}Evaluador: foto de hoy con los últimos estados financieros publicados (Yahoo Finance); los umbrales son reglas generales y dependen del sector. {/if}{#if tab === 'quant'}Modelo por score: foto de hoy, sin backtest; los datos financieros son los últimos publicados (Yahoo Finance). {/if}&nbsp;Backtest con comisión de {share(report.settings.commission ?? 0, 2)} por lado, sin impuestos, ponderación igual
       entre los tickers seleccionados. Excluye tickers sin datos en Yahoo (sesgo de supervivencia). Herramienta de
       análisis, no una recomendación de inversión.
     </footer>

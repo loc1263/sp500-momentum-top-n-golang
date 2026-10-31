@@ -177,3 +177,17 @@ sector_max = 0.40
 # Tasa libre de riesgo de Chile y prima de mercado (el retorno de largo plazo esperado es la suma)
 risk_free = 0.05
 equity_premium = 0.06
+
+[evaluator]
+# Evaluador de empresas (top3 evaluator): análisis fundamental propio de cada acción del S&P 500 y del IPSA (rentabilidad,
+# crecimiento, caja, deuda y liquidez, valoración, tendencia y comparación con competidores). Es independiente de los scores:
+# solo toma de los otros modelos las listas de tickers. Los datos salen de Yahoo Finance.
+# JSON que lee la pestaña del frontend
+output = "../frontend/public/data/evaluator.json"
+# Universos a evaluar
+sp500 = true
+ipsa = true
+# Competidores de cada empresa: los de su misma industria (o sector) y mercado con la capitalización más parecida
+peers = 3
+# Fracción mínima de las empresas que deben tener datos para guardar el resultado (si Yahoo falla, se conserva el JSON anterior)
+min_coverage = 0.5

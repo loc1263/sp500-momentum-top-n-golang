@@ -1,5 +1,5 @@
 // Package pipeline corre el proceso completo: tests (opcional) -> backtest de todos los períodos y universos -> Top actual de
-// cada universo -> ranking de ETFs -> modelo por score -> JSON del frontend -> limpieza de lo viejo.
+// cada universo -> ranking de ETFs -> modelo por score -> evaluador de empresas -> JSON del frontend -> limpieza de lo viejo.
 //
 //	top3 pipeline                  # todo, con caché y descarga incremental de precios
 //	top3 pipeline --no-cache       # descarga todo de nuevo
@@ -29,21 +29,25 @@ import (
 type Step struct {
 	Name string
 	Cmd  []string // el primer elemento es el ejecutable
+	// Optional: si falla, se avisa y el pipeline sigue (no cambia el código de salida). Para pasos que no alimentan a los demás y
+	// que dependen de límites externos (Yahoo), de modo que una caída no impida exportar y publicar el resto.
+	Optional bool
 }
 
 // Options son las opciones del pipeline.
 type Options struct {
-	Config       string
-	NoCache      bool
-	Years        float64
-	Tests        bool
-	SkipBacktest bool
-	SkipActual   bool
-	SkipQuant    bool
-	SkipIpsa     bool
-	SkipEtf      bool
-	SkipEtfq     bool
-	SkipPrune    bool
+	Config        string
+	NoCache       bool
+	Years         float64
+	Tests         bool
+	SkipBacktest  bool
+	SkipActual    bool
+	SkipQuant     bool
+	SkipIpsa      bool
+	SkipEvaluator bool
+	SkipEtf       bool
+	SkipEtfq      bool
+	SkipPrune     bool
 }
 
 func universeArgs(level float64) []string {
@@ -76,14 +80,14 @@ func BuildSteps(cfg config.Config, o Options, self string) []Step {
 	}
 	var steps []Step
 	if o.Tests {
-		steps = append(steps, Step{"Tests", []string{"go", "test", "./..."}})
+		steps = append(steps, Step{Name: "Tests", Cmd: []string{"go", "test", "./..."}})
 	}
 	if !o.SkipBacktest {
 		var years []string
 		if o.Years != 0 {
 			years = []string{"--years", strconv.FormatFloat(o.Years, 'g', -1, 64)}
 		}
-		steps = append(steps, Step{"Backtest: períodos x plazos x universos (sweep + offsets)", cmd("backtest", []string{"--sweep"}, cache(), years)})
+		steps = append(steps, Step{Name: "Backtest: períodos x plazos x universos (sweep + offsets)", Cmd: cmd("backtest", []string{"--sweep"}, cache(), years)})
 	}
 	if !o.SkipActual {
 		for _, level := range cfg.Universe.SweepMinCapBillions {
@@ -91,17 +95,17 @@ func BuildSteps(cfg config.Config, o Options, self string) []Step {
 			if level != 0 {
 				label = fmt.Sprintf("cap. >= US$ %g B", level)
 			}
-			steps = append(steps, Step{"Top actual - " + label, cmd("actual", cache(), universeArgs(level))})
+			steps = append(steps, Step{Name: "Top actual - " + label, Cmd: cmd("actual", cache(), universeArgs(level))})
 		}
 	}
 	if !o.SkipEtf {
-		steps = append(steps, Step{"Ranking de ETFs de Vanguard", cmd("etf")})
+		steps = append(steps, Step{Name: "Ranking de ETFs de Vanguard", Cmd: cmd("etf")})
 	}
 	if !o.SkipEtfq {
-		steps = append(steps, Step{"ETFs por gestora: momentum y calidad (TER y AUM)", cmd("etfq")})
+		steps = append(steps, Step{Name: "ETFs por gestora: momentum y calidad (TER y AUM)", Cmd: cmd("etfq")})
 	}
 	if !o.SkipQuant {
-		steps = append(steps, Step{"Modelo por score: scores de momentum, salud y técnico, y Markowitz", cmd("quant", cache())})
+		steps = append(steps, Step{Name: "Modelo por score: scores de momentum, salud y técnico, y Markowitz", Cmd: cmd("quant", cache())})
 	}
 	if !o.SkipIpsa {
 		// el IPSA no comparte descargas con los demás pasos (otra bolsa, otra lista): --no-cache le llega siempre
@@ -109,19 +113,28 @@ func BuildSteps(cfg config.Config, o Options, self string) []Step {
 		if o.NoCache {
 			ipsaCache = []string{"--no-cache"}
 		}
-		steps = append(steps, Step{"IPSA (Bolsa de Santiago): modelo por score y Markowitz, en pesos chilenos", cmd("ipsa", ipsaCache)})
+		steps = append(steps, Step{Name: "IPSA (Bolsa de Santiago): modelo por score y Markowitz, en pesos chilenos", Cmd: cmd("ipsa", ipsaCache)})
 	}
-	steps = append(steps, Step{"Exportar JSON del frontend", cmd("export")})
+	if !o.SkipEvaluator {
+		// el evaluador baja sus propios datos fundamentales (no comparte nada con los otros pasos) y escribe su propio JSON
+		var evalCache []string
+		if o.NoCache {
+			evalCache = []string{"--no-cache"}
+		}
+		steps = append(steps, Step{Name: "Evaluador de empresas: análisis fundamental del S&P 500 y el IPSA", Cmd: cmd("evaluator", evalCache), Optional: true})
+	}
+	steps = append(steps, Step{Name: "Exportar JSON del frontend", Cmd: cmd("export")})
 	if !o.SkipPrune {
-		steps = append(steps, Step{"Limpieza de datos y reportes viejos", cmd("prune")})
+		steps = append(steps, Step{Name: "Limpieza de datos y reportes viejos", Cmd: cmd("prune")})
 	}
 	return steps
 }
 
 type result struct {
-	name string
-	rc   int
-	took time.Duration
+	name     string
+	rc       int
+	took     time.Duration
+	optional bool
 }
 
 // Main corre el pipeline con los argumentos de la línea de comandos y devuelve el código de salida.
@@ -136,6 +149,7 @@ func Main(args []string) int {
 	fs.BoolVar(&o.SkipActual, "skip-actual", false, "Omite el Top actual")
 	fs.BoolVar(&o.SkipQuant, "skip-quant", false, "Omite el modelo por score (scores y Markowitz)")
 	fs.BoolVar(&o.SkipIpsa, "skip-ipsa", false, "Omite el modelo por score del IPSA")
+	fs.BoolVar(&o.SkipEvaluator, "skip-evaluator", false, "Omite el evaluador de empresas")
 	fs.BoolVar(&o.SkipEtf, "skip-etf", false, "Omite el ranking de ETFs de Vanguard")
 	fs.BoolVar(&o.SkipEtfq, "skip-etfq", false, "Omite los ETFs por gestora (momentum y calidad)")
 	fs.BoolVar(&o.SkipPrune, "skip-prune", false, "Omite la limpieza final de datos y reportes viejos")
@@ -186,7 +200,11 @@ func Main(args []string) int {
 				fmt.Fprintln(os.Stderr, err)
 			}
 		}
-		results = append(results, result{s.Name, rc, time.Since(t0)})
+		results = append(results, result{s.Name, rc, time.Since(t0), s.Optional})
+		if rc != 0 && s.Optional {
+			fmt.Fprintln(os.Stderr, logx.Paint(fmt.Sprintf("\nFALLÓ el paso opcional «%s» (código %d). El pipeline sigue sin él.", s.Name, rc), logx.Warning))
+			continue
+		}
 		if rc != 0 {
 			fmt.Fprintln(os.Stderr, logx.Paint(fmt.Sprintf("\nFALLÓ el paso «%s» (código %d). Se corta el pipeline.", s.Name, rc), logx.Error))
 			break
@@ -200,7 +218,10 @@ func Main(args []string) int {
 	failed := false
 	for _, r := range results {
 		state := "OK   "
-		if r.rc != 0 {
+		switch {
+		case r.rc != 0 && r.optional:
+			state = "FALLÓ (opcional, se siguió)"
+		case r.rc != 0:
 			state, failed = "FALLÓ", true
 		}
 		fmt.Printf("  %s  %6.0f s  %s\n", state, r.took.Seconds(), r.name)
