@@ -12,14 +12,18 @@ por score, para EE. UU. y para Chile (IPSA).
 
 ## Qué incluye
 
-- **Backtest** Point-in-Time, con comparación de plazos y sensibilidad al mes de arranque.
-- **N-0 vs. N-1**: el modelo de siempre frente a una variante que ignora el último mes al rankear.
+La barra de pestañas tiene cinco grupos: **Momentum** (Top actual), **ETFs**, **Acciones por score**, **Análisis fundamental** (Evaluador de empresas) y **Lab** (las vistas de backtest).
+
 - **Top actual**: las N acciones líderes hoy, con suplentes, cambios y próximo rebalanceo.
 - **ETFs de Vanguard**: ranking de momentum ajustado por riesgo.
 - **ETFs por gestora**: los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab, con momentum y calidad (costo y tamaño).
 - **Modelo por score (EEUU)**: score de momentum, de salud financiera y técnico para cada acción del S&P 500, y Markowitz sobre las mejores.
 - **Chile (IPSA)**: el mismo modelo por score para las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos.
 - **Evaluador de empresas**: análisis fundamental propio de cada acción del S&P 500 y del IPSA (rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores), con un veredicto por categoría. Es independiente de los scores.
+- **Lab**: el laboratorio de backtest de la estrategia de momentum.
+  - **Backtest** Point-in-Time, con curva de capital y selecciones en cada rebalanceo.
+  - **Plazos y sensibilidad**: compara plazos de rebalanceo y mide cuánto depende el resultado del mes de arranque.
+  - **N-0 vs. N-1**: el modelo de siempre frente a una variante que ignora el último mes al rankear.
 - **About**: tarjetas que explican los conceptos (momentum, Sharpe, Markowitz, mínima varianza, scores...), las fuentes y los límites.
 
 ## Requisitos

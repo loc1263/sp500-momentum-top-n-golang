@@ -89,11 +89,31 @@ func targets(cfg config.Config, useCache bool) ([]target, error) {
 	return out, nil
 }
 
+// emptyUniverses son los universos activados en [evaluator] que no tienen ninguna empresa en ts (p. ej. la base sin la lista actual del
+// S&P 500).
+func emptyUniverses(ts []target, cfg config.Config) []string {
+	have := map[string]bool{}
+	for _, t := range ts {
+		have[t.universe] = true
+	}
+	var out []string
+	if cfg.Evaluator.Sp500 && !have[SP500] {
+		out = append(out, "S&P 500")
+	}
+	if cfg.Evaluator.Ipsa && !have[IPSA] {
+		out = append(out, "IPSA")
+	}
+	return out
+}
+
 // Run evalúa todas las empresas y escribe el JSON de [evaluator] output.
 func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, useCache bool) (*Payload, error) {
 	ts, err := targets(cfg, useCache)
 	if err != nil {
 		return nil, err
+	}
+	for _, u := range emptyUniverses(ts, cfg) {
+		logx.Warnf(errs.EvaNoList.Msg("No hay empresas de %s en la lista; se evalúan solo las demás"), u)
 	}
 	if len(ts) == 0 {
 		return nil, errs.EvaTooFew.Errorf("no hay empresas que evaluar (revisa [evaluator] sp500 e ipsa)")
@@ -164,7 +184,8 @@ func Build(cs []Company, peers int) *Payload {
 	return p
 }
 
-// Write guarda el payload como JSON (sin escapar HTML) creando la carpeta si hace falta.
+// Write guarda el payload como JSON (sin escapar HTML) creando la carpeta si hace falta. Escribe a un archivo temporal de la misma
+// carpeta y lo renombra: si el proceso se corta a mitad, queda el JSON anterior y no uno a medias.
 func Write(path string, p *Payload) error {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -172,10 +193,28 @@ func Write(path string, p *Payload) error {
 	if err := enc.Encode(p); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(path, bytes.TrimRight(buf.Bytes(), "\n"), 0o644)
+	tmp, err := os.CreateTemp(dir, filepath.Base(path)+".*.tmp")
+	if err != nil {
+		return err
+	}
+	_, err = tmp.Write(bytes.TrimRight(buf.Bytes(), "\n"))
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Chmod(tmp.Name(), 0o644) // CreateTemp lo deja en 0600
+	}
+	if err == nil {
+		err = os.Rename(tmp.Name(), path)
+	}
+	if err != nil {
+		os.Remove(tmp.Name())
+	}
+	return err
 }
 
 // Summary es el texto de la consola con el recuento de veredictos por universo.

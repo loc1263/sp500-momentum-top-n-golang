@@ -246,6 +246,11 @@ func PruneRuns(d *sql.DB, keepDays int) (int, error) {
 		}
 		all = append(all, r)
 	}
+	// un error a mitad de la lectura dejaría una lista parcial: se podaría con datos incompletos
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return 0, err
+	}
 	rows.Close()
 
 	latest := map[string]int64{}

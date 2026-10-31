@@ -106,7 +106,7 @@ describe('EvaluatorView: detalle', () => {
     await open('Alfa Corp');
     const table = screen.getByRole('heading', { name: /Vs. competidores/ }).closest('section').querySelector('table');
     const row = within(table).getByText('P/E').closest('tr');
-    expect(within(row).getByText('12,0×')).toHaveClass('best');
+    expect(within(row).getByText('12,00×')).toHaveClass('best');
     expect(within(row).getByText('Mejor')).toBeInTheDocument();
     expect(within(table).getByText('BBB')).toBeInTheDocument();
   });

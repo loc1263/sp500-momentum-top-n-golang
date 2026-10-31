@@ -485,7 +485,10 @@ func termEnd(bought time.Time, months int) time.Time {
 // Se mide con el precio guardado al elegirla y el último precio disponible, sin pasar de los months meses que dura la
 // tenencia: si ya pasaron, la selección figura como cerrada y su retorno es el del plazo completo.
 func tracking(d *sql.DB, cap float64, months int) ([]Tracking, error) {
-	lastStr := repo.LatestPriceDate(d)
+	lastStr, err := repo.LatestPriceDate(d)
+	if err != nil {
+		return nil, err
+	}
 	if lastStr == "" {
 		return []Tracking{}, nil
 	}
@@ -623,7 +626,10 @@ func buildActual(d *sql.DB, today time.Time) ([]Actual, error) {
 
 // buildEtf es el último ranking de ETFs de Vanguard guardado, con nombre y categoría de la lista (CSV).
 func buildEtf(d *sql.DB, cfg config.Config) (*Etf, error) {
-	asOf := repo.LatestEtfAsOf(d)
+	asOf, err := repo.LatestEtfAsOf(d)
+	if err != nil {
+		return nil, err
+	}
 	if asOf == "" {
 		return nil, nil
 	}

@@ -5,6 +5,7 @@
 
   const sections = [
     ['Top actual', 'Las acciones que hoy lideran el ranking de momentum (N-0), con suplentes, qué entra y sale, próximo rebalanceo y seguimiento de selecciones pasadas.'],
+    ['Lab', 'El grupo de pestañas de backtest (Backtest, Plazos y sensibilidad y N-0 vs N-1): un laboratorio para probar la estrategia de momentum con datos históricos. A diferencia del resto, no muestra una cartera de hoy.'],
     ['Backtest', 'Qué habría pasado en el pasado: curva de capital, selecciones en cada rebalanceo y resultado de cada fecha de arranque.'],
     ['Plazos y sensibilidad', 'Compara plazos de rebalanceo y mide cuánto depende el resultado del mes de arranque (típico, peor y mejor).'],
     ['N-0 vs N-1', 'El modelo de siempre frente a una variante que ignora el último mes («skip-month»), plazo por plazo y por mitades del período.'],

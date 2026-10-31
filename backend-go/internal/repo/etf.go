@@ -68,10 +68,10 @@ func PreviousEtfTop(d *sql.DB, asOf string, topN int) (string, []string, error) 
 }
 
 // LatestEtfAsOf es la fecha del último ranking guardado ("" si no hay).
-func LatestEtfAsOf(d *sql.DB) string {
+func LatestEtfAsOf(d *sql.DB) (string, error) {
 	var v sql.NullString
-	_ = d.QueryRow("SELECT MAX(as_of) FROM etf_scores").Scan(&v)
-	return v.String
+	err := d.QueryRow("SELECT MAX(as_of) FROM etf_scores").Scan(&v)
+	return v.String, err
 }
 
 // EtfRanking es el ranking de un día.

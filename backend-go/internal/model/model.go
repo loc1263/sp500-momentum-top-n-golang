@@ -43,20 +43,35 @@ func (p *Prices) index() {
 	}
 }
 
-// FromRows arma la matriz desde filas largas: fechas y tickers ordenados.
+// FromRows arma la matriz desde filas largas: fechas y tickers ordenados. Las filas con una fecha que no es YYYY-MM-DD se descartan
+// (con la fecha en blanco entrarían como el año 1 y desordenarían la matriz); las fechas salen de Yahoo y de la base ya formateadas, así que
+// no debería haber ninguna.
 func FromRows(rows []PriceRow) *Prices {
-	dateSet := map[string]struct{}{}
+	parsed := map[string]time.Time{}
 	tickerSet := map[string]struct{}{}
+	valid := rows[:0:0]
 	for _, r := range rows {
-		dateSet[r.Date] = struct{}{}
+		if _, ok := parsed[r.Date]; !ok {
+			t, err := time.Parse("2006-01-02", r.Date)
+			if err != nil {
+				continue
+			}
+			parsed[r.Date] = t
+		}
 		tickerSet[r.Ticker] = struct{}{}
+		valid = append(valid, r)
+	}
+	rows = valid
+	dateSet := make(map[string]struct{}, len(parsed))
+	for d := range parsed {
+		dateSet[d] = struct{}{}
 	}
 	days := sortedKeys(dateSet)
 	tickers := sortedKeys(tickerSet)
 	dates := make([]time.Time, len(days))
 	rowOf := make(map[string]int, len(days))
 	for i, d := range days {
-		dates[i], _ = time.Parse("2006-01-02", d)
+		dates[i] = parsed[d]
 		rowOf[d] = i
 	}
 	p := NewPrices(dates, tickers)

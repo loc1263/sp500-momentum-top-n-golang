@@ -10,12 +10,9 @@
 
   const sectionDefs = $derived(Object.fromEntries(data.sections.map((s) => [s.id, s])));
   const fin = $derived(company.fin_currency ?? company.currency);
-  const sections = $derived(company.categories.filter((c) => c.metrics?.length || c.peers || sectionDefs[c.id]));
   const peerLabels = { good: 'Mejor', warn: 'Similar', bad: 'Peor' };
-  const peerValue = (row, v) => {
-    if (v == null) return '—';
-    return row.id.endsWith('pe') ? `${dec(v, 1)}×` : `${dec(v, 1)} %`;
-  };
+  // el formato sale de la unidad de la métrica en el diccionario (x o %), igual que en el resto de la página
+  const peerValue = (row, v) => (v == null ? '—' : formatMetric({ id: row.id, v }, data.metrics[row.id]));
 </script>
 
 <div class="head">
@@ -38,7 +35,7 @@
 </div>
 
 <div class="grid">
-  {#each sections as cat (cat.id)}
+  {#each company.categories as cat (cat.id)}
     {@const def = sectionDefs[cat.id]}
     <section class="sec" class:wide={cat.id === 'peers' || cat.id === 'trend'} aria-labelledby="sec-{cat.id}">
       <div class="sec-h">

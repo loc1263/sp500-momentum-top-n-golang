@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"top3/internal/config"
 )
 
 // healthy es una empresa sana y barata, con todos los datos.
@@ -374,6 +376,51 @@ func TestBuildRawFromYahooShape(t *testing.T) {
 	near(t, &r.Trend.OpMargin[0], 20)
 	if !isNaN(r.Trend.NetIncome[0]) {
 		t.Error("año sin utilidad debe quedar en NaN")
+	}
+}
+
+func TestEmptyUniverses(t *testing.T) {
+	cfg := config.Default()
+	both := []target{{"AAPL", SP500}, {"COPEC.SN", IPSA}}
+	if got := emptyUniverses(both, cfg); len(got) != 0 {
+		t.Errorf("con las dos listas: %v", got)
+	}
+	if got := emptyUniverses([]target{{"COPEC.SN", IPSA}}, cfg); len(got) != 1 || got[0] != "S&P 500" {
+		t.Errorf("sin S&P 500: %v", got)
+	}
+	cfg.Evaluator.Sp500 = false // un universo desactivado no es un aviso
+	if got := emptyUniverses([]target{{"COPEC.SN", IPSA}}, cfg); len(got) != 0 {
+		t.Errorf("S&P 500 desactivado: %v", got)
+	}
+	if got := emptyUniverses(nil, cfg); len(got) != 1 || got[0] != "IPSA" {
+		t.Errorf("sin nada: %v", got)
+	}
+}
+
+func TestWriteReplacesAtomicallyAndLeavesNoTempFiles(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "evaluator.json")
+	if err := os.WriteFile(path, []byte("viejo"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p := Build([]Company{company("A", "Software", 100, 20, 20)}, 3)
+	if err := Write(path, p); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := os.ReadFile(path)
+	if !json.Valid(raw) {
+		t.Fatalf("no es JSON: %.40s", raw)
+	}
+	left, _ := filepath.Glob(filepath.Join(dir, "*.tmp"))
+	if len(left) != 0 {
+		t.Errorf("quedaron temporales: %v", left)
+	}
+	// si no se puede escribir (en lugar de la carpeta hay un archivo), el JSON anterior sigue
+	if err := Write(filepath.Join(path, "sub", "x.json"), p); err == nil {
+		t.Error("debería fallar")
+	}
+	if after, _ := os.ReadFile(path); !json.Valid(after) {
+		t.Error("el JSON anterior se perdió")
 	}
 }
 

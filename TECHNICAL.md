@@ -578,6 +578,7 @@ Para buscar en el log: `grep TOP-BKT backend-go/log/top3_backtest.log`.
 | `TOP-IPS-001` | Error | No se pudo obtener la lista de acciones del IPSA | Revisa `[ipsa] wikipedia_url` y la conexión. Si hay una lista guardada (`universe_file`) se usa aunque esté vencida (en ese caso es un aviso). |
 | `TOP-IPS-002` | Error | No hay acciones suficientes para el ranking del IPSA | Descarga de nuevo (`--no-cache`) o baja `[ipsa] top_n`; Yahoo tiene pocos datos financieros de acciones chilenas. |
 | `TOP-EVA-001` | Aviso | Empresas sin datos fundamentales en Yahoo | Quedan fuera del evaluador y se reintentan en la próxima corrida. Es normal en algunas acciones chilenas. |
+| `TOP-EVA-003` | Aviso | Una de las listas de empresas está vacía | El evaluador sigue con las demás. Para el S&P 500, corre antes `top3 actual` o el pipeline completo; si no quieres ese universo, pon `[evaluator] sp500 = false`. |
 | `TOP-EVA-002` | Error | Se obtuvieron datos de muy pocas empresas | No se guardó el resultado para no reemplazar el anterior con uno incompleto. Suele ser un límite de Yahoo: reintenta más tarde o baja `[evaluator] min_coverage`. |
 
 ## Estructura y desarrollo
@@ -614,7 +615,7 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 
 | Archivo | Responsabilidad |
 |---|---|
-| `App.svelte` | Carga del JSON estático, encabezado (nombre fijo del sitio y título de la sección), pestañas, filtros de universo y período, tema |
+| `App.svelte` | Carga del JSON estático, encabezado (nombre fijo del sitio y título de la sección), pestañas en cinco grupos (Momentum, ETFs, Acciones por score, Análisis fundamental y Lab con las tres vistas de backtest), filtros de universo y período, tema |
 | `lib/ActualView.svelte` | Top actual, suplentes y seguimiento de selecciones anteriores |
 | `lib/BacktestView.svelte` | Tarjetas, curva de capital, historial de selecciones y calendarios |
 | `lib/SweepView.svelte` | Comparación de plazos y sensibilidad al arranque |

@@ -82,10 +82,10 @@ func LastDates(d *sql.DB) (map[string]string, error) {
 }
 
 // LatestPriceDate es el último día con algún precio ("" si no hay).
-func LatestPriceDate(d *sql.DB) string {
+func LatestPriceDate(d *sql.DB) (string, error) {
 	var v sql.NullString
-	_ = d.QueryRow("SELECT MAX(date) FROM prices").Scan(&v)
-	return v.String
+	err := d.QueryRow("SELECT MAX(date) FROM prices").Scan(&v)
+	return v.String, err
 }
 
 // ClosesOnOrBefore es {ticker: último cierre en day o antes} en una sola consulta; los tickers sin precios no figuran.

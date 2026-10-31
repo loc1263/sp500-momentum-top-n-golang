@@ -87,7 +87,7 @@ func TestPruneStaleDataDeletesOnlyWhatExpired(t *testing.T) {
 			t.Errorf("%s: %d filas, esperadas %d", rows[i].Name, rows[i].N, want)
 		}
 	}
-	if day := repo.LatestPriceDate(d); day != "2026-10-01" {
+	if day, _ := repo.LatestPriceDate(d); day != "2026-10-01" {
 		t.Fatalf("quedó %s", day)
 	}
 }
