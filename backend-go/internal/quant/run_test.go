@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/loc1263/gohoo"
+
 	"top3/internal/config"
 	"top3/internal/model"
 	"top3/internal/repo"
@@ -180,7 +182,7 @@ func TestIndicatorBoundsAndSpecialCases(t *testing.T) {
 		}
 		in01("rsi", rsi(c, 14), 30)
 		in01("stoch", stochastic(h, l, c, 14, 3), 30)
-		in01("mfi", mfi(h, l, c, v, 14), 30)
+		in01("mfi", gohoo.MFISkipNaN(h, l, c, v, 14), 30)
 		a, _, _ := adx(h, l, c, 14)
 		in01("adx", a, 60)
 	}

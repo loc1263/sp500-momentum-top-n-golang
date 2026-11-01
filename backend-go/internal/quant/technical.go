@@ -3,6 +3,8 @@ package quant
 import (
 	"math"
 
+	"github.com/loc1263/gohoo"
+
 	"top3/internal/stats"
 )
 
@@ -131,32 +133,6 @@ func obv(close, volume []float64) []float64 {
 	return cumsum(flow)
 }
 
-func mfi(high, low, close, volume []float64, n int) []float64 {
-	typical := make([]float64, len(close))
-	flow := make([]float64, len(close))
-	for i := range close {
-		typical[i] = (high[i] + low[i] + close[i]) / 3
-		flow[i] = typical[i] * volume[i]
-	}
-	prev := shift(typical, 1)
-	upCond, downCond := make([]bool, len(close)), make([]bool, len(close))
-	for i := range close {
-		upCond[i], downCond[i] = typical[i] > prev[i], typical[i] < prev[i]
-	}
-	up := rollingSum(whereCond(flow, upCond, 0), n)
-	down := rollingSum(whereCond(flow, downCond, 0), n)
-	return zip2(up, down, func(u, d float64) float64 {
-		if d == 0 {
-			d = nan
-		}
-		ratio := 1 + u/d
-		if isNaN(ratio) { // sin flujo vendedor: MFI = 100
-			ratio = math.Inf(1)
-		}
-		return 100 - 100/ratio
-	})
-}
-
 // peakScore es 0 en low (o menos), sube linealmente a 1 en peak y baja a 0,5 en top (sobrecompra).
 func peakScore(value, low, peak, top float64) float64 {
 	if value <= peak {
@@ -222,7 +198,7 @@ func ComputeIndicators(b Bars) TechInd {
 		RSI: last(rsi(close, 14)), Stoch: last(stochastic(high, low, close, 14, 3)), PctB: pctB,
 		ADX: last(adxLine), PlusDI: last(plusDI), MinusDI: last(minusDI),
 		OBV: last(flow), ObvEma: last(emaSpan(flow, 20)), Obv20d: last(shift(flow, 20)),
-		MFI: last(mfi(high, low, close, volume, 14)), High52: last(rollingMax(high, DayYear)), Low52: last(rollingMin(low, DayYear)),
+		MFI: last(gohoo.MFISkipNaN(high, low, close, volume, 14)), High52: last(rollingMax(high, DayYear)), Low52: last(rollingMin(low, DayYear)),
 	}
 }
 

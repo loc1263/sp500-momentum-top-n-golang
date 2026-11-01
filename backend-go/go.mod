@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/loc1263/gohoo v0.9.0
+	github.com/loc1263/gohoo v0.10.0
 	golang.org/x/net v0.61.0
 	golang.org/x/sys v0.49.0
 	modernc.org/sqlite v1.61.0

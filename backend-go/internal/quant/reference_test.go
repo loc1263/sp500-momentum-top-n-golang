@@ -204,6 +204,9 @@ func indOf(cols []string, row []F) TechInd {
 		Obv20d: g("obv_20d"), MFI: g("mfi"), High52: g("high52"), Low52: g("low52")}
 }
 
+// Nota: en T05 el volumen de una rueda de la ventana falta (NaN). La referencia original (pandas) devolvía MFI = 100 por
+// su convención «NaN = 100»; aquí se ignora esa rueda (gohoo.MFISkipNaN) y T05 queda con el MFI de las demás (48,96) y su
+// grupo volumen en 73,69 en vez de 75. El resto de los valores sigue igual que la referencia.
 func TestTechnicalIndicatorsAndScoreMatchReference(t *testing.T) {
 	ref, _ := loadReference(t)
 	scores := make([]TechnicalScore, len(ref.Tickers))

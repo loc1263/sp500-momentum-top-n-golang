@@ -120,16 +120,6 @@ func rollingMean(x []float64, n int) []float64 {
 	})
 }
 
-func rollingSum(x []float64, n int) []float64 {
-	return rolling(x, n, func(w []float64) float64 {
-		s := 0.0
-		for _, v := range w {
-			s += v
-		}
-		return s
-	})
-}
-
 func rollingStd(x []float64, n int) []float64 {
 	return rolling(x, n, func(w []float64) float64 {
 		m := 0.0
