@@ -7,6 +7,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/loc1263/gohoo"
+
 	"top3/internal/dateutil"
 	"top3/internal/db"
 	"top3/internal/errs"
@@ -38,7 +40,7 @@ func EnsureOHLCV(ctx context.Context, dl *market.Downloader, d *sql.DB, tickers 
 	nBatches := (len(tickers) + batchSize - 1) / batchSize
 	for i := 0; i < len(tickers); i += batchSize {
 		batch := tickers[i:min(i+batchSize, len(tickers))]
-		out := yahoo.ParallelMap(ctx, batch, dl.Workers, func(ctx context.Context, t string) ([]repo.OHLCVRow, error) {
+		out := gohoo.ParallelMap(ctx, batch, dl.Workers, func(ctx context.Context, t string) ([]repo.OHLCVRow, error) {
 			bars, err := dl.Y.DailyBars(ctx, t, start, end)
 			if err != nil {
 				return nil, err

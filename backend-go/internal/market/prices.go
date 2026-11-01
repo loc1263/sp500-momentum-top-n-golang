@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/loc1263/gohoo"
+
 	"top3/internal/config"
 	"top3/internal/dateutil"
 	"top3/internal/db"
@@ -55,7 +57,7 @@ func (dl *Downloader) Fetch(ctx context.Context, tickers []string, start, end st
 			return res, err
 		}
 		batch := tickers[i:min(i+batchSize, len(tickers))]
-		out := yahoo.ParallelMap(ctx, batch, dl.Workers, func(ctx context.Context, t string) ([]model.PriceRow, error) {
+		out := gohoo.ParallelMap(ctx, batch, dl.Workers, func(ctx context.Context, t string) ([]model.PriceRow, error) {
 			bars, err := dl.Y.DailyBars(ctx, t, from, to)
 			if err != nil {
 				return nil, err

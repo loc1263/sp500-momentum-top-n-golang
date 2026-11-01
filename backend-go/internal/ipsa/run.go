@@ -8,6 +8,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/loc1263/gohoo"
+
 	"top3/internal/config"
 	"top3/internal/dateutil"
 	"top3/internal/db"
@@ -45,7 +47,7 @@ func QuantConfig(cfg config.Config) config.Config {
 
 // fetchOHLCV baja el OHLCV de los tickers a memoria (no toca la tabla ohlcv del S&P 500).
 func fetchOHLCV(ctx context.Context, dl *market.Downloader, tickers []string, start, end time.Time) (repo.OHLCVFrames, error) {
-	out := yahoo.ParallelMap(ctx, tickers, dl.Workers, func(ctx context.Context, t string) ([]repo.OHLCVRow, error) {
+	out := gohoo.ParallelMap(ctx, tickers, dl.Workers, func(ctx context.Context, t string) ([]repo.OHLCVRow, error) {
 		bars, err := dl.Y.DailyBars(ctx, t, start, end)
 		if err != nil {
 			return nil, err

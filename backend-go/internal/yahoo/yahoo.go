@@ -1,13 +1,10 @@
 // Package yahoo envuelve gohoo (cliente de Yahoo Finance) con la política de tráfico del proyecto: ritmo de requests,
-// reintentos ante rate limit con espera creciente (y su aviso TOP-NET-006), clasificación de errores y descargas en
-// paralelo.
+// reintentos ante rate limit con espera creciente (y su aviso TOP-NET-006) y clasificación de errores.
 package yahoo
 
 import (
-	"context"
 	"errors"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/loc1263/gohoo"
@@ -49,7 +46,7 @@ func New(userAgent string, extra ...gohoo.Option) (*Client, error) {
 	opts := []gohoo.Option{
 		gohoo.WithLazyBootstrap(),
 		gohoo.WithRetryPolicy(policy),
-		gohoo.WithLimiter(newLimiter(minInterval)),
+		gohoo.WithLimiter(gohoo.NewIntervalLimiter(minInterval)),
 	}
 	if userAgent != "" && userAgent != "Mozilla/5.0" { // el user agent por defecto de gohoo parece un navegador real
 		opts = append(opts, gohoo.WithUserAgent(userAgent))
@@ -59,36 +56,6 @@ func New(userAgent string, extra ...gohoo.Option) (*Client, error) {
 		return nil, err
 	}
 	return &Client{g}, nil
-}
-
-// limiter espacia las requests de todo el proceso.
-type limiter struct {
-	mu   sync.Mutex
-	next time.Time
-	gap  time.Duration
-}
-
-func newLimiter(gap time.Duration) *limiter { return &limiter{gap: gap} }
-
-func (l *limiter) Wait(ctx context.Context) error {
-	l.mu.Lock()
-	now := time.Now()
-	at := l.next
-	if at.Before(now) {
-		at = now
-	}
-	l.next = at.Add(l.gap)
-	l.mu.Unlock()
-	if d := at.Sub(now); d > 0 {
-		t := time.NewTimer(d)
-		defer t.Stop()
-		select {
-		case <-t.C:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
 }
 
 // Kind clasifica un error de Yahoo.
@@ -103,6 +70,7 @@ const (
 	KindRateLimit
 )
 
+// expectedAbsence son mensajes de «sin datos» que gohoo todavía no marca con ErrNotFound (p. ej. un chart.error de otro tipo).
 var expectedAbsence = []string{"possibly delisted", "no price data", "no data found", "no timezone found",
 	"quote not found", "http error 404", "not found", "sin datos", "data doesn't exist"}
 
@@ -114,7 +82,7 @@ func Classify(err error) Kind {
 	if gohoo.IsRateLimit(err) {
 		return KindRateLimit
 	}
-	if errors.Is(err, gohoo.ErrNotFound) || errors.Is(err, ErrNoBars) {
+	if errors.Is(err, gohoo.ErrNotFound) {
 		return KindAbsent
 	}
 	lower := strings.ToLower(err.Error())
@@ -124,51 +92,4 @@ func Classify(err error) Kind {
 		}
 	}
 	return KindOther
-}
-
-// ErrNoBars es el error de un ticker al que Yahoo respondió sin ninguna barra.
-var ErrNoBars = errors.New("sin datos de precios")
-
-// DailyBars descarga las barras diarias de ticker entre start y end (end exclusivo), ajustadas por dividendos y splits
-// ajustado por splits y dividendos y con la hora llevada a la medianoche del día en la zona del exchange.
-func (c *Client) DailyBars(ctx context.Context, ticker string, start, end time.Time) ([]gohoo.Bar, error) {
-	res, err := c.ChartRange(ctx, ticker, gohoo.ChartParams{Start: start, End: end, Interval: "1d"})
-	if err != nil {
-		return nil, err
-	}
-	bars := gohoo.AtMidnight(res.AutoAdjusted())
-	if len(bars) == 0 {
-		return nil, ErrNoBars
-	}
-	return bars, nil
-}
-
-// Result es lo que devolvió fn para el elemento i de ParallelMap.
-type Result[R any] struct {
-	Value R
-	Err   error
-}
-
-// ParallelMap corre fn sobre cada item con hasta `workers` goroutines y devuelve los resultados en el mismo orden.
-func ParallelMap[T, R any](ctx context.Context, items []T, workers int, fn func(ctx context.Context, item T) (R, error)) []Result[R] {
-	out := make([]Result[R], len(items))
-	workers = max(1, min(workers, len(items)))
-	jobs := make(chan int)
-	var wg sync.WaitGroup
-	for w := 0; w < workers; w++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for i := range jobs {
-				v, err := fn(ctx, items[i])
-				out[i] = Result[R]{v, err}
-			}
-		}()
-	}
-	for i := range items {
-		jobs <- i
-	}
-	close(jobs)
-	wg.Wait()
-	return out
 }

@@ -15,6 +15,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/loc1263/gohoo"
+
 	"top3/internal/config"
 	"top3/internal/db"
 	"top3/internal/errs"
@@ -119,7 +121,7 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, useCache bool)
 		return nil, errs.EvaTooFew.Errorf("no hay empresas que evaluar (revisa [evaluator] sp500 e ipsa)")
 	}
 	logx.Infof("Evaluador: descargando datos fundamentales de %d empresas...", len(ts))
-	res := yahoo.ParallelMap(ctx, ts, cfg.Data.SharesWorkers, func(ctx context.Context, t target) (Raw, error) {
+	res := gohoo.ParallelMap(ctx, ts, cfg.Data.SharesWorkers, func(ctx context.Context, t target) (Raw, error) {
 		return Fetch(ctx, y, t.ticker)
 	})
 	var cs []Company

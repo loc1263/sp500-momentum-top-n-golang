@@ -125,7 +125,7 @@ func errOrEmpty(err error) any {
 
 // FetchCategories baja de Yahoo la categoría (Morningstar) de cada ETF; los que no la informan quedan fuera del mapa.
 func FetchCategories(ctx context.Context, y *yahoo.Client, tickers []string, workers int) map[string]string {
-	results := yahoo.ParallelMap(ctx, tickers, workers, func(ctx context.Context, ticker string) (string, error) {
+	results := gohoo.ParallelMap(ctx, tickers, workers, func(ctx context.Context, ticker string) (string, error) {
 		info, err := y.Info(ctx, ticker)
 		if err != nil {
 			return "", err

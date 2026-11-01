@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -90,7 +91,7 @@ func scale(v, by float64) float64 {
 }
 
 // Fetch baja de Yahoo (quoteSummary y fundamentals-timeseries) los datos de una empresa. Si no hay precio ni capitalización, Yahoo
-// no la conoce y devuelve ErrNoBars. Una falla de fundamentals-timeseries no es grave: la empresa se evalúa sin tendencia.
+// no la conoce y devuelve un error ErrNotFound. Una falla de fundamentals-timeseries no es grave: la empresa se evalúa sin tendencia.
 func Fetch(ctx context.Context, y *yahoo.Client, ticker string) (Raw, error) {
 	info, err := y.Info(ctx, ticker, gohoo.InfoPercentYield())
 	if err != nil {
@@ -99,7 +100,7 @@ func Fetch(ctx context.Context, y *yahoo.Client, ticker string) (Raw, error) {
 	ts, _ := y.FundamentalsTimeseriesContext(ctx, ticker, timeseriesTypes)
 	r := BuildRaw(ticker, info, ts)
 	if isNaN(r.Price) && isNaN(r.MarketCap) {
-		return Raw{}, yahoo.ErrNoBars
+		return Raw{}, fmt.Errorf("sin datos de precios: %w", gohoo.ErrNotFound)
 	}
 	return r, nil
 }
@@ -145,10 +146,8 @@ func BuildRaw(ticker string, info, ts map[string]any) Raw {
 
 // pointOn es el valor de la serie en la fecha dada (NaN si no hay).
 func pointOn(ts map[string]any, typ, date string) float64 {
-	for _, p := range gohoo.TimeseriesPoints(ts, typ) {
-		if p.Date == date {
-			return p.Value
-		}
+	if p, ok := gohoo.PointOn(gohoo.TimeseriesPoints(ts, typ), date); ok {
+		return p.Value
 	}
 	return nan
 }

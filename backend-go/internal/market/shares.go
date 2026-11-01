@@ -16,17 +16,7 @@ import (
 	"top3/internal/logx"
 	"top3/internal/model"
 	"top3/internal/repo"
-	"top3/internal/yahoo"
 )
-
-func sharesFromMap(m map[string]any) float64 {
-	for _, k := range []string{"sharesOutstanding", "impliedSharesOutstanding"} {
-		if v, ok := gohoo.AsFloat(gohoo.RawValue(m[k])); ok && v > 0 {
-			return v
-		}
-	}
-	return 0
-}
 
 // FetchShares baja las acciones en circulación actuales de los tickers: primero en lotes por el endpoint de cotizaciones y,
 // para los que ese no trae, de a uno por quoteSummary. Los que Yahoo no informa no figuran en el resultado.
@@ -40,7 +30,7 @@ func (dl *Downloader) FetchShares(ctx context.Context, tickers []string) map[str
 		logx.Debugf("Cotizaciones en lote incompletas: %v", err)
 	}
 	for _, q := range quotes {
-		if v := sharesFromMap(q.Raw); v > 0 {
+		if v := q.Shares(); v > 0 {
 			out[q.Symbol] = v
 		}
 	}
@@ -50,12 +40,12 @@ func (dl *Downloader) FetchShares(ctx context.Context, tickers []string) map[str
 			rest = append(rest, t)
 		}
 	}
-	for k, r := range yahoo.ParallelMap(ctx, rest, dl.Workers, func(ctx context.Context, t string) (float64, error) {
+	for k, r := range gohoo.ParallelMap(ctx, rest, dl.Workers, func(ctx context.Context, t string) (float64, error) {
 		info, err := dl.Y.Info(ctx, t)
 		if err != nil {
 			return 0, err
 		}
-		return sharesFromMap(info), nil
+		return gohoo.SharesOutstanding(info), nil
 	}) {
 		if r.Err != nil {
 			logx.Debugf("Sin acciones en circulación para %s: %v", rest[k], r.Err)

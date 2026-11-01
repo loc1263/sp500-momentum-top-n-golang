@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -167,7 +168,7 @@ func fetchOne(ctx context.Context, y *yahoo.Client, ticker string) (Data, error)
 		}
 	}
 	if !hasData {
-		return Data{}, yahoo.ErrNoBars
+		return Data{}, fmt.Errorf("sin datos de precios: %w", gohoo.ErrNotFound)
 	}
 	d.FcfHistory = fcfHistory(ctx, y, ticker)
 	return d, nil
@@ -195,7 +196,7 @@ func EnsureFundamentals(ctx context.Context, d *sql.DB, y *yahoo.Client, tickers
 	logx.Infof("Datos financieros: %d ya disponibles, %d a descargar", len(data), len(todo))
 	var missing []string
 	save := map[string]string{}
-	for k, r := range yahoo.ParallelMap(ctx, todo, workers, func(ctx context.Context, t string) (Data, error) { return fetchOne(ctx, y, t) }) {
+	for k, r := range gohoo.ParallelMap(ctx, todo, workers, func(ctx context.Context, t string) (Data, error) { return fetchOne(ctx, y, t) }) {
 		if r.Err != nil {
 			logx.Debugf("Sin datos financieros para %s: %v", todo[k], r.Err)
 			missing = append(missing, todo[k])
