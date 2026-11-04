@@ -60,13 +60,20 @@ describe('App', () => {
     await waitFor(() => expect(document.title).toBe('Momentum y Scores · Modelo por score'));
   });
 
+  it('ya no muestra el grupo Lab en el menú', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json(report)));
+    render(App);
+    await screen.findByText('NVDA');
+    expect(screen.queryByText('Lab')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Backtest' })).not.toBeInTheDocument();
+  });
+
   it('cambia de pestaña y actualiza el hash', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json(report)));
     render(App);
     await screen.findByText('NVDA');
-    await fireEvent.click(screen.getByRole('tab', { name: 'Plazos y sensibilidad' }));
-    expect(await screen.findByText('Comparación de plazos')).toBeInTheDocument();
-    await waitFor(() => expect(location.hash).toBe('#sweep'));
+    await fireEvent.click(screen.getByRole('tab', { name: 'ETFs Vanguard' }));
+    await waitFor(() => expect(location.hash).toBe('#etf'));
   });
 
   it('muestra el ranking de ETFs y oculta los filtros que no aplican', async () => {
@@ -158,10 +165,10 @@ describe('App', () => {
   });
 
   it('abre la pestaña indicada en el hash', async () => {
-    location.hash = '#backtest';
+    location.hash = '#etf';
     vi.stubGlobal('fetch', vi.fn(async () => json(report)));
     render(App);
-    expect(await screen.findByText('Curva de capital')).toBeInTheDocument();
+    expect(await screen.findByText('Ranking global de ETFs de Vanguard')).toBeInTheDocument();
   });
 
   it('alterna el tema', async () => {

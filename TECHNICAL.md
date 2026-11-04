@@ -615,7 +615,9 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 
 | Archivo | Responsabilidad |
 |---|---|
-| `App.svelte` | Carga del JSON estático, encabezado (nombre fijo del sitio y título de la sección), pestañas en cinco grupos (Momentum, ETFs, Acciones por score, Análisis fundamental y Lab con las tres vistas de backtest), filtros de universo y período, tema |
+| `App.svelte` | Carga del JSON estático, encabezado (nombre fijo del sitio y título de la sección), pestañas en cuatro grupos (Momentum, ETFs, Acciones por score y Análisis fundamental), filtro de universo, tema |
+| `Lab.svelte` (`lab.html`, `lab.js`) | Página aparte del laboratorio: pestañas Backtest, Plazos y sensibilidad y N-0 vs N-1, filtros de universo y período, tema. Sin enlace desde la app; los enlaces viejos `#backtest`, `#sweep` y `#compare` redirigen aquí |
+| `lib/report.js` | Carga de `data/report.json` y clave de universo, compartidas por ambas páginas |
 | `lib/ActualView.svelte` | Top actual, suplentes y seguimiento de selecciones anteriores |
 | `lib/BacktestView.svelte` | Tarjetas, curva de capital, historial de selecciones y calendarios |
 | `lib/SweepView.svelte` | Comparación de plazos y sensibilidad al arranque |

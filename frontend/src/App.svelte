@@ -1,19 +1,16 @@
 <script>
   import ActualView from './lib/ActualView.svelte';
-  import BacktestView from './lib/BacktestView.svelte';
-  import SweepView from './lib/SweepView.svelte';
-  import CompareView from './lib/CompareView.svelte';
   import EtfView from './lib/EtfView.svelte';
   import EtfqView from './lib/EtfqView.svelte';
   import QuantView from './lib/QuantView.svelte';
   import IpsaView from './lib/IpsaView.svelte';
   import EvaluatorView from './lib/EvaluatorView.svelte';
   import AboutView from './lib/AboutView.svelte';
-  import Glossary from './lib/Glossary.svelte';
   import Bunny from './lib/Bunny.svelte';
   import { share } from './lib/format.js';
+  import { loadReport, capKeyOf as key } from './lib/report.js';
 
-  // Top actual, ETFs, modelo por score y evaluador son datos de portafolios y empresas; el Lab agrupa las vistas de backtest
+  // Top actual, ETFs, modelo por score y evaluador son datos de portafolios y empresas; el laboratorio de backtest vive aparte, en lab.html
   const groups = [
     {
       label: 'Momentum',
@@ -37,16 +34,11 @@
       label: 'Análisis fundamental',
       tabs: [{ id: 'evaluador', label: 'Evaluador de empresas' }],
     },
-    {
-      label: 'Lab',
-      tabs: [
-        { id: 'backtest', label: 'Backtest' },
-        { id: 'sweep', label: 'Plazos y sensibilidad' },
-        { id: 'compare', label: 'N-0 vs N-1' },
-      ],
-    },
   ];
   const tabs = groups.flatMap((g) => g.tabs);
+
+  // Enlaces viejos al Lab (#backtest, #sweep, #compare) van a su página
+  if (['backtest', 'sweep', 'compare'].includes(location.hash.slice(1))) location.replace(`lab.html${location.hash}`);
 
   // About no está en el menú: es un botón aparte, en la esquina opuesta
   const initialTab = () =>
@@ -56,7 +48,6 @@
   let capKey = $state('0');
   // Filtros y orden de «ETFs por gestora»: se guardan acá porque la vista se destruye al cambiar de pestaña
   let etfqFilters = $state({ issuer: '', category: '', scoredOnly: true, sortKey: 'rank', descending: false });
-  let chosenYears = $state(null); // null = período por defecto del config
   let report = $state(null);
   let error = $state(null);
   let dark = $state(document.documentElement.dataset.theme === 'dark');
@@ -71,19 +62,8 @@
     }
   }
 
-  // La página no pide nada al backend: lee el JSON estático que dejan el backend en Go al terminar
-  async function load() {
-    try {
-      const res = await fetch('data/report.json', { cache: 'no-cache' });
-      if (res.ok && (res.headers.get('content-type') ?? '').includes('json')) return await res.json();
-    } catch {
-      /* se informa abajo */
-    }
-    throw new Error('No se pudo cargar data/report.json. Ejecute go run ./cmd/top3 pipeline en backend-go/ y recargue.');
-  }
-
   $effect(() => {
-    load().then(
+    loadReport().then(
       (r) => {
         // Universo por defecto: el de mayor capitalización mínima (mega-cap)
         const all = [...r.actual, ...r.backtest];
@@ -98,12 +78,10 @@
     history.replaceState(null, '', `#${tab}`);
   });
 
-  const key = (u) => String(u.min_cap_billions ?? 0);
   // Nombre fijo del sitio (título principal) y título de la sección actual (debajo, más chico)
   const SITE_NAME = 'Momentum y Scores';
   const SECTION_TITLES = {
     etf: 'ETFs de Vanguard', etfq: 'ETFs por gestora', quant: 'Modelo por score', ipsa: 'Modelo por score: IPSA', evaluador: 'Evaluador de empresas', about: 'About',
-    backtest: 'Lab: Backtest', sweep: 'Lab: Plazos y sensibilidad', compare: 'Lab: N-0 vs N-1',
   };
   const sectionTitle = $derived(SECTION_TITLES[tab] ?? `Top ${report?.settings.top_n ?? 'N'} del S&P 500`);
   $effect(() => {
@@ -114,18 +92,6 @@
     report ? [...new Map([...report.actual, ...report.backtest].map((u) => [key(u), u])).values()] : [],
   );
   const actual = $derived(report?.actual.find((a) => key(a) === capKey));
-  const universeData = $derived(report?.backtest.find((u) => key(u) === capKey));
-  const periods = $derived(universeData?.periods ?? []);
-  const period = $derived(
-    periods.find((p) => p.years === (chosenYears ?? report?.settings.backtest_years)) ?? periods.at(-1),
-  );
-  // Lo que reciben las vistas: el universo con el período elegido
-  const universe = $derived(
-    universeData && period ? { label: universeData.label, ...period } : null,
-  );
-  const skipPeriod = $derived(
-    report?.backtest_skip?.find((u) => key(u) === capKey)?.periods.find((p) => p.years === period?.years),
-  );
   const label = $derived(universes.find((u) => key(u) === capKey)?.label ?? '');
 </script>
 
@@ -187,19 +153,7 @@
         {/each}
       </div>
       <div class="filters">
-        {#if tab !== 'actual' && tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'ipsa' && tab !== 'evaluador' && tab !== 'about' && periods.length}
-          <label>
-            Período
-            <select value={period?.years} onchange={(e) => (chosenYears = Number(e.currentTarget.value))}>
-              {#each periods as p (p.years)}
-                <option value={p.years}>
-                  {p.years} años ({p.start_date.slice(0, 4)}–{p.end_date.slice(0, 4)})
-                </option>
-              {/each}
-            </select>
-          </label>
-        {/if}
-        {#if tab !== 'etf' && tab !== 'etfq' && tab !== 'quant' && tab !== 'ipsa' && tab !== 'evaluador' && tab !== 'about'}
+        {#if tab === 'actual'}
           <label>
             Universo
             <select bind:value={capKey}>
@@ -211,8 +165,6 @@
         {/if}
       </div>
     </nav>
-
-    {#if tab === 'backtest' || tab === 'sweep' || tab === 'compare'}<Glossary />{/if}
 
     {#if tab === 'about'}
       <AboutView settings={report.settings} />
@@ -248,14 +200,6 @@
       {:else}
         <p class="muted">Sin Top actual para «{label}». Ejecute top3 actual (en backend-go/).</p>
       {/if}
-    {:else if !universe}
-      <p class="muted">Sin backtest para «{label}». Ejecute top3 backtest --sweep (en backend-go/).</p>
-    {:else if tab === 'backtest'}
-      {#key `${capKey}-${period.years}`}<BacktestView {universe} settings={report.settings} />{/key}
-    {:else if tab === 'compare'}
-      <CompareView {universe} skip={skipPeriod} settings={report.settings} />
-    {:else}
-      <SweepView {universe} settings={report.settings} />
     {/if}
 
     <footer>
