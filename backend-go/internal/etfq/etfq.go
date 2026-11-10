@@ -2,7 +2,7 @@
 // calidad (costos y liquidez), sin backtest.
 //
 // Es independiente de la sección de ETFs de Vanguard (package etf), de la que solo reutiliza el cálculo del score de momentum
-// (etf.ScoreEtfs, con los plazos, la referencia libre de riesgo y la volatilidad mínima de [etf]). Todo sale de Yahoo Finance:
+// (etf.ScoreEtfs, con los plazos, la referencia libre de riesgo y la volatilidad mínima de [etfq]). Todo sale de Yahoo Finance:
 // la lista de cada gestora, el TER y el AUM vienen del screener (filtrado por fundFamily) y la categoría de Info.
 package etfq
 
@@ -153,7 +153,7 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, opt Options) e
 	if topN == 0 {
 		topN = q.TopN
 	}
-	horizons := append([]int(nil), cfg.Etf.HorizonsMonths...)
+	horizons := append([]int(nil), q.HorizonsMonths...)
 	sort.Ints(horizons)
 
 	funds, listed := LoadFunds(ctx, y, q.Families)
@@ -179,8 +179,8 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, opt Options) e
 		return errs.GesEmpty.Errorf("Yahoo no devolvió precios.")
 	}
 
-	riskFree := strings.ToUpper(cfg.Etf.RiskFreeTicker)
-	scores, excluded := etf.ScoreEtfs(prices, horizons, cfg.Backtest.TradingDaysPerMonth, riskFree, cfg.Etf.MinVol)
+	riskFree := strings.ToUpper(q.RiskFreeTicker)
+	scores, excluded := etf.ScoreEtfs(prices, horizons, cfg.Backtest.TradingDaysPerMonth, riskFree, q.MinVol)
 	if len(scores.Rows) == 0 {
 		return errs.GesEmpty.Errorf("Ningún ETF tiene historia suficiente para el plazo más largo.")
 	}

@@ -68,28 +68,6 @@ describe('App', () => {
     expect(screen.queryByRole('tab', { name: 'Backtest' })).not.toBeInTheDocument();
   });
 
-  it('cambia de pestaña y actualiza el hash', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => json(report)));
-    render(App);
-    await screen.findByText('NVDA');
-    await fireEvent.click(screen.getByRole('tab', { name: 'ETFs Vanguard' }));
-    await waitFor(() => expect(location.hash).toBe('#etf'));
-  });
-
-  it('muestra el ranking de ETFs y oculta los filtros que no aplican', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => json(report)));
-    render(App);
-    await screen.findByText('NVDA');
-    await fireEvent.click(screen.getByRole('tab', { name: 'ETFs Vanguard' }));
-    expect(await screen.findByText('Ranking global de ETFs de Vanguard')).toBeInTheDocument();
-    expect(document.querySelector('header h2.section')).toHaveTextContent('ETFs de Vanguard');
-    expect(screen.getByRole('link', { name: 'VONV' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Universo')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Período')).not.toBeInTheDocument();
-    expect(screen.queryByText('¿Cómo leer esta página?')).not.toBeInTheDocument();
-    await waitFor(() => expect(location.hash).toBe('#etf'));
-  });
-
   it('muestra el modelo por score y oculta los filtros que no aplican', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json(report)));
     render(App);
@@ -142,8 +120,8 @@ describe('App', () => {
     await fireEvent.change(await screen.findByLabelText('Gestora'), { target: { value: 'Vanguard' } });
     await fireEvent.click(screen.getByRole('checkbox', { name: /Solo con score final/ }));
     await fireEvent.click(screen.getByRole('button', { name: /^TER/ }));
-    await fireEvent.click(screen.getByRole('tab', { name: 'ETFs Vanguard' }));
-    await screen.findByText('Ranking global de ETFs de Vanguard');
+    await fireEvent.click(screen.getByRole('tab', { name: 'EEUU' }));
+    await screen.findByRole('heading', { name: 'Cómo se calcula' });
     await fireEvent.click(screen.getByRole('tab', { name: 'ETFs por gestora' }));
     expect(await screen.findByLabelText('Gestora')).toHaveValue('Vanguard');
     expect(screen.getByRole('checkbox', { name: /Solo con score final/ })).not.toBeChecked();
@@ -157,18 +135,13 @@ describe('App', () => {
     expect(await screen.findByText(/Sin ETFs por gestora/)).toBeInTheDocument();
   });
 
-  it('avisa si todavía no hay ranking de ETFs', async () => {
-    location.hash = '#etf';
-    vi.stubGlobal('fetch', vi.fn(async () => json({ ...report, etf: null })));
-    render(App);
-    expect(await screen.findByText(/Sin ranking de ETFs/)).toBeInTheDocument();
-  });
-
-  it('abre la pestaña indicada en el hash', async () => {
+  it('un enlace viejo a #etf abre ETFs por gestora', async () => {
     location.hash = '#etf';
     vi.stubGlobal('fetch', vi.fn(async () => json(report)));
     render(App);
-    expect(await screen.findByText('Ranking global de ETFs de Vanguard')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'VOO' })).toBeInTheDocument();
+    expect(document.querySelector('header h2.section')).toHaveTextContent('ETFs por gestora');
+    await waitFor(() => expect(location.hash).toBe('#etfq'));
   });
 
   it('alterna el tema', async () => {

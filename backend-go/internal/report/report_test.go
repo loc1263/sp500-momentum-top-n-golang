@@ -99,7 +99,7 @@ func TestBuildReportGroupsLatestRuns(t *testing.T) {
 
 func TestBuildReportWithEmptyDatabase(t *testing.T) {
 	r := build(t, openTemp(t), config.Default())
-	if r.RunDate != nil || len(r.Backtest) != 0 || len(r.Actual) != 0 || r.Etf != nil {
+	if r.RunDate != nil || len(r.Backtest) != 0 || len(r.Actual) != 0 {
 		t.Fatalf("reporte: %+v", r)
 	}
 	js, err := json.Marshal(r)
@@ -178,53 +178,6 @@ func TestActualWithoutPreviousRunHasNoChanges(t *testing.T) {
 	got, _ := buildActual(d, dateutil.MustParse("2024-09-05"))
 	if got[0].PreviousAsOf != nil || got[0].Changes != nil {
 		t.Fatalf("got %+v", got[0])
-	}
-}
-
-func addEtf(t *testing.T, d *sql.DB, asOf string, ranking ...string) {
-	t.Helper()
-	for i, tk := range ranking {
-		rank := i + 1
-		if _, err := d.Exec("INSERT INTO etf_scores VALUES (?,?,?,?,?,?,?,?,?)", asOf+"T10:00:00", asOf, rank, tk, 2.0-float64(rank)/10, 0.1, -0.05, 0.03, `{"3": 0.05, "12": 0.2}`); err != nil {
-			t.Fatal(err)
-		}
-	}
-}
-
-func TestEtfRankingInTheReport(t *testing.T) {
-	d, cfg := openTemp(t), config.Default()
-	csvPath := filepath.Join(t.TempDir(), "e.csv")
-	os.WriteFile(csvPath, []byte("ticker,name,category\nVTI,Total Stock Market,Amplio\nVUSB,Ultra-Short Bond,Bonos\n"), 0o644)
-	cfg.Etf.CSV, cfg.Etf.TopN, cfg.Etf.RiskFreeTicker = csvPath, 1, "VUSB"
-	if e, _ := buildEtf(d, cfg); e != nil {
-		t.Fatal("sin ranking guardado no hay sección de ETFs")
-	}
-	addEtf(t, d, "2024-08-29", "VTI", "VUSB")
-	addEtf(t, d, "2024-08-30", "VUSB", "VTI")
-	e, err := buildEtf(d, cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if e.AsOf != "2024-08-30" || !reflect.DeepEqual(e.Horizons, []int{3, 12}) || *e.RiskFree != "VUSB" || e.Rows[0].Ticker != "VUSB" {
-		t.Fatalf("etf: %+v", e)
-	}
-	want := EtfRow{Rank: 2, Ticker: "VTI", Name: "Total Stock Market", Category: "Amplio", Score: 1.8, Vol: 0.1, MaxDD: -0.05, SMADist: 0.03,
-		Returns: map[string]float64{"3": 0.05, "12": 0.2}}
-	if got := e.Rows[1]; math.Abs(got.Score-1.8) > 1e-12 || got.Name != want.Name || got.Category != want.Category || !reflect.DeepEqual(got.Returns, want.Returns) {
-		t.Fatalf("fila: %+v", got)
-	}
-	if *e.PreviousAsOf != "2024-08-29" || !reflect.DeepEqual(*e.Changes, Changes{Entered: []string{"VUSB"}, Exited: []string{"VTI"}, Kept: []string{}}) { // top_n = 1
-		t.Fatalf("cambios: %+v", e.Changes)
-	}
-}
-
-func TestEtfReportSurvivesAMissingCSV(t *testing.T) {
-	d, cfg := openTemp(t), config.Default()
-	cfg.Etf.CSV, cfg.Etf.RiskFreeTicker = filepath.Join(t.TempDir(), "no_existe.csv"), ""
-	addEtf(t, d, "2024-08-30", "VTI")
-	e, err := buildEtf(d, cfg)
-	if err != nil || e.Rows[0].Name != "" || e.RiskFree != nil || e.Changes != nil {
-		t.Fatalf("etf: %+v err %v", e, err)
 	}
 }
 

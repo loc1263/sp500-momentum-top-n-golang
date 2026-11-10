@@ -213,37 +213,6 @@ func Offsets(r Run, terms []model.Term, minCapB float64) {
 	}
 }
 
-// Etf imprime el ranking de ETFs. Los encabezados y filas traen la columna «Nombre» en el puesto 2: no se muestra.
-func Etf(asOf string, horizons []int, topN, ranked int, headers []string, rows [][]string, notes []string, historical bool, riskFree string) {
-	Banner(fmt.Sprintf("ETFs DE VANGUARD - momentum ajustado por riesgo (%d rankeados)", ranked), 78)
-	Line("Datos al cierre del " + asOf)
-	if historical {
-		Println("(fecha pedida con --as-of: lista actual, no es un backtest)")
-	}
-	excess := ""
-	if riskFree != "" {
-		excess = fmt.Sprintf(" (exceso sobre %s)", riskFree)
-	}
-	hs := make([]string, len(horizons))
-	for i, h := range horizons {
-		hs[i] = strconv.Itoa(h)
-	}
-	Linef("Score = promedio del retorno%s / volatilidad en %s meses. Top %d:\n", excess, strings.Join(hs, ", "), topN)
-	drop := func(r []string) []string { return append(append([]string(nil), r[:2]...), r[3:]...) }
-	shown := rows[:min(topN, len(rows))]
-	cut := make([][]string, len(shown))
-	for i, r := range shown {
-		cut[i] = drop(r)
-	}
-	Table(drop(headers), cut, 3)
-	Line("")
-	for _, n := range notes {
-		if n != "" {
-			Line(n)
-		}
-	}
-}
-
 // Actual imprime el Top actual.
 func Actual(topN, months int, minCapB float64, asOf string, windowStart string, windowRows int, headers []string,
 	rows [][]string, weight float64, notes []string, alternates [][]string) {

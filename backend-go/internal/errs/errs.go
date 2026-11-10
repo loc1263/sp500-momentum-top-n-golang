@@ -2,7 +2,7 @@
 // lleva su ID.
 //
 // Formato: TOP-<ÁREA>-<NNN>. Áreas: CFG configuración, NET descargas, DAT datos, BKT backtest, ACT Top actual,
-// ETF ETFs de Vanguard, GES ETFs por gestora, QNT modelo por score, IPS IPSA. Los IDs no se reutilizan ni se renumeran: documentarlos en la tabla de errores del README.
+// ETF referencia libre de riesgo de los ETFs, GES ETFs por gestora, QNT modelo por score, IPS IPSA. Los IDs no se reutilizan ni se renumeran: documentarlos en la tabla de errores del README.
 package errs
 
 import "fmt"
@@ -110,22 +110,11 @@ var (
 		"Misma regla que el backtest. Revisa si Yahoo falló para esos tickers y reintenta.")
 )
 
-// ETFs de Vanguard
+// Referencia libre de riesgo de los ETFs (ETF-001 a 004 y 006 eran del ranking de Vanguard, ya retirado; no se reutilizan)
 var (
-	EtfNoList = code("TOP-ETF-001", "error", "No hay lista de ETFs utilizable",
-		"Revisa [etf] csv en config.toml: el archivo debe existir y tener las columnas ticker, name, category.")
-	EtfNoPrices = code("TOP-ETF-002", "warning", "ETFs de la lista sin precios en Yahoo",
-		"Pueden estar dados de baja o con el ticker mal escrito; quítalos o corrígelos en el CSV.")
-	EtfExcluded = code("TOP-ETF-003", "warning", "ETFs fuera del ranking por huecos de precios o poca historia",
-		"Los ETFs nuevos entran cuando acumulan historia para el plazo más largo.")
-	EtfEmpty = code("TOP-ETF-004", "error", "Ningún ETF se pudo rankear",
-		"Descarga más historia o reduce [etf] horizons_months.")
 	EtfNoRiskFree = code("TOP-ETF-005", "warning", "La referencia libre de riesgo no está disponible",
 		"El score se calcula sin restarla (los ETFs casi sin riesgo quedan arriba). "+
-			"Revisa [etf] risk_free_ticker: debe estar en la lista y tener historia completa.")
-	EtfListUpdate = code("TOP-ETF-006", "warning", "No se pudo actualizar la lista de ETFs de Vanguard",
-		"Se usa la lista guardada en el CSV. Revisa la conexión; si Vanguard cambió el formato de su "+
-			"respuesta hay que ajustar internal/etf/vanguard.go. Con --no-update o [etf] update_list = false no se intenta.")
+			"Revisa [etfq] risk_free_ticker: debe ser un ETF de las gestoras y tener historia completa.")
 )
 
 // ETFs por gestora

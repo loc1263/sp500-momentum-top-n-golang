@@ -79,18 +79,6 @@ func TestPaintCellColorsGainsAndLossesOnly(t *testing.T) {
 	}
 }
 
-func TestEtfDropsTheNameColumn(t *testing.T) {
-	buf := capture(t)
-	headers := []string{"#", "Ticker", "Nombre", "Categoría", "Score"}
-	rows := [][]string{{"1", "VTI", "Total Stock Market", "Amplio", "1.50"}}
-	Etf("2024-08-30", []int{3, 12}, 5, 1, headers, rows, []string{"nota", ""}, false, "VUSB")
-	out := buf.String()
-	if strings.Contains(out, "Total Stock Market") || !strings.Contains(out, "Amplio") || !strings.Contains(out, "exceso sobre VUSB") ||
-		!strings.Contains(out, "3, 12 meses") || !strings.Contains(out, "\nnota\n") {
-		t.Fatalf("salida:\n%s", out)
-	}
-}
-
 func TestBacktestPrintsTheBaseCalendar(t *testing.T) {
 	buf := capture(t)
 	term := model.Term{Months: 4, Calendars: []model.Calendar{{Offset: 0, Result: model.Result{

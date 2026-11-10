@@ -77,12 +77,9 @@ type Output struct {
 	SweepPrefix    string `toml:"sweep_prefix" json:"sweep_prefix"`
 	OffsetsPrefix  string `toml:"offsets_prefix" json:"offsets_prefix"`
 	ActualPrefix   string `toml:"actual_prefix" json:"actual_prefix"`
-	EtfSubdir      string `toml:"etf_subdir" json:"etf_subdir"`
-	EtfPrefix      string `toml:"etf_prefix" json:"etf_prefix"`
 	LogDir         string `toml:"log_dir" json:"log_dir"`
 	BacktestLog    string `toml:"backtest_log" json:"backtest_log"`
 	ActualLog      string `toml:"actual_log" json:"actual_log"`
-	EtfLog         string `toml:"etf_log" json:"etf_log"`
 	EtfqLog        string `toml:"etfq_log" json:"etfq_log"`
 	QuantLog       string `toml:"quant_log" json:"quant_log"`
 	IpsaLog        string `toml:"ipsa_log" json:"ipsa_log"`
@@ -93,28 +90,21 @@ type Output struct {
 	HistoryFile    string `toml:"history_file" json:"history_file"`
 }
 
-// Etf es [etf]: ranking de los ETFs de Vanguard.
-type Etf struct {
-	UpdateList     bool    `toml:"update_list" json:"update_list"`
-	ListURL        string  `toml:"list_url" json:"list_url"`
-	CSV            string  `toml:"csv" json:"csv"`
-	HorizonsMonths []int   `toml:"horizons_months" json:"horizons_months"`
-	TopN           int     `toml:"top_n" json:"top_n"`
-	MinVol         float64 `toml:"min_vol" json:"min_vol"`
-	RiskFreeTicker string  `toml:"risk_free_ticker" json:"risk_free_ticker"`
-}
-
 // Family es una gestora de [etfq]: Name es como la identifica Yahoo Finance (fundFamily) y Label el nombre que se muestra.
 type Family struct {
 	Name  string `toml:"name" json:"name"`
 	Label string `toml:"label" json:"label"`
 }
 
-// Etfq es [etfq]: ETFs de las grandes gestoras, con su calidad (costos y liquidez). La sección de ETFs de Vanguard ([etf]) es
-// independiente; el score de momentum sí usa sus plazos, referencia libre de riesgo y volatilidad mínima.
+// Etfq es [etfq]: ETFs de las grandes gestoras, con su momentum y su calidad (costos y liquidez).
 type Etfq struct {
-	Families []Family `toml:"families" json:"families"`
-	TopN     int      `toml:"top_n" json:"top_n"`
+	// Score de momentum: plazos (meses), referencia libre de riesgo (un ETF de la propia tabla) y volatilidad anual mínima
+	// (por debajo, el ETF es de tipo efectivo y no rankea)
+	HorizonsMonths []int    `toml:"horizons_months" json:"horizons_months"`
+	MinVol         float64  `toml:"min_vol" json:"min_vol"`
+	RiskFreeTicker string   `toml:"risk_free_ticker" json:"risk_free_ticker"`
+	Families       []Family `toml:"families" json:"families"`
+	TopN           int      `toml:"top_n" json:"top_n"`
 	// TER máximo en % anual y AUM mínimo en millones de US$ para ser elegible (0 = sin tope / sin mínimo)
 	MaxTER         float64 `toml:"max_ter" json:"max_ter"`
 	MinAumMillions float64 `toml:"min_aum_millions" json:"min_aum_millions"`
@@ -190,7 +180,6 @@ type Config struct {
 	Tickers    Tickers    `toml:"tickers" json:"tickers"`
 	Simulation Simulation `toml:"simulation" json:"simulation"`
 	Output     Output     `toml:"output" json:"output"`
-	Etf        Etf        `toml:"etf" json:"etf"`
 	Etfq       Etfq       `toml:"etfq" json:"etfq"`
 	Quant      Quant      `toml:"quant" json:"quant"`
 	Ipsa       Ipsa       `toml:"ipsa" json:"ipsa"`
@@ -234,22 +223,14 @@ func Default() Config {
 		Output: Output{
 			Dir: "output", KeepDays: 7, BacktestSubdir: "backtest", ActualSubdir: "actual",
 			BacktestPrefix: "top3_backtest", SweepPrefix: "top3_sweep", OffsetsPrefix: "top3_offsets",
-			ActualPrefix: "top3_actual", EtfSubdir: "etf", EtfPrefix: "top3_etf", LogDir: "log",
-			BacktestLog: "top3_backtest.log", ActualLog: "top3_actual.log", EtfLog: "top3_etf.log", EtfqLog: "top3_etfq.log",
+			ActualPrefix: "top3_actual", LogDir: "log",
+			BacktestLog: "top3_backtest.log", ActualLog: "top3_actual.log", EtfqLog: "top3_etfq.log",
 			QuantLog: "top3_quant.log", IpsaLog: "top3_ipsa.log", EvaluatorLog: "top3_evaluator.log", ExportLog: "export_frontend.log", PruneLog: "top3_prune.log",
 			FrontendData: "../frontend/public/data/report.json",
 			HistoryFile:  "history/history.json",
 		},
-		Etf: Etf{
-			UpdateList:     true,
-			ListURL:        "https://investor.vanguard.com/investment-products/list/funddetail/all",
-			CSV:            "history/vanguard_etfs.csv",
-			HorizonsMonths: []int{3, 6, 12},
-			TopN:           15,
-			MinVol:         0.01,
-			RiskFreeTicker: "VUSB",
-		},
 		Etfq: Etfq{
+			HorizonsMonths: []int{3, 6, 12}, MinVol: 0.01, RiskFreeTicker: "VUSB",
 			Families: []Family{
 				{"iShares", "iShares"}, {"Vanguard", "Vanguard"}, {"State Street Investment Management", "SPDR"},
 				{"Invesco", "Invesco"}, {"Schwab ETFs", "Schwab"},

@@ -174,7 +174,7 @@ def check_report():
         warn(f"los datos tienen {age:.0f} días. {hint}")
     else:
         ok(f"Datos: {REPORT.relative_to(ROOT)} ({'de hoy' if age < 1 else f'de hace {age:.0f} días'})")
-    missing = [label for name, label in (("etf", "ETFs Vanguard"), ("etfq", "ETFs por gestora"), ("quant", "Modelo por score"), ("ipsa", "Chile (IPSA)")) if not report.get(name)]
+    missing = [label for name, label in (("etfq", "ETFs por gestora"), ("quant", "Modelo por score"), ("ipsa", "Chile (IPSA)")) if not report.get(name)]
     if missing:
         warn("el JSON no trae: " + ", ".join(missing) + ". Esas pestañas saldrán vacías hasta correr el pipeline.")
     return True

@@ -5,14 +5,11 @@ package report
 import (
 	"bytes"
 	"database/sql"
-	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"math"
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"top3/internal/actual"
@@ -152,31 +149,6 @@ type Actual struct {
 	Tracking       []Tracking   `json:"tracking"`
 }
 
-// EtfRow es un ETF del último ranking.
-type EtfRow struct {
-	Rank     int                `json:"rank"`
-	Ticker   string             `json:"ticker"`
-	Name     string             `json:"name"`
-	Category string             `json:"category"`
-	Score    float64            `json:"score"`
-	Vol      float64            `json:"vol"`
-	MaxDD    float64            `json:"max_dd"`
-	SMADist  float64            `json:"sma_dist"`
-	Returns  map[string]float64 `json:"returns"`
-}
-
-// Etf es el último ranking de ETFs de Vanguard.
-type Etf struct {
-	AsOf         string   `json:"as_of"`
-	RunAt        string   `json:"run_at"`
-	TopN         int      `json:"top_n"`
-	Horizons     []int    `json:"horizons"`
-	RiskFree     *string  `json:"risk_free"`
-	PreviousAsOf *string  `json:"previous_as_of"`
-	Changes      *Changes `json:"changes"`
-	Rows         []EtfRow `json:"rows"`
-}
-
 // Settings son los parámetros con los que se corrió el backtest.
 type Settings struct {
 	TopN           int       `json:"top_n"`
@@ -195,7 +167,6 @@ type Report struct {
 	RunDate      *string         `json:"run_date"`
 	Settings     Settings        `json:"settings"`
 	Actual       []Actual        `json:"actual"`
-	Etf          *Etf            `json:"etf"`
 	Quant        json.RawMessage `json:"quant"`
 	Ipsa         json.RawMessage `json:"ipsa"`
 	Etfq         json.RawMessage `json:"etfq"`
@@ -624,79 +595,6 @@ func buildActual(d *sql.DB, today time.Time) ([]Actual, error) {
 	return out, nil
 }
 
-// buildEtf es el último ranking de ETFs de Vanguard guardado, con nombre y categoría de la lista (CSV).
-func buildEtf(d *sql.DB, cfg config.Config) (*Etf, error) {
-	asOf, err := repo.LatestEtfAsOf(d)
-	if err != nil {
-		return nil, err
-	}
-	if asOf == "" {
-		return nil, nil
-	}
-	e := cfg.Etf
-	type meta struct{ name, category string }
-	info := map[string]meta{}
-	if f, err := os.Open(e.CSV); err == nil {
-		r := csv.NewReader(f)
-		r.FieldsPerRecord = -1
-		if recs, err := r.ReadAll(); err == nil && len(recs) > 0 {
-			col := map[string]int{}
-			for i, h := range recs[0] {
-				col[strings.TrimPrefix(h, "\ufeff")] = i
-			}
-			get := func(rec []string, name string) string {
-				if i, ok := col[name]; ok && i < len(rec) {
-					return strings.TrimSpace(rec[i])
-				}
-				return ""
-			}
-			for _, rec := range recs[1:] {
-				info[strings.ToUpper(get(rec, "ticker"))] = meta{get(rec, "name"), get(rec, "category")}
-			}
-		}
-		f.Close()
-	}
-	ranking, err := repo.EtfRanking(d, asOf)
-	if err != nil {
-		return nil, err
-	}
-	if len(ranking) == 0 {
-		return nil, nil
-	}
-	out := &Etf{AsOf: asOf, RunAt: ranking[len(ranking)-1].RunAt, TopN: e.TopN, Rows: []EtfRow{}}
-	riskFree := strings.ToUpper(e.RiskFreeTicker)
-	hasRF := false
-	for _, r := range ranking {
-		m := info[r.Ticker]
-		out.Rows = append(out.Rows, EtfRow{Rank: r.Rank, Ticker: r.Ticker, Name: m.name, Category: m.category, Score: r.Score,
-			Vol: r.Vol, MaxDD: r.MaxDD, SMADist: r.SMADist, Returns: r.Returns})
-		hasRF = hasRF || r.Ticker == riskFree
-	}
-	for h := range ranking[0].Returns {
-		var v int
-		if _, err := fmt.Sscan(h, &v); err == nil {
-			out.Horizons = append(out.Horizons, v)
-		}
-	}
-	sort.Ints(out.Horizons)
-	if hasRF && riskFree != "" {
-		out.RiskFree = &riskFree
-	}
-	prevAsOf, prev, err := repo.PreviousEtfTop(d, asOf, e.TopN)
-	if err != nil {
-		return nil, err
-	}
-	out.PreviousAsOf = strPtr(prevAsOf)
-	if prevAsOf != "" {
-		top := []string{}
-		for _, r := range out.Rows[:min(e.TopN, len(out.Rows))] {
-			top = append(top, r.Ticker)
-		}
-		out.Changes = changesOf(actual.DiffPicks(prev, top))
-	}
-	return out, nil
-}
-
 // Build arma el reporte con lo último que hay en SQLite.
 func Build(d *sql.DB, cfg config.Config, today time.Time) (*Report, error) {
 	bt := cfg.Backtest
@@ -736,10 +634,6 @@ func Build(d *sql.DB, cfg config.Config, today time.Time) (*Report, error) {
 	if err != nil {
 		return nil, err
 	}
-	etf, err := buildEtf(d, cfg)
-	if err != nil {
-		return nil, err
-	}
 	quant, err := repo.LatestQuant(d)
 	if err != nil {
 		return nil, err
@@ -765,7 +659,7 @@ func Build(d *sql.DB, cfg config.Config, today time.Time) (*Report, error) {
 		GeneratedAt: time.Now().Format("2006-01-02T15:04:05"), RunDate: strPtr(runDay),
 		Settings: Settings{TopN: bt.TopN, Months: bt.Months, InitialCapital: bt.InitialCapital, Commission: bt.Commission,
 			Terms: cfg.Simulation.Months, BacktestYears: bt.BacktestYears, MinCapBillions: cfg.Universe.MinCapBillions, PeriodsYears: years},
-		Actual: act, Etf: etf, Quant: quant, Ipsa: ipsaRun, Etfq: etfq, Backtest: nonNil(bk), BacktestSkip: nonNil(skip),
+		Actual: act, Quant: quant, Ipsa: ipsaRun, Etfq: etfq, Backtest: nonNil(bk), BacktestSkip: nonNil(skip),
 	}, nil
 }
 

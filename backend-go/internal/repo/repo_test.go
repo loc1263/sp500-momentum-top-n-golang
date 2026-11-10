@@ -118,37 +118,6 @@ func TestOHLCVFramesFromRowsAlignsFieldsAndSkipsNaN(t *testing.T) {
 	}
 }
 
-func TestEtfScoresReplaceByDayAndPreviousTop(t *testing.T) {
-	d := openTemp(t)
-	row := func(rank int, tk string, score float64) EtfScoreRow {
-		return EtfScoreRow{Rank: rank, Ticker: tk, Score: score, Vol: 0.1, MaxDD: -0.2, SMADist: 0.03, Returns: map[string]float64{"3": 0.05}}
-	}
-	must(t, ReplaceEtfScores(d, "2026-09-30", []EtfScoreRow{row(1, "AAA", 2), row(2, "BBB", 1)}))
-	must(t, ReplaceEtfScores(d, "2026-10-31", []EtfScoreRow{row(1, "BBB", 3), row(2, "AAA", 2)}))
-	must(t, ReplaceEtfScores(d, "2026-10-31", []EtfScoreRow{row(1, "CCC", 4)})) // repetir el día lo reemplaza
-
-	if got, err := LatestEtfAsOf(d); err != nil || got != "2026-10-31" {
-		t.Errorf("LatestEtfAsOf: %q", got)
-	}
-	r, err := EtfRanking(d, "2026-10-31")
-	must(t, err)
-	if len(r) != 1 || r[0].Ticker != "CCC" || r[0].Returns["3"] != 0.05 || r[0].RunAt == "" {
-		t.Fatalf("EtfRanking: %+v", r)
-	}
-	day, top, err := PreviousEtfTop(d, "2026-10-31", 1)
-	must(t, err)
-	if day != "2026-09-30" || !reflect.DeepEqual(top, []string{"AAA"}) {
-		t.Errorf("PreviousEtfTop: %q %v", day, top)
-	}
-	if day, top, err := PreviousEtfTop(d, "2026-09-30", 5); err != nil || day != "" || top != nil {
-		t.Errorf("sin anterior: %q %v %v", day, top, err)
-	}
-	empty := openTemp(t)
-	if got, err := LatestEtfAsOf(empty); err != nil || got != "" {
-		t.Error("base vacía")
-	}
-}
-
 func TestPicksAreKeyedByMonthsAndCap(t *testing.T) {
 	d := openTemp(t)
 	mc := 5e9

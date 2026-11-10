@@ -1,6 +1,5 @@
 <script>
   import ActualView from './lib/ActualView.svelte';
-  import EtfView from './lib/EtfView.svelte';
   import EtfqView from './lib/EtfqView.svelte';
   import QuantView from './lib/QuantView.svelte';
   import IpsaView from './lib/IpsaView.svelte';
@@ -19,7 +18,6 @@
     {
       label: 'ETFs',
       tabs: [
-        { id: 'etf', label: 'ETFs Vanguard' },
         { id: 'etfq', label: 'ETFs por gestora' },
       ],
     },
@@ -40,9 +38,15 @@
   // Enlaces viejos al Lab (#backtest, #sweep, #compare) van a su página
   if (['backtest', 'sweep', 'compare'].includes(location.hash.slice(1))) location.replace(`lab.html${location.hash}`);
 
+  // La pestaña «ETFs Vanguard» (#etf) se retiró: esos ETFs están dentro de «ETFs por gestora», así que los enlaces viejos van allí
+  const LEGACY_TABS = { etf: 'etfq' };
+
   // About no está en el menú: es un botón aparte, en la esquina opuesta
-  const initialTab = () =>
-    [...tabs.map((t) => t.id), 'about'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'actual';
+  const initialTab = () => {
+    const hash = location.hash.slice(1);
+    const id = LEGACY_TABS[hash] ?? hash;
+    return [...tabs.map((t) => t.id), 'about'].includes(id) ? id : 'actual';
+  };
 
   let tab = $state(initialTab());
   let capKey = $state('0');
@@ -81,7 +85,7 @@
   // Nombre fijo del sitio (título principal) y título de la sección actual (debajo, más chico)
   const SITE_NAME = 'Momentum y Scores';
   const SECTION_TITLES = {
-    etf: 'ETFs de Vanguard', etfq: 'ETFs por gestora', quant: 'Modelo por score', ipsa: 'Modelo por score: IPSA', evaluador: 'Evaluador de empresas', about: 'About',
+    etfq: 'ETFs por gestora', quant: 'Modelo por score', ipsa: 'Modelo por score: IPSA', evaluador: 'Evaluador de empresas', about: 'About',
   };
   const sectionTitle = $derived(SECTION_TITLES[tab] ?? `Top ${report?.settings.top_n ?? 'N'} del S&P 500`);
   $effect(() => {
@@ -111,9 +115,7 @@
     <h1>{SITE_NAME}</h1>
     <h2 class="section">{sectionTitle}</h2>
     <p class="sub">
-      {#if tab === 'etf'}
-        Momentum ajustado por riesgo: ranking de los ETFs de Vanguard por cuánto subieron por unidad de riesgo.
-      {:else if tab === 'etfq'}
+      {#if tab === 'etfq'}
         Los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum ajustado por riesgo y calidad (costo y tamaño) dentro de cada categoría.
       {:else if tab === 'quant'}
         Scores de momentum, salud financiera y técnico de las acciones del S&amp;P 500, su promedio y Markowitz sobre las mejores.
@@ -168,12 +170,6 @@
 
     {#if tab === 'about'}
       <AboutView settings={report.settings} />
-    {:else if tab === 'etf'}
-      {#if report.etf}
-        <EtfView etf={report.etf} />
-      {:else}
-        <p class="muted">Sin ranking de ETFs. Ejecute top3 etf (en backend-go/).</p>
-      {/if}
     {:else if tab === 'etfq'}
       {#if report.etfq}
         <EtfqView etfq={report.etfq} bind:filters={etfqFilters} />

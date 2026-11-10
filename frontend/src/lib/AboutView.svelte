@@ -5,7 +5,7 @@
 
   const sections = [
     ['Top actual', 'Las acciones que hoy lideran el ranking de momentum (N-0), con suplentes, qué entra y sale, próximo rebalanceo y seguimiento de selecciones pasadas.'],
-    ['ETFs Vanguard', 'Ranking sin backtest por retorno ajustado por riesgo a 3, 6 y 12 meses, con tendencia y caída máxima. Los ETFs de efectivo no entran.'],
+    ['ETFs por gestora', 'Los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum ajustado por riesgo y calidad (costo y tamaño) dentro de cada categoría. Es una foto de hoy, sin backtest.'],
     ['Modelo por score', 'Scores de momentum, salud financiera y técnico para todo el S&P 500, su promedio y Markowitz sobre las mejores. Es una foto de hoy, sin backtest.'],
     ['Evaluador de empresas', 'Análisis fundamental de cada acción del S&P 500 y del IPSA: rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores, con un veredicto por categoría. Es independiente de los scores y usa reglas generales que dependen del sector.'],
     ['Chile (IPSA)', 'El mismo modelo por score aplicado a las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos, con tasa libre de riesgo propia. La lista sale de Wikipedia y se renueva cada mes.'],
@@ -35,7 +35,6 @@
   const sources = [
     ['Precios y datos financieros', 'Yahoo Finance (precios ajustados, volumen y últimos estados financieros).'],
     ['Composición del S&P 500', 'CSV de hanshof/sp500_constituents y altas y bajas de Wikipedia: en cada fecha solo compiten las empresas que estaban en el índice (Point-in-Time).'],
-    ['ETFs de Vanguard', 'Página de productos de Vanguard; los nuevos se agregan solos.'],
     ['Acciones del IPSA', 'Tabla de Wikipedia con los nemotécnicos del índice (se guarda y renueva cada mes); precios y datos financieros de Yahoo Finance (sufijo .SN).'],
   ];
 

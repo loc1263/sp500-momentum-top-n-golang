@@ -2,10 +2,7 @@ package etf
 
 import (
 	"math"
-	"os"
-	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
 	"top3/internal/model"
@@ -154,72 +151,5 @@ func TestCashLikeEtfsStayOutOfTheRankingButTheReferenceStillApplies(t *testing.T
 	plain, _ := score(t, p, []int{3, 6, 12}, "CASH", 0) // sin umbral, BILL competiría con un score enorme
 	if len(plain.CashLike) != 0 || byTicker(plain, "BILL").Ticker != "BILL" {
 		t.Fatalf("plain: %v", tickers(plain))
-	}
-}
-
-func TestLoadUniverse(t *testing.T) {
-	f := filepath.Join(t.TempDir(), "e.csv")
-	os.WriteFile(f, []byte("ticker,name,category\nvti , Total ,Amplio\nVTI,Dup,X\n,Sin ticker,X\nBND,Bonos,Bonos\n"), 0o644)
-	got, err := LoadUniverse(f)
-	if err != nil || len(got) != 2 || got[0] != (Fund{"VTI", "Total", "Amplio"}) || got[1].Ticker != "BND" {
-		t.Fatalf("got %+v err %v", got, err)
-	}
-}
-
-func TestLoadUniverseErrors(t *testing.T) {
-	dir := t.TempDir()
-	if _, err := LoadUniverse(filepath.Join(dir, "no_existe.csv")); err == nil || !strings.Contains(err.Error(), "TOP-ETF-001") {
-		t.Fatalf("err = %v", err)
-	}
-	bad := filepath.Join(dir, "bad.csv")
-	os.WriteFile(bad, []byte("ticker,name\nVTI,Total\n"), 0o644)
-	if _, err := LoadUniverse(bad); err == nil || !strings.Contains(err.Error(), "category") {
-		t.Fatalf("err = %v", err)
-	}
-	empty := filepath.Join(dir, "empty.csv")
-	os.WriteFile(empty, []byte("ticker,name,category\n"), 0o644)
-	if _, err := LoadUniverse(empty); err == nil || !strings.Contains(err.Error(), "vacía") {
-		t.Fatalf("err = %v", err)
-	}
-}
-
-func TestTheShippedEtfListIsSane(t *testing.T) {
-	list, err := LoadUniverse("../../history/vanguard_etfs.csv")
-	if err != nil || len(list) <= 50 {
-		t.Fatalf("len=%d err=%v", len(list), err)
-	}
-	var hasRF bool
-	for _, f := range list {
-		if f.Name == "" || f.Category == "" {
-			t.Fatalf("fila incompleta: %+v", f)
-		}
-		hasRF = hasRF || f.Ticker == "VUSB"
-	}
-	if !hasRF {
-		t.Fatal("VUSB es la referencia libre de riesgo por defecto y debe estar en la lista")
-	}
-}
-
-func TestTableRows(t *testing.T) {
-	p := prices(300, []string{"A", "B"}, map[string]drift{"A": {0.002, 0.005}, "B": {0.0005, 0.005}})
-	s, _ := score(t, p, []int{3, 12}, "", 0)
-	headers, rows := TableRows(s, []Fund{{"A", "A ETF", "Cat"}, {"B", "B ETF", "Cat"}}, []int{12, 3})
-	if !reflect.DeepEqual(headers, []string{"#", "Ticker", "Nombre", "Categoría", "Score", "Ret. 3m", "Ret. 12m", "Vol. anual", "Caída máx.", "vs SMA200"}) {
-		t.Fatalf("headers: %q", headers)
-	}
-	if rows[0][1] != "A" || rows[0][2] != "A ETF" || !strings.HasPrefix(rows[0][5], "+") || !strings.HasSuffix(rows[0][7], "%") || strings.HasPrefix(rows[0][7], "+") {
-		t.Fatalf("fila: %q", rows[0])
-	}
-}
-
-func TestDescribeChanges(t *testing.T) {
-	if got := DescribeChanges("", changes(nil, nil), 5); !strings.Contains(got, "primera corrida") {
-		t.Fatal(got)
-	}
-	if got := DescribeChanges("2024-01-01", changes(nil, nil), 5); got != "Cambios del top 5 vs. 2024-01-01: ninguno." {
-		t.Fatal(got)
-	}
-	if got := DescribeChanges("2024-01-01", changes([]string{"B"}, []string{"A"}), 1); got != "Cambios del top 1 vs. 2024-01-01: entran B; salen A." {
-		t.Fatal(got)
 	}
 }

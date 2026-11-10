@@ -98,8 +98,12 @@ history_file = "history/history.json"
 months = [2, 4, 6, 8, 10, 12]
 
 [etfq]
-# ETFs por gestora (top3 etfq): momentum y calidad (TER y AUM). Independiente de los ETFs de Vanguard ([etf]), pero usa sus
-# plazos, referencia libre de riesgo y volatilidad mínima para el score de momentum. Todo viene de Yahoo Finance.
+# ETFs por gestora (top3 etfq): momentum y calidad (TER y AUM). Todo viene de Yahoo Finance.
+# Score de momentum: plazos en meses, referencia libre de riesgo (se resta al retorno) y volatilidad anual mínima (por debajo,
+# el ETF es de tipo efectivo y no rankea)
+horizons_months = [3, 6, 12]
+risk_free_ticker = "VUSB"
+min_vol = 0.01
 # ETFs que se muestran en la consola (el JSON del frontend trae todos)
 top_n = 20
 # Filtro de elegibilidad: TER máximo (% anual) y AUM mínimo (millones de US$); 0 = sin tope / sin mínimo

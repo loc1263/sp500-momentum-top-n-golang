@@ -15,7 +15,6 @@ por score, para EE. UU. y para Chile (IPSA).
 La barra de pestañas tiene cuatro grupos: **Momentum** (Top actual), **ETFs**, **Acciones por score** y **Análisis fundamental** (Evaluador de empresas). El laboratorio de backtest está en una página aparte (`lab.html`), sin enlace desde el menú.
 
 - **Top actual**: las N acciones líderes hoy, con suplentes, cambios y próximo rebalanceo.
-- **ETFs de Vanguard**: ranking de momentum ajustado por riesgo.
 - **ETFs por gestora**: los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab, con momentum y calidad (costo y tamaño).
 - **Modelo por score (EEUU)**: score de momentum, de salud financiera y técnico para cada acción del S&P 500, y Markowitz sobre las mejores.
 - **Chile (IPSA)**: el mismo modelo por score para las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos.

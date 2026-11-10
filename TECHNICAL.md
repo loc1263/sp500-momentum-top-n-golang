@@ -84,7 +84,7 @@ python start_with_pipeline.py    # pipeline completo del backend y luego el fron
 ```
 
 La página no pide nada al backend: lee `data/report.json`, el archivo estático que dejan al terminar
-`top3 pipeline`, `top3 backtest`, `top3 actual`, `top3 etf`, `top3 etfq`, `top3 quant` y `top3 ipsa` (también `top3 export` a mano). El Evaluador de empresas tiene su propio archivo, `data/evaluator.json`, que escribe `top3 evaluator`. Primero
+`top3 pipeline`, `top3 backtest`, `top3 actual`, `top3 etfq`, `top3 quant` y `top3 ipsa` (también `top3 export` a mano). El Evaluador de empresas tiene su propio archivo, `data/evaluator.json`, que escribe `top3 evaluator`. Primero
 hay que haber corrido el pipeline al menos una vez. `npm run build` en `frontend/` genera la versión estática en
 `frontend/dist/`, que se puede publicar en cualquier hosting estático con el JSON de ese momento.
 
@@ -98,7 +98,6 @@ top3 pipeline --no-cache       # descarga todo de nuevo (solo el primer paso que
 top3 pipeline --years 7        # backtest de un único período
 top3 pipeline --skip-backtest  # solo Top actual + JSON (rápido)
 top3 pipeline --skip-actual    # omite el Top actual
-top3 pipeline --skip-etf       # omite el ranking de ETFs de Vanguard
 top3 pipeline --skip-etfq      # omite los ETFs por gestora
 top3 pipeline --skip-quant     # omite el modelo por score
 top3 pipeline --skip-ipsa      # omite el modelo por score del IPSA
@@ -124,7 +123,6 @@ top3 backtest --config otro.toml    # otro archivo de configuración
 top3 actual                         # Top N de hoy (plazo y top_n del config)
 top3 actual --months 6 --top-n 3    # otro plazo / otra cantidad
 top3 actual --min-cap-billions 200  # solo mega-cap
-top3 etf                            # ranking de ETFs de Vanguard
 top3 etfq                           # ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad
 top3 prune                            # borra reportes, corridas y caché viejos (7 días)
 go test ./...                                 # tests del backend
@@ -302,41 +300,9 @@ Yahoo puede tener datos faltantes o desactualizados (el flujo de caja libre de l
 coincide con los estados anuales); los promedios de rankings tratan igual a todos los indicadores; y el
 S&P 500 actual no incluye a las empresas que salieron del índice.
 
-### ETFs de Vanguard (`top3 etf`)
-
-Ranking global de momentum de los ETFs de Vanguard, **sin backtest**: qué ETFs tienen hoy (o a una fecha dada) más
-retorno por unidad de riesgo.
-
-```
-top3 etf                       # ranking de hoy; muestra el top de [etf] top_n
-top3 etf --top-n 30            # más filas en la consola (el JSON del frontend siempre trae todos)
-top3 etf --as-of 2025-06-30    # ranking con los datos hasta esa fecha
-top3 etf --csv otra_lista.csv  # otra lista de ETFs (esa lista no se actualiza sola)
-top3 etf --no-update           # no agrega los ETFs nuevos de Vanguard a la lista
-top3 pipeline --skip-etf        # el pipeline lo incluye salvo que se omita
-```
-
-**Score.** Para cada plazo de `[etf] horizons_months` (3, 6 y 12 meses por defecto):
-`(retorno del plazo - retorno de la referencia libre de riesgo) / (volatilidad anual x raíz(meses/12))`. El score es el
-promedio de esos cocientes. La referencia es `[etf] risk_free_ticker` (VUSB, bonos ultracortos): sin restarla, un ETF
-casi sin riesgo ganaría siempre. Los ETFs de tipo efectivo (volatilidad anual menor a `[etf] min_vol`, como VBIL, VGUS y la propia VUSB) no entran al ranking: con tan poco riesgo cualquier exceso mínimo sobre la referencia daría un score enorme sin ser una señal de momentum; se listan aparte en la consola y el HTML. Además del score la tabla muestra el retorno de cada plazo, la volatilidad anual y la
-caída máxima del plazo más largo, y la distancia del precio a su media de 200 ruedas (positivo = tendencia alcista).
-
-**La lista** está en `backend-go/history/vanguard_etfs.csv` (`ticker,name,category`). Cada vez que se corre el ranking se
-consulta el servicio que alimenta la página de productos de Vanguard y se **agregan al final del archivo los ETFs que
-falten** (con la categoría que se deduce del estilo que informa Vanguard); las filas que ya existen no se tocan, así
-que nombres y categorías se pueden corregir a mano, y nunca se borra ninguna. Si Vanguard ya no lista un ETF de la
-lista, se informa en el log para que se quite a mano. Si la consulta falla (sin red, formato distinto) se usa la lista
-guardada y se avisa con `TOP-ETF-006`. Es un servicio no documentado de la web de Vanguard, de uso personal. Un ticker sin precios en Yahoo avisa con `TOP-ETF-002`; los ETFs sin historia suficiente para el
-plazo más largo quedan fuera del ranking y se listan (`TOP-ETF-003`).
-
-**`--as-of`** usa la lista actual, así que no incluye los ETFs lanzados después de esa fecha ni los cerrados: sirve
-para ver cómo se veía el ranking, no como backtest, y no se guarda. Cada corrida normal se guarda en la tabla
-`etf_scores` y se compara el top con el de la corrida anterior (entran / salen).
-
 ### ETFs por gestora (`top3 etfq`)
 
-Sección aparte de la anterior (no la modifica ni la reemplaza): los ETFs de **iShares, Vanguard, SPDR (State Street), Invesco y
+Los ETFs de **iShares, Vanguard, SPDR (State Street), Invesco y
 Schwab** rankeados por momentum **y por calidad** (costo y tamaño), **sin backtest**. Es la primera fase del modelo
 multi-factor de [`docs/modelo-multifactor-etfs.md`](docs/modelo-multifactor-etfs.md): solo TER y AUM.
 
@@ -352,8 +318,11 @@ screener de Yahoo filtra por gestora (`fundFamily`) y trae en la misma consulta 
 se guarda en SQLite (`[etfq] category_ttl_days`). Los nombres de las gestoras son los de Yahoo (`[etfq] families`).
 
 **Score.**
-1. **Momentum:** el mismo score de retorno ajustado por riesgo de la sección de Vanguard (`[etf] horizons_months`,
-   `risk_free_ticker` y `min_vol`), calculado para todos los ETFs de las cinco gestoras.
+1. **Momentum:** retorno ajustado por riesgo. Para cada plazo de `[etfq] horizons_months` (3, 6 y 12 meses por defecto):
+   `(retorno del plazo - retorno de la referencia libre de riesgo) / (volatilidad anual x raíz(meses/12))`; el score es el
+   promedio de esos cocientes. La referencia es `[etfq] risk_free_ticker` (VUSB, bonos ultracortos): sin restarla, un ETF casi sin
+   riesgo ganaría siempre. Los ETFs de tipo efectivo (volatilidad anual menor a `[etfq] min_vol`) no rankean. Se calcula para
+   todos los ETFs de las cinco gestoras.
 2. **Filtro de elegibilidad:** un ETF con TER mayor que `[etfq] max_ter` o AUM menor que `min_aum_millions` queda fuera del ranking
    final (se ve en la web con su motivo). Un dato que falta no excluye.
 3. **Posiciones (0-100):** el momentum se compara con todos los ETFs elegibles; el TER (menos es mejor) y el AUM (más es mejor), con los
@@ -402,15 +371,11 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 | | `frontend_data` | `"../frontend/public/data/report.json"` | JSON estático para el frontend |
 | | `history_file` | `"history/history.json"` | Historial del Top actual, suplentes y ETFs, versionado en git (ver [Historial en JSON](#historial-en-json)); `""` = desactivado |
 | | `log_dir` | `"log"` | Carpeta de los logs |
-| | `backtest_log`, `actual_log`, `etf_log`, `etfq_log`, `quant_log` | `top3_*.log` | Nombres de los archivos de log |
-| `[etf]` | `update_list` | `true` | Al correr el ranking de ETFs, agrega a la lista los ETFs nuevos que Vanguard publica (nunca borra ni edita filas) |
-| | `list_url` | página de productos de Vanguard | Servicio del que se baja la lista de ETFs de Vanguard |
-| | `csv` | `"history/vanguard_etfs.csv"` | Lista de ETFs de Vanguard (columnas `ticker`, `name`, `category`) |
-| | `horizons_months` | `[3, 6, 12]` | Plazos del retorno ajustado por riesgo; el score es el promedio de sus cocientes |
-| | `top_n` | `15` | Cuántos ETFs se muestran en la consola (el JSON del frontend trae todos) |
+| | `backtest_log`, `actual_log`, `etfq_log`, `quant_log` | `top3_*.log` | Nombres de los archivos de log |
+| `[etfq]` | `horizons_months` | `[3, 6, 12]` | Plazos del retorno ajustado por riesgo; el score es el promedio de sus cocientes |
 | | `min_vol` | `0.01` | Volatilidad anual mínima para entrar al ranking (1%): los ETFs por debajo son de tipo efectivo (letras del Tesoro, bonos ultracortos) y quedan fuera; `0` = rankear todos |
 | | `risk_free_ticker` | `"VUSB"` | ETF cuyo retorno se resta al de cada ETF (referencia libre de riesgo); `""` = no restar |
-| `[etfq]` | `families` | iShares, Vanguard, State Street Investment Management (SPDR), Invesco y Schwab ETFs | Gestoras a incluir, como `[[etfq.families]]` con `name` (el `fundFamily` de Yahoo) y `label` (el nombre que se muestra) |
+| | `families` | iShares, Vanguard, State Street Investment Management (SPDR), Invesco y Schwab ETFs | Gestoras a incluir, como `[[etfq.families]]` con `name` (el `fundFamily` de Yahoo) y `label` (el nombre que se muestra) |
 | | `top_n` | `20` | Cuántos ETFs se muestran en la consola (el JSON del frontend trae todos) |
 | | `max_ter` | `0.50` | TER máximo en % anual para ser elegible; `0` = sin tope |
 | | `min_aum_millions` | `100` | AUM mínimo en millones de US$ para ser elegible; `0` = sin mínimo |
@@ -475,7 +440,7 @@ historial en otro entorno basta con clonar el repositorio.
 | `shares` | Acciones en circulación actuales (para la capitalización aproximada) |
 | `meta` | Fechas de descarga y rango de precios (control del caché) |
 | `runs`, `selections`, `equity` | Cada corrida: parámetros, selecciones y curva de capital |
-| `etf_scores` | Ranking de ETFs de Vanguard por corrida (fecha de datos, posición, score, volatilidad, caída máxima, distancia a la SMA200, retornos por plazo) |
+| `etf_scores` | Histórico del ranking de ETFs de Vanguard por corrida (fecha de datos, posición, score, volatilidad, caída máxima, distancia a la SMA200, retornos por plazo). Ya no se escribe: se conserva por el historial en git |
 | `etfq_category` | Categoría de cada ETF de las gestoras y el día en que se bajó (caché de `[etfq] category_ttl_days`) |
 | `etfq_runs` | Último resultado de los ETFs por gestora (JSON: ranking con momentum, TER, AUM y calidad) |
 | `fundamentals` | Últimos datos financieros descargados de cada empresa (JSON) y su fecha |
@@ -527,7 +492,7 @@ Formato: `TOP-<ÁREA>-<NNN>`.
 | `DAT` | Calidad y faltantes de datos |
 | `BKT` | Backtest |
 | `ACT` | Top actual |
-| `ETF` | Ranking de ETFs de Vanguard |
+| `ETF` | Referencia libre de riesgo de los ETFs |
 | `GES` | ETFs por gestora |
 | `QNT` | Modelo por score |
 | `IPS` | IPSA (Bolsa de Santiago) |
@@ -565,12 +530,7 @@ Para buscar en el log: `grep TOP-BKT backend-go/log/top3_backtest.log`.
 | `TOP-BKT-006` | Aviso | Un plazo/calendario de arranque no produjo resultado | Se omite ese calendario; el resto continúa. |
 | `TOP-ACT-001` | Error | No hay ruedas de precios suficientes | Descarga más historia (--no-cache) o reduce el plazo en meses. |
 | `TOP-ACT-002` | Aviso | Tickers con huecos en la ventana quedan fuera del ranking | Misma regla que el backtest. Revisa si Yahoo falló para esos tickers y reintenta. |
-| `TOP-ETF-001` | Error | No hay lista de ETFs utilizable | Revisa [etf] csv en config.toml: el archivo debe existir y tener las columnas ticker, name, category. |
-| `TOP-ETF-002` | Aviso | ETFs de la lista sin precios en Yahoo | Pueden estar dados de baja o con el ticker mal escrito; quítalos o corrígelos en el CSV. |
-| `TOP-ETF-003` | Aviso | ETFs fuera del ranking por huecos de precios o poca historia | Los ETFs nuevos entran cuando acumulan historia para el plazo más largo. |
-| `TOP-ETF-004` | Error | Ningún ETF se pudo rankear | Descarga más historia o reduce [etf] horizons_months. |
-| `TOP-ETF-005` | Aviso | La referencia libre de riesgo no está disponible | El score se calcula sin restarla (los ETFs casi sin riesgo quedan arriba). Revisa [etf] risk_free_ticker: debe estar en la lista y tener historia completa. |
-| `TOP-ETF-006` | Aviso | No se pudo actualizar la lista de ETFs de Vanguard | Se usa la lista guardada en el CSV. Revisa la conexión; si Vanguard cambió el formato de su respuesta hay que ajustar `internal/etf/vanguard.go`. Con `--no-update` o `[etf] update_list = false` no se intenta. |
+| `TOP-ETF-005` | Aviso | La referencia libre de riesgo no está disponible | El score se calcula sin restarla (los ETFs casi sin riesgo quedan arriba). Revisa [etfq] risk_free_ticker: debe ser un ETF de las gestoras y tener historia completa. |
 | `TOP-GES-001` | Aviso | Una gestora no devolvió ETFs | Yahoo falló o no conoce ese nombre. Revisa `[etfq] families`: `name` debe ser el `fundFamily` de Yahoo (p. ej. 'iShares'). Las demás gestoras siguen. |
 | `TOP-GES-002` | Aviso | ETFs sin categoría | Yahoo no informó la categoría: esos ETFs se comparan entre sí como 'Sin categoría'. Se reintenta en la próxima corrida. |
 | `TOP-GES-003` | Error | Ningún ETF de las gestoras se pudo rankear | Revisa la conexión y `[etfq] families`; los ETFs nuevos entran cuando acumulan historia para el plazo más largo. |
@@ -588,7 +548,7 @@ start.py              # valida el entorno y levanta el frontend (Windows, macOS 
 start_with_pipeline.py  # igual, pero corre antes el pipeline completo del backend
 backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, IPSA, evaluador de empresas y base SQLite
   config.toml         # configuración
-  history/            # datos que se versionan en git: historial, lista de ETFs de Vanguard y lista del IPSA
+  history/            # datos que se versionan en git: historial y lista del IPSA
   cmd/top3/           # línea de comandos: backtest, actual, etf, etfq, quant, ipsa, evaluator, export, prune y pipeline
   internal/           # la lógica, un paquete por responsabilidad
 frontend/             # Aplicación web en Svelte 5 + Vite
@@ -598,7 +558,6 @@ frontend/             # Aplicación web en Svelte 5 + Vite
 |---|---|
 | `top3 backtest` | Backtest Point-in-Time, comparación de plazos y sensibilidad al calendario de arranque |
 | `top3 actual` | Top N de hoy: las acciones del S&P 500 con mejor retorno en el plazo configurado |
-| `top3 etf` | Ranking de momentum ajustado por riesgo de los ETFs de Vanguard (sin backtest) |
 | `top3 etfq` | ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM) dentro de su categoría (sin backtest) |
 | `top3 quant` | Modelo por score: scores de momentum, de salud financiera y técnico del S&P 500 y Markowitz sobre las mejores (sin backtest) |
 | `top3 ipsa` | Modelo por score de las 30 acciones del IPSA (Bolsa de Santiago, en CLP) y Markowitz sobre las mejores (sin backtest) |
@@ -622,7 +581,6 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 | `lib/BacktestView.svelte` | Tarjetas, curva de capital, historial de selecciones y calendarios |
 | `lib/SweepView.svelte` | Comparación de plazos y sensibilidad al arranque |
 | `lib/CompareView.svelte` | Modelo de siempre (N-0) frente al skip-month (N-1), plazo por plazo y por mitades del período |
-| `lib/EtfView.svelte` | Ranking de ETFs de Vanguard |
 | `lib/EtfqView.svelte` | ETFs por gestora: ranking con momentum, calidad (TER y AUM), filtros por gestora y categoría |
 | `lib/QuantView.svelte` | Modelo por score: top 10 con Markowitz y ranking completo con filtros |
 | `lib/IpsaView.svelte` | Chile (IPSA): reutiliza `QuantView` con el ranking del IPSA, aclara la moneda (CLP) y el origen de la lista |
@@ -651,7 +609,7 @@ renumeran; todo aviso o error usa `CODIGO.Msg("texto")` o `CODIGO.Errorf(...)`, 
 push a `main`:
 
 1. Restaura la base SQLite desde el caché de Actions (`backend-go/data`), corre los tests y el pipeline.
-2. Hace commit de `backend-go/history/history.json`, `backend-go/history/ipsa_universe.json` y `backend-go/history/vanguard_etfs.csv` si cambiaron (el commit del bot no
+2. Hace commit de `backend-go/history/history.json`, y `backend-go/history/ipsa_universe.json` si cambiaron (el commit del bot no
    dispara otra ejecución).
 3. Prueba y compila el frontend y lo publica en GitHub Pages.
 

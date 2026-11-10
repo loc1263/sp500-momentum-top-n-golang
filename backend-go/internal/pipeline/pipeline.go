@@ -45,7 +45,6 @@ type Options struct {
 	SkipQuant     bool
 	SkipIpsa      bool
 	SkipEvaluator bool
-	SkipEtf       bool
 	SkipEtfq      bool
 	SkipPrune     bool
 }
@@ -98,9 +97,6 @@ func BuildSteps(cfg config.Config, o Options, self string) []Step {
 			steps = append(steps, Step{Name: "Top actual - " + label, Cmd: cmd("actual", cache(), universeArgs(level))})
 		}
 	}
-	if !o.SkipEtf {
-		steps = append(steps, Step{Name: "Ranking de ETFs de Vanguard", Cmd: cmd("etf")})
-	}
 	if !o.SkipEtfq {
 		steps = append(steps, Step{Name: "ETFs por gestora: momentum y calidad (TER y AUM)", Cmd: cmd("etfq")})
 	}
@@ -150,8 +146,6 @@ func Main(args []string) int {
 	fs.BoolVar(&o.SkipQuant, "skip-quant", false, "Omite el modelo por score (scores y Markowitz)")
 	fs.BoolVar(&o.SkipIpsa, "skip-ipsa", false, "Omite el modelo por score del IPSA")
 	fs.BoolVar(&o.SkipEvaluator, "skip-evaluator", false, "Omite el evaluador de empresas")
-	fs.BoolVar(&o.SkipEtf, "skip-etf", false, "Omite el ranking de ETFs de Vanguard")
-	fs.BoolVar(&o.SkipEtfq, "skip-etfq", false, "Omite los ETFs por gestora (momentum y calidad)")
 	fs.BoolVar(&o.SkipPrune, "skip-prune", false, "Omite la limpieza final de datos y reportes viejos")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {

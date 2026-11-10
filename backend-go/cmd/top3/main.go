@@ -1,6 +1,6 @@
 // Command top3 es el punto de entrada único del backend: `top3 <comando> [opciones]`.
 //
-// Comandos: backtest, actual, etf, etfq, quant, ipsa, evaluator, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
+// Comandos: backtest, actual, etfq, quant, ipsa, evaluator, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
 package main
 
 import (
@@ -21,7 +21,6 @@ import (
 	"top3/internal/config"
 	"top3/internal/console"
 	"top3/internal/errs"
-	"top3/internal/etf"
 	"top3/internal/etfq"
 	"top3/internal/evaluator"
 	"top3/internal/history"
@@ -34,7 +33,7 @@ import (
 	"top3/internal/yahoo"
 )
 
-var commands = []string{"backtest", "actual", "etf", "etfq", "quant", "ipsa", "evaluator", "export", "prune", "pipeline"}
+var commands = []string{"backtest", "actual", "etfq", "quant", "ipsa", "evaluator", "export", "prune", "pipeline"}
 
 func main() {
 	// El proceso vive pocos segundos y mueve matrices grandes: se deja crecer el heap antes de cada GC (4x en vez de 2x),
@@ -141,8 +140,6 @@ func run(ctx context.Context, name string, args []string) error {
 		return runBacktest(ctx, args)
 	case "actual":
 		return runActual(ctx, args)
-	case "etf":
-		return runEtf(ctx, args)
 	case "etfq":
 		return runEtfq(ctx, args)
 	case "quant":
@@ -225,32 +222,6 @@ func runActual(ctx context.Context, args []string) error {
 		return err
 	}
 	_, err = report.Export(cfg)
-	return err
-}
-
-func runEtf(ctx context.Context, args []string) error {
-	f := newFlags("etf", "Ranking de momentum ajustado por riesgo de los ETFs de Vanguard")
-	asOf := f.String("as-of", "", "Calcula el ranking con los datos hasta esa fecha YYYY-MM-DD (default: hoy)")
-	topN := f.Int("top-n", 0, "Cuántos ETFs mostrar en la consola (default: [etf] top_n del config)")
-	csvPath := f.String("csv", "", "Otra lista de ETFs (default: [etf] csv del config)")
-	noUpdate := f.Bool("no-update", false, "No agrega a la lista los ETFs nuevos de Vanguard (default: los agrega, [etf] update_list)")
-	if stop, err := f.parse(args); stop {
-		return err
-	}
-	cfg, err := start(f.config, func(o config.Output) string { return o.EtfLog })
-	if err != nil {
-		return err
-	}
-	y, err := newYahoo(cfg)
-	if err != nil {
-		return err
-	}
-	if err := etf.Run(ctx, cfg, y, etf.Options{AsOf: *asOf, TopN: *topN, CSV: *csvPath, UpdateList: !*noUpdate}); err != nil {
-		return err
-	}
-	if *asOf == "" { // una consulta a una fecha pasada no se guarda, así que no cambia lo que muestra la web
-		_, err = report.Export(cfg)
-	}
 	return err
 }
 

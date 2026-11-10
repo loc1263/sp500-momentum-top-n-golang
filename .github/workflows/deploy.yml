@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     permissions:
-      contents: write # commit del historial y del CSV de ETFs
+      contents: write # commit del historial
     steps:
       - uses: actions/checkout@v7
 
@@ -60,16 +60,16 @@ jobs:
           go build -o bin/top3 ./cmd/top3
           ./bin/top3 pipeline
 
-      - name: Guardar historial, lista de ETFs y lista del IPSA en git
+      - name: Guardar historial y lista del IPSA en git
         run: |
-          git add backend-go/history/history.json backend-go/history/ipsa_universe.json backend-go/history/vanguard_etfs.csv
+          git add backend-go/history/history.json backend-go/history/ipsa_universe.json
           if git diff --cached --quiet; then
-            echo "Sin cambios en el historial ni en la lista de ETFs."
+            echo "Sin cambios en el historial ni en la lista del IPSA."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Actualiza historial y lista de ETFs ($(date -u +%F))"
+          git commit -m "Actualiza historial ($(date -u +%F))"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
