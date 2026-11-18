@@ -183,19 +183,13 @@
   const ariaSort = (column) => (sortKey === column.key ? (descending ? 'descending' : 'ascending') : 'none');
 </script>
 
-<div class="cards">
-  <div class="card"><div class="k">Datos al cierre del</div><div class="v">{quant.as_of}</div></div>
-  <div class="card">
-    <div class="k">Acciones rankeadas</div>
-    <div class="v">{cov.ranked} de {cov.universe}</div>
-    <div class="h">las del S&amp;P 500 con los tres scores</div>
-  </div>
-  <div class="card">
-    <div class="k">Score final</div>
-    <div class="v">0 a 100</div>
-    <div class="h">promedio de los scores de momentum, de salud financiera y técnico</div>
-  </div>
-</div>
+<p class="range summary">
+  <strong>Datos al cierre del</strong> {quant.as_of} ·
+  <strong>Acciones rankeadas</strong> {cov.ranked} de {cov.universe}
+  <span class="muted">(las del S&amp;P 500 con los tres scores)</span> ·
+  <strong>Score final</strong> 0 a 100
+  <span class="muted">(promedio de los scores de momentum, de salud financiera y técnico)</span>
+</p>
 
 <h2>Cómo se calcula</h2>
 <div class="how">

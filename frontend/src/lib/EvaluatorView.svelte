@@ -80,23 +80,14 @@
 {:else if company}
   <EvaluatorDetail {company} {data} onBack={() => (selected = null)} />
 {:else}
-  <div class="cards">
-    <div class="card">
-      <div class="k">Empresas evaluadas</div>
-      <div class="v">{data.companies.length}</div>
-      <div class="h">{data.universes.map((u) => `${u.count} de ${u.label}`).join(' · ')}</div>
-    </div>
-    <div class="card">
-      <div class="k">Datos generados</div>
-      <div class="v">{data.generated_at.slice(0, 10)}</div>
-      <div class="h">Yahoo Finance, últimos estados publicados</div>
-    </div>
-    <div class="card">
-      <div class="k">Qué evalúa</div>
-      <div class="v">{data.sections.length} categorías</div>
-      <div class="h">rentabilidad, crecimiento, caja, deuda, valoración, tendencia y competidores</div>
-    </div>
-  </div>
+  <p class="range summary">
+    <strong>Empresas evaluadas</strong> {data.companies.length}
+    <span class="muted">({data.universes.map((u) => `${u.count} de ${u.label}`).join(' · ')})</span> ·
+    <strong>Datos generados</strong> {data.generated_at.slice(0, 10)}
+    <span class="muted">(Yahoo Finance, últimos estados publicados)</span> ·
+    <strong>Qué evalúa</strong> {data.sections.length} categorías
+    <span class="muted">(rentabilidad, crecimiento, caja, deuda, valoración, tendencia y competidores)</span>
+  </p>
 
   <div class="controls">
     <label>

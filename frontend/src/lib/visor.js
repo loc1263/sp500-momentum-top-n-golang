@@ -47,6 +47,36 @@ export function filterRows(sec, query) {
   return sec.rows.filter((r) => sec.search.some((i) => String(r[i] ?? '').toLowerCase().includes(q)));
 }
 
+const toNumber = (v) => {
+  const t = String(v ?? '').trim();
+  return t === '' || Number.isNaN(Number(t)) ? null : Number(t);
+};
+
+/** ¿Tiene algún valor el filtro de esa columna? (texto, mínimo/máximo o igualdad) */
+export const hasFilter = (f) => !!f && (String(f.text ?? '').trim() !== '' || toNumber(f.min) !== null || toNumber(f.max) !== null || !!f.eq);
+
+/** Cuántas columnas tienen filtro activo. */
+export const activeFilters = (filters) => Object.values(filters).filter(hasFilter).length;
+
+/**
+ * Filas que cumplen todos los filtros por columna ({ col: { text | min, max | eq } }). Texto: contiene, sin distinguir mayúsculas;
+ * números: entre mín y máx (los vacíos no pasan); vs_spy: igualdad exacta.
+ */
+export function filterColumns(sec, rows, filters) {
+  const active = sec.cols.map((col, i) => [col, i, filters[col]]).filter(([, , f]) => hasFilter(f));
+  if (!active.length) return rows;
+  return rows.filter((r) =>
+    active.every(([col, i, f]) => {
+      const v = r[i];
+      if (col === 'vs_spy') return !f.eq || v === f.eq;
+      if (isText(col)) return String(v ?? '').toLowerCase().includes(String(f.text ?? '').trim().toLowerCase());
+      const lo = toNumber(f.min), hi = toNumber(f.max);
+      if (lo === null && hi === null) return true;
+      return v !== null && v !== undefined && (lo === null || v >= lo) && (hi === null || v <= hi);
+    }),
+  );
+}
+
 /** Filas ordenadas por la columna `index`; los vacíos van siempre al final. Sin columna, el orden original. */
 export function sortRows(rows, index, descending) {
   if (index === null) return rows;

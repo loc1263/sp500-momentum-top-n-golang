@@ -18,19 +18,16 @@
   const list = (tickers) => (tickers.length ? tickers.join(', ') : '-');
 </script>
 
-<div class="cards">
-  <div class="card"><div class="k">Datos al cierre del</div><div class="v">{actual.as_of}</div></div>
-  <div class="card"><div class="k">Plazo</div><div class="v">{actual.months} meses</div></div>
-  <div class="card"><div class="k">Acciones</div><div class="v">{actual.picks.length}</div></div>
-  <div class="card"><div class="k">Peso por acción</div><div class="v">{share(weight)}</div></div>
+<p class="range summary">
+  <strong>Datos al cierre del</strong> {actual.as_of} ·
+  <strong>Plazo</strong> {actual.months} meses ·
+  <strong>Acciones</strong> {actual.picks.length} ·
+  <strong>Peso por acción</strong> {share(weight)}
   {#if actual.next_rebalance}
-    <div class="card">
-      <div class="k">Próximo rebalanceo</div>
-      <div class="v">{actual.next_rebalance}</div>
-      <div class="h">cada {actual.months} meses desde la primera corrida guardada ({actual.anchor})</div>
-    </div>
+    · <strong>Próximo rebalanceo</strong> {actual.next_rebalance}
+    <span class="muted">(cada {actual.months} meses desde la primera corrida guardada, {actual.anchor})</span>
   {/if}
-</div>
+</p>
 
 <h2>Top {actual.picks.length} de los últimos {actual.months} meses (modelo N-0)</h2>
 <p class="range">

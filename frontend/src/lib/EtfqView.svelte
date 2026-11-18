@@ -71,30 +71,20 @@
       .join(' y ');
 </script>
 
-<div class="cards">
-  <div class="card"><div class="k">Datos al cierre del</div><div class="v">{etfq.as_of}</div></div>
-  <div class="card"><div class="k">ETFs listados</div><div class="v">{listed}</div><div class="h">de {etfq.issuers.length} gestoras</div></div>
-  <div class="card">
-    <div class="k">Con score final</div>
-    <div class="v">{scoredCount}</div>
-    <div class="h">{excludedCount} fuera por TER o AUM</div>
-  </div>
-  <div class="card">
-    <div class="k">Filtro de elegibilidad</div>
-    <div class="v">{s.max_ter > 0 ? `TER ≤ ${dec(s.max_ter, 2)}%` : 'Sin tope de TER'}</div>
-    <div class="h">{s.min_aum_millions > 0 ? `AUM ≥ US$ ${dec(s.min_aum_millions, 0)} M` : 'Sin mínimo de AUM'}</div>
-  </div>
+<p class="range summary">
+  <strong>Datos al cierre del</strong> {etfq.as_of} ·
+  <strong>ETFs listados</strong> {listed} <span class="muted">(de {etfq.issuers.length} gestoras)</span> ·
+  <strong>Con score final</strong> {scoredCount} <span class="muted">({excludedCount} fuera por TER o AUM)</span> ·
+  <strong>Filtro de elegibilidad</strong> {s.max_ter > 0 ? `TER ≤ ${dec(s.max_ter, 2)}%` : 'Sin tope de TER'},
+  {s.min_aum_millions > 0 ? `AUM ≥ US$ ${dec(s.min_aum_millions, 0)} M` : 'Sin mínimo de AUM'}
   {#if etfq.risk_free}
-    <div class="card">
-      <div class="k">Referencia sin riesgo</div>
-      <div class="v">{etfq.risk_free}</div>
-      <div class="h">su retorno se resta al de cada ETF</div>
-    </div>
+    · <strong>Referencia sin riesgo</strong> {etfq.risk_free}
+    <span class="muted">(su retorno se resta al de cada ETF)</span>
   {/if}
-</div>
+</p>
 
 <h2>ETFs por gestora</h2>
-<p class="sub">
+<p class="sub wide">
   Score final = {share(1 - s.quality_weight, 0)} momentum + {share(s.quality_weight, 0)} calidad. «Momentum» es la posición (0-100) del
   score de retorno ajustado por riesgo entre los ETFs elegibles. «Calidad» promedia la posición del TER (menos es mejor, peso
   {s.ter_weight}) y del AUM (más es mejor, peso {s.aum_weight}) <strong>dentro de su misma categoría</strong>, sea cual sea la gestora.
@@ -194,6 +184,7 @@
 
 <style>
   .summary { max-width: 560px; margin-bottom: 12px; }
+  .range.summary { max-width: none; margin-bottom: var(--space-3); }
   .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 12px 0; }
   label { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: .9rem; }
   .check { cursor: pointer; }

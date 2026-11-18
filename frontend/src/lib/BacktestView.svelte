@@ -46,38 +46,18 @@
   </span>
 </div>
 
-<div class="cards">
-  <div class="card">
-    <div class="k">Capital inicial</div>
-    <div class="v">US$ {usd(settings.initial_capital)}</div>
-    <div class="h">con lo que se empieza</div>
-  </div>
-  <div class="card">
-    <div class="k">Capital final</div>
-    <div class="v">US$ {usd(base.final_capital)}</div>
-    <div class="h">en qué se convirtió, empezando en {base.first_rebalance}</div>
-  </div>
-  <div class="card">
-    <div class="k">Ganancia total</div>
-    <div class="v {sign(base.total_return)}">{pct(base.total_return)}</div>
-    <div class="h">acumulada en todo el período</div>
-  </div>
-  <div class="card">
-    <div class="k">Rendimiento anual</div>
-    <div class="v {sign(base.cagr)}">{pct(base.cagr)}</div>
-    <div class="h">promedio compuesto por año (CAGR), mismo arranque</div>
-  </div>
-  <div class="card">
-    <div class="k">Resultado típico</div>
-    <div class="v {sign(s.cagr_median)}">{pct(s.cagr_median)} anual</div>
-    <div class="h">el del medio entre {s.calendars} fechas de arranque posibles</div>
-  </div>
-  <div class="card">
-    <div class="k">Según el mes de arranque</div>
-    <div class="v">{pct(s.cagr_min, 0)} a {pct(s.cagr_max, 0)}</div>
-    <div class="h">anual, del peor al mejor arranque</div>
-  </div>
-</div>
+<p class="range summary">
+  <strong>Capital inicial</strong> US$ {usd(settings.initial_capital)} ·
+  <strong>Capital final</strong> US$ {usd(base.final_capital)}
+  <span class="muted">(empezando en {base.first_rebalance})</span> ·
+  <strong>Ganancia total</strong> <span class={sign(base.total_return)}>{pct(base.total_return)}</span> ·
+  <strong>Rendimiento anual</strong> <span class={sign(base.cagr)}>{pct(base.cagr)}</span>
+  <span class="muted">(CAGR, mismo arranque)</span> ·
+  <strong>Resultado típico</strong> <span class={sign(s.cagr_median)}>{pct(s.cagr_median)} anual</span>
+  <span class="muted">(el del medio entre {s.calendars} fechas de arranque posibles)</span> ·
+  <strong>Según el mes de arranque</strong> {pct(s.cagr_min, 0)} a {pct(s.cagr_max, 0)}
+  <span class="muted">anual, del peor al mejor</span>
+</p>
 
 <h2>Curva de capital</h2>
 <Range period={universe} first={base.first_rebalance} />

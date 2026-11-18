@@ -55,7 +55,7 @@ describe('EvaluatorView: listado', () => {
     await screen.findByText('Alfa Corp');
     const tickers = [...document.querySelectorAll('tbody tr strong')].map((e) => e.textContent);
     expect(tickers).toEqual(['AAA', 'CCC']); // arranca en el primer mercado (S&P 500), por capitalización
-    expect(screen.getByText('2 de S&P 500 · 1 de Otro mercado')).toBeInTheDocument();
+    expect(document.querySelector('.summary')).toHaveTextContent('2 de S&P 500 · 1 de Otro mercado');
   });
 
   it('filtra por mercado y por texto', async () => {

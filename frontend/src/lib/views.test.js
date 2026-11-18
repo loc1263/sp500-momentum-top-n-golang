@@ -16,7 +16,8 @@ describe('ActualView', () => {
     expect(screen.getByText('NVDA')).toBeInTheDocument();
     expect(screen.getByText('+50,0%')).toBeInTheDocument();
     expect(screen.getByText('-2,0%')).toBeInTheDocument();
-    expect(screen.getAllByText('50,0%')).toHaveLength(3); // tarjeta + una celda por pick
+    expect(screen.getAllByText('50,0%')).toHaveLength(2); // una celda por pick
+    expect(screen.getByText('Peso por acción').closest('p')).toHaveTextContent('Peso por acción 50,0%');
   });
   it('muestra los suplentes aparte, sin peso', () => {
     render(ActualView, { actual });
@@ -50,7 +51,7 @@ describe('ActualView', () => {
   });
   it('muestra el próximo rebalanceo', () => {
     render(ActualView, { actual });
-    expect(screen.getByText('Próximo rebalanceo').nextElementSibling).toHaveTextContent('2026-10-01');
+    expect(screen.getByText('Próximo rebalanceo').closest('p')).toHaveTextContent('Próximo rebalanceo 2026-10-01');
   });
   it('no falla sin picks', () => {
     render(ActualView, { actual: { ...actual, picks: [] } });
@@ -80,7 +81,7 @@ describe('Chart', () => {
 describe('BacktestView', () => {
   it('muestra el capital final del calendario base', () => {
     render(BacktestView, { universe, settings });
-    expect(screen.getByText('Capital final').nextElementSibling).toHaveTextContent('US$');
+    expect(screen.getByText('Capital final').closest('p')).toHaveTextContent('US$');
     expect(screen.getByText('Historial de selecciones (calendario base)')).toBeInTheDocument();
   });
   it('arranca con el plazo del config y permite cambiarlo', async () => {
