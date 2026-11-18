@@ -183,7 +183,7 @@
   const ariaSort = (column) => (sortKey === column.key ? (descending ? 'descending' : 'ascending') : 'none');
 </script>
 
-<p class="range summary">
+<p class="range overview">
   <strong>Datos al cierre del</strong> {quant.as_of} ·
   <strong>Acciones rankeadas</strong> {cov.ranked} de {cov.universe}
   <span class="muted">(las del S&amp;P 500 con los tres scores)</span> ·

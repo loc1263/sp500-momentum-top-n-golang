@@ -71,7 +71,7 @@
       .join(' y ');
 </script>
 
-<p class="range summary">
+<p class="range overview">
   <strong>Datos al cierre del</strong> {etfq.as_of} ·
   <strong>ETFs listados</strong> {listed} <span class="muted">(de {etfq.issuers.length} gestoras)</span> ·
   <strong>Con score final</strong> {scoredCount} <span class="muted">({excludedCount} fuera por TER o AUM)</span> ·
@@ -184,7 +184,6 @@
 
 <style>
   .summary { max-width: 560px; margin-bottom: 12px; }
-  .range.summary { max-width: none; margin-bottom: var(--space-3); }
   .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 12px 0; }
   label { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: .9rem; }
   .check { cursor: pointer; }

@@ -1,8 +1,9 @@
 <script>
   import Pager from './Pager.svelte';
   import TickerLink from './TickerLink.svelte';
+  import VisorFilterRow from './VisorFilterRow.svelte';
   import { slicePage } from './format.js';
-  import { activeFilters, cellClass, filterColumns, filterRows, fmt, isText, label, sortRows, toCsv } from './visor.js';
+  import { activeFilters, cellClass, filterColumns, filterRows, fmt, isText, label, sortRows, toCsv, withFilter } from './visor.js';
 
   // `load` baja el JSON del visor; se puede reemplazar en los tests
   let { load = loadData } = $props();
@@ -53,9 +54,8 @@
       descending = !isText(sec.cols[i]);
     }
   }
-  function setFilter(col, key, value) {
-    colFilters = { ...colFilters, [col]: { ...colFilters[col], [key]: value } };
-  }
+  const setFilter = (col, key, value) => (colFilters = withFilter(colFilters, col, key, value));
+  const toggleMark = (ticker) => (marked = marked === ticker ? null : ticker);
   const ariaSort = (i) => (sortIndex === i ? (descending ? 'descending' : 'ascending') : 'none');
 
   function download() {
@@ -111,34 +111,12 @@
             </th>
           {/each}
         </tr>
-        <tr class="filters">
-          {#each sec.cols as col (col)}
-            <th class:r={!isText(col)}>
-              {#if col === 'vs_spy'}
-                <select aria-label="Filtrar {label(col)}" value={colFilters[col]?.eq ?? ''} onchange={(e) => setFilter(col, 'eq', e.currentTarget.value)}>
-                  <option value="">Todos</option>
-                  <option value="SUPERA">SUPERA</option>
-                  <option value="NO SUPERA">NO SUPERA</option>
-                </select>
-              {:else if isText(col)}
-                <input type="search" aria-label="Filtrar {label(col)}" placeholder="Filtrar" value={colFilters[col]?.text ?? ''}
-                  oninput={(e) => setFilter(col, 'text', e.currentTarget.value)} />
-              {:else}
-                <span class="range-in">
-                  <input type="number" step="any" aria-label="{label(col)} mín" placeholder="mín" value={colFilters[col]?.min ?? ''}
-                    oninput={(e) => setFilter(col, 'min', e.currentTarget.value)} />
-                  <input type="number" step="any" aria-label="{label(col)} máx" placeholder="máx" value={colFilters[col]?.max ?? ''}
-                    oninput={(e) => setFilter(col, 'max', e.currentTarget.value)} />
-                </span>
-              {/if}
-            </th>
-          {/each}
-        </tr>
+        <VisorFilterRow cols={sec.cols} filters={colFilters} onchange={setFilter} />
       </thead>
       <tbody>
         {#each slicePage(rows, page) as r (r[0])}
           <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-          <tr class:marked={marked === r[0]} onclick={(e) => { if (!e.target.closest('a')) marked = marked === r[0] ? null : r[0]; }}>
+          <tr class:marked={marked === r[0]} onclick={(e) => !e.target.closest('a') && toggleMark(r[0])}>
             {#each r as v, i (i)}
               {@const col = sec.cols[i]}
               <td class="{cellClass(sec, col, v)} {isText(col) ? '' : 'r'} {col === 'nombre' ? 'name' : ''}" title={col === 'nombre' ? v : undefined}>
@@ -175,13 +153,6 @@
   .seg button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
   .csv { border-radius: var(--radius-sm); }
   .csv:disabled { opacity: .4; cursor: default; }
-  tr.filters th { font-weight: 400; text-transform: none; letter-spacing: 0; vertical-align: top; }
-  tr.filters input, tr.filters select {
-    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 2px 4px; color: var(--fg);
-    font: inherit; font-size: .75rem; width: 100%; min-width: 0; box-sizing: border-box;
-  }
-  tr.filters input[type='number'] { width: 56px; }
-  .range-in { display: inline-flex; gap: 2px; }
   .sort { all: unset; cursor: pointer; }
   .sort:focus-visible { outline: 2px solid var(--accent); }
   tbody tr { cursor: pointer; }

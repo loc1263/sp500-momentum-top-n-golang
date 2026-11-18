@@ -80,7 +80,7 @@
 {:else if company}
   <EvaluatorDetail {company} {data} onBack={() => (selected = null)} />
 {:else}
-  <p class="range summary">
+  <p class="range overview">
     <strong>Empresas evaluadas</strong> {data.companies.length}
     <span class="muted">({data.universes.map((u) => `${u.count} de ${u.label}`).join(' · ')})</span> ·
     <strong>Datos generados</strong> {data.generated_at.slice(0, 10)}

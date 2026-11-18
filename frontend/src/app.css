@@ -68,7 +68,7 @@ td.r, th.r { text-align: right; }
 .sub.wide { max-width: none; }
 .range { margin: 0 0 var(--space-1); font-size: .88rem; font-variant-numeric: tabular-nums; color: var(--muted); }
 .range strong { color: var(--fg); }
-.range.summary { margin: var(--space-3) 0; }
+.range.overview { margin: var(--space-3) 0; }
 
 /* Controles */
 select {

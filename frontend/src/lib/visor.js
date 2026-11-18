@@ -55,6 +55,9 @@ const toNumber = (v) => {
 /** ¿Tiene algún valor el filtro de esa columna? (texto, mínimo/máximo o igualdad) */
 export const hasFilter = (f) => !!f && (String(f.text ?? '').trim() !== '' || toNumber(f.min) !== null || toNumber(f.max) !== null || !!f.eq);
 
+/** Copia de los filtros con `key` de la columna `col` puesto en `value` (para estado reactivo, no muta). */
+export const withFilter = (filters, col, key, value) => ({ ...filters, [col]: { ...filters[col], [key]: value } });
+
 /** Cuántas columnas tienen filtro activo. */
 export const activeFilters = (filters) => Object.values(filters).filter(hasFilter).length;
 

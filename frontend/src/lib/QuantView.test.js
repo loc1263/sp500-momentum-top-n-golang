@@ -13,7 +13,7 @@ const rowOf = (ticker) => bodyRows().find((r) => within(r).getAllByRole('cell')[
 describe('QuantView', () => {
   it('resume la cobertura del ranking', () => {
     render(QuantView, { quant });
-    expect(document.querySelector('.summary')).toHaveTextContent('Acciones rankeadas 3 de 4');
+    expect(document.querySelector('.overview')).toHaveTextContent('Acciones rankeadas 3 de 4');
     expect(screen.getByText(/Sin un año de precios .*: NEW/)).toBeInTheDocument();
     expect(screen.getByText(/Sin datos técnicos: OLD/)).toBeInTheDocument();
   });

@@ -586,14 +586,14 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 | `Lab.svelte` (`lab.html`, `lab.js`) | Página aparte del laboratorio: pestañas Backtest, Plazos y sensibilidad y N-0 vs N-1, filtros de universo y período, tema. Sin enlace desde la app; los enlaces viejos `#backtest`, `#sweep` y `#compare` redirigen aquí |
 | `lib/report.js` | Carga de `data/report.json` y clave de universo, compartidas por ambas páginas |
 | `lib/ActualView.svelte` | Top actual, suplentes y seguimiento de selecciones anteriores |
-| `lib/BacktestView.svelte` | Tarjetas, curva de capital, historial de selecciones y calendarios |
+| `lib/BacktestView.svelte` | Línea de resumen, curva de capital, historial de selecciones y calendarios |
 | `lib/SweepView.svelte` | Comparación de plazos y sensibilidad al arranque |
 | `lib/CompareView.svelte` | Modelo de siempre (N-0) frente al skip-month (N-1), plazo por plazo y por mitades del período |
 | `lib/EtfqView.svelte` | ETFs por gestora: ranking con momentum, calidad (TER y AUM), filtros por gestora y categoría |
 | `lib/QuantView.svelte` | Modelo por score: top 10 con Markowitz y ranking completo con filtros |
 | `lib/EvaluatorView.svelte`, `EvaluatorDetail.svelte` | Evaluador de empresas: listado filtrable (mercado, sector, veredicto, texto) y detalle por categoría; cargan `data/evaluator.json` al abrir la pestaña |
 | `lib/evaluator.js`, `Pill.svelte`, `Spark.svelte` | Formato de métricas y montos, ordenamiento y filtros del listado; distintivo de nivel; gráfico de la tendencia anual |
-| `lib/VisorView.svelte`, `visor.js` | Visor: tabla de acciones y de ETFs con búsqueda, orden por columna, color por criterio, paginado y descarga CSV; cargan `data/visor.json` al abrir la pestaña. `visor.js` tiene el formato, el color, el filtro, el orden y el CSV |
+| `lib/VisorView.svelte`, `lib/VisorFilterRow.svelte`, `visor.js` | Visor: tabla de acciones y de ETFs con búsqueda, filtros por columna, orden por columna, fila marcada con un clic, color por criterio, paginado y descarga CSV; cargan `data/visor.json` al abrir la pestaña. `VisorFilterRow` es la fila de filtros bajo los encabezados; `visor.js` tiene el formato, el color, los filtros, el orden y el CSV |
 | `lib/AboutView.svelte` | Pestaña About: qué se muestra en la aplicación, tarjetas de conceptos clave, fuentes de datos y límites |
 | `lib/Chart.svelte`, `Range.svelte`, `TickerLink.svelte`, `Glossary.svelte` | Componentes compartidos |
 | `lib/Bunny.svelte` | Detalle decorativo: un conejo que pasea por el pie de la pantalla, se aleja del cursor y saluda al hacer clic (se desactiva con «reducir movimiento» del sistema) |

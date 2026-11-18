@@ -46,7 +46,7 @@
   </span>
 </div>
 
-<p class="range summary">
+<p class="range overview">
   <strong>Capital inicial</strong> US$ {usd(settings.initial_capital)} ·
   <strong>Capital final</strong> US$ {usd(base.final_capital)}
   <span class="muted">(empezando en {base.first_rebalance})</span> ·

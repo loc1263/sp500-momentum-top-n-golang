@@ -24,8 +24,8 @@ describe('EtfqView', () => {
     const summary = screen.getAllByRole('table')[0];
     expect(within(summary).getByText('iShares').closest('tr')).toHaveTextContent('40');
     expect(within(summary).getByText('Vanguard').closest('tr')).toHaveTextContent('30');
-    expect(document.querySelector('.summary')).toHaveTextContent('TER ≤ 0,20%');
-    expect(document.querySelector('.summary')).toHaveTextContent('AUM ≥ US$ 100 M');
+    expect(document.querySelector('.overview')).toHaveTextContent('TER ≤ 0,20%');
+    expect(document.querySelector('.overview')).toHaveTextContent('AUM ≥ US$ 100 M');
     expect(screen.getByText('Referencia sin riesgo').closest('p')).toHaveTextContent('VUSB');
   });
 
@@ -71,7 +71,7 @@ describe('EtfqView', () => {
 
   it('aclara cuando no hay tope de TER ni mínimo de AUM', () => {
     render(EtfqView, { etfq: { ...etfq, settings: { ...etfq.settings, max_ter: 0, min_aum_millions: 0 } } });
-    expect(document.querySelector('.summary')).toHaveTextContent('Sin tope de TER');
-    expect(document.querySelector('.summary')).toHaveTextContent('Sin mínimo de AUM');
+    expect(document.querySelector('.overview')).toHaveTextContent('Sin tope de TER');
+    expect(document.querySelector('.overview')).toHaveTextContent('Sin mínimo de AUM');
   });
 });

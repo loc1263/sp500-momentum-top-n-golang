@@ -18,7 +18,7 @@
   const list = (tickers) => (tickers.length ? tickers.join(', ') : '-');
 </script>
 
-<p class="range summary">
+<p class="range overview">
   <strong>Datos al cierre del</strong> {actual.as_of} ·
   <strong>Plazo</strong> {actual.months} meses ·
   <strong>Acciones</strong> {actual.picks.length} ·

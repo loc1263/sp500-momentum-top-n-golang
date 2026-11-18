@@ -18,7 +18,7 @@ La barra de pestañas tiene cinco grupos: **Momentum** (Top actual), **ETFs**, *
 - **ETFs por gestora**: los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab, con momentum y calidad (costo y tamaño).
 - **Modelo por score (EEUU)**: score de momentum, de salud financiera y técnico para cada acción del S&P 500, y Markowitz sobre las mejores.
 - **Evaluador de empresas**: análisis fundamental propio de cada acción del S&P 500 (rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores), con un veredicto por categoría. Es independiente de los scores.
-- **Visor**: rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, caída máxima y comparación contra SPY de las acciones de EE. UU. con capitalización mayor a 100 B y de los 300 ETFs de mayor AUM, con búsqueda, orden por columna y descarga en CSV.
+- **Visor**: rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, caída máxima y comparación contra SPY de las acciones de EE. UU. con capitalización mayor a 100 B y de los 300 ETFs de mayor AUM, con búsqueda, filtros y orden por columna, fila marcada con un clic y descarga en CSV.
 - **Lab** (página aparte, `lab.html`): el laboratorio de backtest de la estrategia de momentum.
   - **Backtest** Point-in-Time, con curva de capital y selecciones en cada rebalanceo.
   - **Plazos y sensibilidad**: compara plazos de rebalanceo y mide cuánto depende el resultado del mes de arranque.
