@@ -84,7 +84,7 @@ python start_with_pipeline.py    # pipeline completo del backend y luego el fron
 ```
 
 La página no pide nada al backend: lee `data/report.json`, el archivo estático que dejan al terminar
-`top3 pipeline`, `top3 backtest`, `top3 actual`, `top3 etfq`, `top3 quant` y `top3 ipsa` (también `top3 export` a mano). El Evaluador de empresas tiene su propio archivo, `data/evaluator.json`, que escribe `top3 evaluator`. Primero
+`top3 pipeline`, `top3 backtest`, `top3 actual`, `top3 etfq`, y `top3 quant` (también `top3 export` a mano). El Evaluador de empresas tiene su propio archivo, `data/evaluator.json`, que escribe `top3 evaluator`, y el Visor el suyo, `data/visor.json`, que escribe `top3 visor`. Primero
 hay que haber corrido el pipeline al menos una vez. `npm run build` en `frontend/` genera la versión estática en
 `frontend/dist/`, que se puede publicar en cualquier hosting estático con el JSON de ese momento.
 
@@ -100,12 +100,12 @@ top3 pipeline --skip-backtest  # solo Top actual + JSON (rápido)
 top3 pipeline --skip-actual    # omite el Top actual
 top3 pipeline --skip-etfq      # omite los ETFs por gestora
 top3 pipeline --skip-quant     # omite el modelo por score
-top3 pipeline --skip-ipsa      # omite el modelo por score del IPSA
 top3 pipeline --skip-evaluator # omite el evaluador de empresas
+top3 pipeline --skip-visor     # omite el visor de acciones grandes y ETFs
 ```
 
 Cada paso corre en su propio proceso y, si uno falla, se corta. Al final imprime el tiempo de cada paso.
-La excepción es el evaluador de empresas, que es un paso **opcional**: si falla (por ejemplo por un límite de Yahoo) se avisa y el pipeline sigue, así el resto se exporta y se publica igual; el resumen lo marca como «FALLÓ (opcional, se siguió)» y el código de salida no cambia.
+Las excepciones son el evaluador de empresas y el visor, que son pasos **opcionales**: si falla (por ejemplo por un límite de Yahoo) se avisa y el pipeline sigue, así el resto se exporta y se publica igual; el resumen lo marca como «FALLÓ (opcional, se siguió)» y el código de salida no cambia.
 
 ### Scripts sueltos
 
@@ -181,39 +181,16 @@ Además del Top, muestra:
 
 Correr el script dos veces con los mismos datos reemplaza el resultado en lugar de duplicarlo.
 
-### IPSA (`top3 ipsa`)
-
-El mismo modelo por score (momentum, salud financiera y técnico, su promedio y Markowitz sobre las mejores) aplicado a las 30
-acciones del IPSA de la Bolsa de Santiago, en **pesos chilenos**. Es una sección aparte: no usa ni modifica las tablas de
-precios u OHLCV del S&P 500, ni el resultado de `top3 quant`. Reutiliza de `[quant]` los pesos de los scores, el peso de la
-salud y `mu_shrink`; lo propio está en `[ipsa]`.
-
-```
-top3 ipsa             # ~10 segundos (30 acciones)
-top3 ipsa --no-cache  # además vuelve a bajar la lista del IPSA y los datos financieros
-```
-
-- **Lista de acciones**: la tabla de Wikipedia (columna Nemotécnico). Se guarda en `[ipsa] universe_file`
-  (`history/ipsa_universe.json`, versionado en git) con la fecha, y se renueva cuando tiene más de `universe_ttl_days` días
-  (30 = mensual) o con `--no-cache`. Si Wikipedia falla se usa la guardada aunque esté vencida (aviso `TOP-IPS-001` si no hay
-  ninguna). El archivo se puede editar a mano; mientras no esté vencido se respeta.
-- **Tickers de Yahoo**: nemotécnico + `[ipsa] suffix` (`.SN`); `[ipsa.aliases]` cubre renombres (nemotécnico = símbolo de Yahoo sin sufijo).
-- **Moneda y tasa**: precios y capitalización en CLP; tasa libre de riesgo `[ipsa] risk_free` = 5% más `equity_premium` = 6% de prima
-  (retorno de largo plazo esperado de 11%). Markowitz sobre las `top_n` = 6 mejores, con volatilidad objetivo, peso máximo por
-  acción y por sector propios.
-- Yahoo tiene datos financieros menos completos de acciones chilenas que de EE. UU.: las que queden sin algún score salen en `coverage`.
-
 ### Evaluador de empresas (`top3 evaluator`)
 
-Análisis fundamental de cada acción del **S&P 500 actual** y del **IPSA** (~530 empresas), sin backtest: una foto de hoy. Es una
+Análisis fundamental de cada acción del **S&P 500 actual** (~500 empresas), sin backtest: una foto de hoy. Es una
 sección aparte: **no usa ni modifica** los scores, el ranking, las tablas de precios ni `fundamentals` de los otros modelos. De ellos
-toma solo las listas de tickers (el S&P 500 actual de la base y el IPSA de `[ipsa] universe_file`). Los datos salen de Yahoo Finance
+toma solo las listas de tickers (el S&P 500 actual de la base). Los datos salen de Yahoo Finance
 vía `gohoo` (`quoteSummary` y `fundamentals-timeseries`: 2 requests por empresa, ~45 segundos en total) y no se guardan en SQLite:
 cada corrida los baja de nuevo y reemplaza el JSON.
 
 ```
 top3 evaluator             # ~45 segundos
-top3 evaluator --no-cache  # además vuelve a bajar la lista del IPSA
 ```
 
 El resultado es `[evaluator] output` (`frontend/public/data/evaluator.json`, ignorado por git como `report.json`), que la pestaña
@@ -235,10 +212,41 @@ sus métricas, nivel (`good`, `warn`, `bad`, `info`, `na`) y veredicto. Los umbr
   general aplica la misma regla a los veredictos de las categorías. Las métricas informativas y sin datos no cuentan.
 - **Bancos y aseguradoras** (sector `Financial Services` sin liquidez corriente): su deuda y su caja son materia prima del negocio,
   así que caja, deuda y liquidez no se evalúan. Visa y Mastercard, que sí informan liquidez, se miden con todo.
-- **Monedas**: el precio y la capitalización van en la moneda de cotización (USD o CLP); los montos de los estados financieros, en la
-  suya (`fin_currency`, algunas empresas chilenas informan en USD). Si difieren no se calcula el rendimiento de caja libre.
+- **Monedas**: el precio y la capitalización van en la moneda de cotización (USD u otra); los montos de los estados financieros, en la
+  suya (`fin_currency`, algunas empresas extranjeras informan en otra). Si difieren no se calcula el rendimiento de caja libre.
 - **Cobertura mínima**: si menos de `[evaluator] min_coverage` (50%) de las empresas tienen datos, no se guarda el resultado y se
   conserva el JSON anterior (`TOP-EVA-002`). Las empresas sin datos se avisan con `TOP-EVA-001`.
+
+### Visor (`top3 visor`)
+
+Tabla de **rendimientos, riesgo y comparación contra SPY** de las acciones de EE. UU. con capitalización mayor a 100 B (mega cap desde
+200 B) y de los 300 ETFs de mayor AUM (más los de `[visor] tickers`), sin backtest: una foto de hoy. Es una sección aparte: arma su
+propio universo con el screener de Yahoo (`gohoo`) y no usa la base SQLite ni los otros modelos. Cada corrida baja de nuevo el
+historial de 6 años (con dividendos) de cada instrumento y reemplaza el JSON (~450 instrumentos, ~50 segundos).
+
+```
+top3 visor
+```
+
+El resultado es `[visor] output` (`frontend/public/data/visor.json`, ignorado por git), con una tabla por tipo (`acciones` y `etf`):
+columnas, filas (`null` = sin dato) y cómo se formatea y se colorea cada columna; el frontend solo la dibuja.
+
+| Columna | Cálculo |
+|---|---|
+| `ret_1m` … `ret_12m`, `ret_1y`, `ret_2y`, `ret_3y`, `ret_5y` | retorno acumulado %, con cierres ajustados; un mes = 21 ruedas y un año = 252 |
+| `sharpe` | (CAGR a 3 años − `[visor] rf`) ÷ volatilidad anual a 3 años. No es el Sharpe clásico sobre retornos en exceso |
+| `beta` | covarianza con SPY ÷ varianza de SPY, retornos diarios de 3 años (mínimo 252 fechas en común) |
+| `max_drawdown`, `dist_max52`, `vs_ma200` | mayor caída a 5 años; distancia al máximo de 252 ruedas; precio contra la media de 200 ruedas |
+| `rel_spy_1y`, `rel_spy_3y`, `ytd_vs_spy`, `vs_spy` | rendimiento menos el de SPY; `SUPERA` si el YTD supera al de SPY |
+| `dividend_yield` | dividendos de los últimos 365 días ÷ último cierre |
+| `verdes` | cantidad de celdas verdes de la fila (mismas reglas que el color de la tabla, definidas en `internal/visor/table.go`) |
+
+- **Color**: los rendimientos, `vs_ma200` y los relativos son verdes si son > 0 y rojos si son < 0. Verde también: Sharpe > 1, caída
+  máxima ≥ −25%, distancia al máximo ≥ −10%, dividendo ≥ 2% y TER ≤ 0,20% (solo ETFs).
+- **Apalancados**: se descartan los ETFs apalancados e inversos del universo (por nombre y categoría, `visor.IsLeveraged`), salvo los de
+  `[visor] tickers` o con `include_leveraged = true`. Las acciones preferentes (sin capitalización propia) quedan fuera.
+- **Cobertura mínima**: si menos de `[visor] min_coverage` (50%) de los instrumentos de un tipo tienen datos, no se guarda nada y se
+  conserva el JSON anterior (`TOP-VIS-004`). Los que no tienen historial se avisan con `TOP-VIS-003`.
 
 ### Modelo por score (`top3 quant`)
 
@@ -446,7 +454,6 @@ historial en otro entorno basta con clonar el repositorio.
 | `fundamentals` | Últimos datos financieros descargados de cada empresa (JSON) y su fecha |
 | `ohlcv` | Apertura, máximo, mínimo, cierre ajustado y volumen diarios del último año y medio de cada acción del S&P 500 (para los indicadores técnicos) |
 | `quant_runs` | Último resultado del modelo por score (JSON: ranking y Markowitz) |
-| `ipsa_runs` | Último resultado del modelo por score del IPSA (JSON, igual que `quant_runs` más moneda y origen de la lista) |
 | `actual_picks`, `actual_alternates` | Resultados de `top3 actual` (fecha de datos, plazo, ticker, retorno, precio, capitalización) y sus suplentes |
 
 ### Limpieza de la base
@@ -495,7 +502,6 @@ Formato: `TOP-<ÁREA>-<NNN>`.
 | `ETF` | Referencia libre de riesgo de los ETFs |
 | `GES` | ETFs por gestora |
 | `QNT` | Modelo por score |
-| `IPS` | IPSA (Bolsa de Santiago) |
 | `EVA` | Evaluador de empresas |
 
 **Aviso** = se continúa con lo que haya. **Error** = la operación se corta o falla.
@@ -535,21 +541,23 @@ Para buscar en el log: `grep TOP-BKT backend-go/log/top3_backtest.log`.
 | `TOP-GES-002` | Aviso | ETFs sin categoría | Yahoo no informó la categoría: esos ETFs se comparan entre sí como 'Sin categoría'. Se reintenta en la próxima corrida. |
 | `TOP-GES-003` | Error | Ningún ETF de las gestoras se pudo rankear | Revisa la conexión y `[etfq] families`; los ETFs nuevos entran cuando acumulan historia para el plazo más largo. |
 | `TOP-QNT-001` | Error | No hay acciones suficientes para el ranking del modelo por score | Descarga más historia (`--no-cache`) o baja `[quant] top_n`; revisa también `TOP-DAT-005`. |
-| `TOP-IPS-001` | Error | No se pudo obtener la lista de acciones del IPSA | Revisa `[ipsa] wikipedia_url` y la conexión. Si hay una lista guardada (`universe_file`) se usa aunque esté vencida (en ese caso es un aviso). |
-| `TOP-IPS-002` | Error | No hay acciones suficientes para el ranking del IPSA | Descarga de nuevo (`--no-cache`) o baja `[ipsa] top_n`; Yahoo tiene pocos datos financieros de acciones chilenas. |
-| `TOP-EVA-001` | Aviso | Empresas sin datos fundamentales en Yahoo | Quedan fuera del evaluador y se reintentan en la próxima corrida. Es normal en algunas acciones chilenas. |
+| `TOP-EVA-001` | Aviso | Empresas sin datos fundamentales en Yahoo | Quedan fuera del evaluador y se reintentan en la próxima corrida. |
 | `TOP-EVA-003` | Aviso | Una de las listas de empresas está vacía | El evaluador sigue con las demás. Para el S&P 500, corre antes `top3 actual` o el pipeline completo; si no quieres ese universo, pon `[evaluator] sp500 = false`. |
 | `TOP-EVA-002` | Error | Se obtuvieron datos de muy pocas empresas | No se guardó el resultado para no reemplazar el anterior con uno incompleto. Suele ser un límite de Yahoo: reintenta más tarde o baja `[evaluator] min_coverage`. |
+| `TOP-VIS-001` | Error | No se pudo bajar el historial de SPY | SPY es la referencia de beta y de los rendimientos relativos. Revisa la conexión o reintenta más tarde (suele ser un límite de Yahoo). |
+| `TOP-VIS-002` | Error | El screener de Yahoo no devolvió instrumentos | Revisa la conexión y `[visor]` (`cap_min_billions`, `etf_top`, `etf_aum_min_millions`); reintenta más tarde. |
+| `TOP-VIS-003` | Aviso | Instrumentos sin historial en Yahoo | Quedan fuera de la tabla; se reintentan en la próxima corrida. |
+| `TOP-VIS-004` | Error | Se obtuvieron datos de muy pocos instrumentos | No se guardó el resultado para no reemplazar el anterior con uno incompleto. Suele ser un límite de Yahoo: reintenta más tarde o baja `[visor] min_coverage`. |
 
 ## Estructura y desarrollo
 
 ```
 start.py              # valida el entorno y levanta el frontend (Windows, macOS y Linux)
 start_with_pipeline.py  # igual, pero corre antes el pipeline completo del backend
-backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, IPSA, evaluador de empresas y base SQLite
+backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, evaluador de empresas, visor y base SQLite
   config.toml         # configuración
-  history/            # datos que se versionan en git: historial y lista del IPSA
-  cmd/top3/           # línea de comandos: backtest, actual, etf, etfq, quant, ipsa, evaluator, export, prune y pipeline
+  history/            # datos que se versionan en git: el historial
+  cmd/top3/           # línea de comandos: backtest, actual, etf, etfq, quant, evaluator, visor, export, prune y pipeline
   internal/           # la lógica, un paquete por responsabilidad
 frontend/             # Aplicación web en Svelte 5 + Vite
 ```
@@ -560,9 +568,9 @@ frontend/             # Aplicación web en Svelte 5 + Vite
 | `top3 actual` | Top N de hoy: las acciones del S&P 500 con mejor retorno en el plazo configurado |
 | `top3 etfq` | ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM) dentro de su categoría (sin backtest) |
 | `top3 quant` | Modelo por score: scores de momentum, de salud financiera y técnico del S&P 500 y Markowitz sobre las mejores (sin backtest) |
-| `top3 ipsa` | Modelo por score de las 30 acciones del IPSA (Bolsa de Santiago, en CLP) y Markowitz sobre las mejores (sin backtest) |
-| `top3 evaluator` | Evaluador de empresas: análisis fundamental del S&P 500 y del IPSA; escribe `frontend/public/data/evaluator.json` |
-| `top3 pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + IPSA + evaluador + JSON del frontend + limpieza |
+| `top3 evaluator` | Evaluador de empresas: análisis fundamental del S&P 500; escribe `frontend/public/data/evaluator.json` |
+| `top3 visor` | Visor: rendimientos, riesgo y comparación contra SPY de las acciones grandes y los ETFs de mayor AUM; escribe `frontend/public/data/visor.json` |
+| `top3 pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + evaluador + visor + JSON del frontend + limpieza |
 | `top3 prune` | Limpieza de lo viejo: corridas del backtest y caché vencida (el pipeline la corre al final) |
 | `top3 export` | Escribe el JSON en `frontend/public/data/report.json` (lo hacen solos los comandos al terminar) |
 | `backend-go/data/`, `backend-go/log/` | Base SQLite y logs; se crean solos |
@@ -574,7 +582,7 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 
 | Archivo | Responsabilidad |
 |---|---|
-| `App.svelte` | Carga del JSON estático, encabezado (nombre fijo del sitio y título de la sección), pestañas en cuatro grupos (Momentum, ETFs, Acciones por score y Análisis fundamental), filtro de universo, tema |
+| `App.svelte` | Carga del JSON estático, encabezado (nombre fijo del sitio y título de la sección), pestañas en cinco grupos (Momentum, ETFs, Acciones por score, Análisis fundamental y Visor), filtro de universo, tema |
 | `Lab.svelte` (`lab.html`, `lab.js`) | Página aparte del laboratorio: pestañas Backtest, Plazos y sensibilidad y N-0 vs N-1, filtros de universo y período, tema. Sin enlace desde la app; los enlaces viejos `#backtest`, `#sweep` y `#compare` redirigen aquí |
 | `lib/report.js` | Carga de `data/report.json` y clave de universo, compartidas por ambas páginas |
 | `lib/ActualView.svelte` | Top actual, suplentes y seguimiento de selecciones anteriores |
@@ -583,9 +591,9 @@ report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/READM
 | `lib/CompareView.svelte` | Modelo de siempre (N-0) frente al skip-month (N-1), plazo por plazo y por mitades del período |
 | `lib/EtfqView.svelte` | ETFs por gestora: ranking con momentum, calidad (TER y AUM), filtros por gestora y categoría |
 | `lib/QuantView.svelte` | Modelo por score: top 10 con Markowitz y ranking completo con filtros |
-| `lib/IpsaView.svelte` | Chile (IPSA): reutiliza `QuantView` con el ranking del IPSA, aclara la moneda (CLP) y el origen de la lista |
 | `lib/EvaluatorView.svelte`, `EvaluatorDetail.svelte` | Evaluador de empresas: listado filtrable (mercado, sector, veredicto, texto) y detalle por categoría; cargan `data/evaluator.json` al abrir la pestaña |
 | `lib/evaluator.js`, `Pill.svelte`, `Spark.svelte` | Formato de métricas y montos, ordenamiento y filtros del listado; distintivo de nivel; gráfico de la tendencia anual |
+| `lib/VisorView.svelte`, `visor.js` | Visor: tabla de acciones y de ETFs con búsqueda, orden por columna, color por criterio, paginado y descarga CSV; cargan `data/visor.json` al abrir la pestaña. `visor.js` tiene el formato, el color, el filtro, el orden y el CSV |
 | `lib/AboutView.svelte` | Pestaña About: qué se muestra en la aplicación, tarjetas de conceptos clave, fuentes de datos y límites |
 | `lib/Chart.svelte`, `Range.svelte`, `TickerLink.svelte`, `Glossary.svelte` | Componentes compartidos |
 | `lib/Bunny.svelte` | Detalle decorativo: un conejo que pasea por el pie de la pantalla, se aleja del cursor y saluda al hacer clic (se desactiva con «reducir movimiento» del sistema) |
@@ -609,7 +617,7 @@ renumeran; todo aviso o error usa `CODIGO.Msg("texto")` o `CODIGO.Errorf(...)`, 
 push a `main`:
 
 1. Restaura la base SQLite desde el caché de Actions (`backend-go/data`), corre los tests y el pipeline.
-2. Hace commit de `backend-go/history/history.json`, y `backend-go/history/ipsa_universe.json` si cambiaron (el commit del bot no
+2. Hace commit de `backend-go/history/history.json` si cambió (el commit del bot no
    dispara otra ejecución).
 3. Prueba y compila el frontend y lo publica en GitHub Pages.
 

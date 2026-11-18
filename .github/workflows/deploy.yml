@@ -60,11 +60,11 @@ jobs:
           go build -o bin/top3 ./cmd/top3
           ./bin/top3 pipeline
 
-      - name: Guardar historial y lista del IPSA en git
+      - name: Guardar historial en git
         run: |
-          git add backend-go/history/history.json backend-go/history/ipsa_universe.json
+          git add backend-go/history/history.json
           if git diff --cached --quiet; then
-            echo "Sin cambios en el historial ni en la lista del IPSA."
+            echo "Sin cambios en el historial."
             exit 0
           fi
           git config user.name "github-actions[bot]"

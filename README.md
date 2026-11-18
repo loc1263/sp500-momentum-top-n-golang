@@ -3,7 +3,7 @@
 **Momentum y Scores.** Estrategia de momentum sobre el S&P 500: cada N meses se compran, con ponderación igual, las N
 acciones que más subieron en los últimos N meses. El proyecto la evalúa con datos históricos (backtest), mide cuánto del
 resultado depende del mes de arranque y muestra todo en una aplicación web. Además rankea ETFs y acciones con un modelo
-por score, para EE. UU. y para Chile (IPSA).
+por score, para EE. UU.
 
 **Ver el sitio: https://loc1263.github.io/sp500-momentum-top-n-golang/** (se actualiza solo cada día hábil).
 
@@ -12,13 +12,13 @@ por score, para EE. UU. y para Chile (IPSA).
 
 ## Qué incluye
 
-La barra de pestañas tiene cuatro grupos: **Momentum** (Top actual), **ETFs**, **Acciones por score** y **Análisis fundamental** (Evaluador de empresas). El laboratorio de backtest está en una página aparte (`lab.html`), sin enlace desde el menú.
+La barra de pestañas tiene cinco grupos: **Momentum** (Top actual), **ETFs**, **Acciones por score**, **Análisis fundamental** (Evaluador de empresas) y **Visor**. El laboratorio de backtest está en una página aparte (`lab.html`), sin enlace desde el menú.
 
 - **Top actual**: las N acciones líderes hoy, con suplentes, cambios y próximo rebalanceo.
 - **ETFs por gestora**: los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab, con momentum y calidad (costo y tamaño).
 - **Modelo por score (EEUU)**: score de momentum, de salud financiera y técnico para cada acción del S&P 500, y Markowitz sobre las mejores.
-- **Chile (IPSA)**: el mismo modelo por score para las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos.
-- **Evaluador de empresas**: análisis fundamental propio de cada acción del S&P 500 y del IPSA (rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores), con un veredicto por categoría. Es independiente de los scores.
+- **Evaluador de empresas**: análisis fundamental propio de cada acción del S&P 500 (rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores), con un veredicto por categoría. Es independiente de los scores.
+- **Visor**: rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, caída máxima y comparación contra SPY de las acciones de EE. UU. con capitalización mayor a 100 B y de los 300 ETFs de mayor AUM, con búsqueda, orden por columna y descarga en CSV.
 - **Lab** (página aparte, `lab.html`): el laboratorio de backtest de la estrategia de momentum.
   - **Backtest** Point-in-Time, con curva de capital y selecciones en cada rebalanceo.
   - **Plazos y sensibilidad**: compara plazos de rebalanceo y mide cuánto depende el resultado del mes de arranque.

@@ -2,8 +2,8 @@
   import ActualView from './lib/ActualView.svelte';
   import EtfqView from './lib/EtfqView.svelte';
   import QuantView from './lib/QuantView.svelte';
-  import IpsaView from './lib/IpsaView.svelte';
   import EvaluatorView from './lib/EvaluatorView.svelte';
+  import VisorView from './lib/VisorView.svelte';
   import AboutView from './lib/AboutView.svelte';
   import Bunny from './lib/Bunny.svelte';
   import { share } from './lib/format.js';
@@ -23,14 +23,15 @@
     },
     {
       label: 'Acciones por score',
-      tabs: [
-        { id: 'quant', label: 'EEUU' },
-        { id: 'ipsa', label: 'Chile (IPSA)' },
-      ],
+      tabs: [{ id: 'quant', label: 'EEUU' }],
     },
     {
       label: 'Análisis fundamental',
       tabs: [{ id: 'evaluador', label: 'Evaluador de empresas' }],
+    },
+    {
+      label: 'Visor',
+      tabs: [{ id: 'visor', label: 'Acciones y ETFs' }],
     },
   ];
   const tabs = groups.flatMap((g) => g.tabs);
@@ -85,7 +86,7 @@
   // Nombre fijo del sitio (título principal) y título de la sección actual (debajo, más chico)
   const SITE_NAME = 'Momentum y Scores';
   const SECTION_TITLES = {
-    etfq: 'ETFs por gestora', quant: 'Modelo por score', ipsa: 'Modelo por score: IPSA', evaluador: 'Evaluador de empresas', about: 'About',
+    etfq: 'ETFs por gestora', quant: 'Modelo por score', evaluador: 'Evaluador de empresas', visor: 'Visor de acciones y ETFs', about: 'About',
   };
   const sectionTitle = $derived(SECTION_TITLES[tab] ?? `Top ${report?.settings.top_n ?? 'N'} del S&P 500`);
   $effect(() => {
@@ -119,10 +120,10 @@
         Los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum ajustado por riesgo y calidad (costo y tamaño) dentro de cada categoría.
       {:else if tab === 'quant'}
         Scores de momentum, salud financiera y técnico de las acciones del S&amp;P 500, su promedio y Markowitz sobre las mejores.
-      {:else if tab === 'ipsa'}
-        Scores de momentum, salud financiera y técnico de las 30 acciones del IPSA (Bolsa de Santiago, en pesos chilenos), su promedio y Markowitz sobre las mejores.
       {:else if tab === 'evaluador'}
-        Análisis fundamental de cada acción del S&amp;P 500 y del IPSA: rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores. Es independiente de los scores.
+        Análisis fundamental de cada acción del S&amp;P 500: rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores. Es independiente de los scores.
+      {:else if tab === 'visor'}
+        Rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, caída máxima y comparación contra SPY de las acciones de EE. UU. con capitalización mayor a 100 B y de los ETFs de mayor AUM.
       {:else if tab === 'about'}
         Qué se muestra en esta aplicación y cómo leerlo.
       {:else}
@@ -182,14 +183,10 @@
       {:else}
         <p class="muted">Sin modelo por score. Ejecute top3 quant (en backend-go/).</p>
       {/if}
-    {:else if tab === 'ipsa'}
-      {#if report.ipsa}
-        <IpsaView ipsa={report.ipsa} />
-      {:else}
-        <p class="muted">Sin modelo del IPSA. Ejecute top3 ipsa (en backend-go/).</p>
-      {/if}
     {:else if tab === 'evaluador'}
       <EvaluatorView />
+    {:else if tab === 'visor'}
+      <VisorView />
     {:else if tab === 'actual'}
       {#if actual}
         <ActualView {actual} />
@@ -199,7 +196,7 @@
     {/if}
 
     <footer>
-      Generado el {report.generated_at.replace('T', ' ')}. {#if tab === 'etfq'}ETFs por gestora: TER, AUM y categoría de Yahoo Finance; foto de hoy, sin backtest. {/if}{#if tab === 'ipsa'}IPSA: foto de hoy, sin backtest; precios en pesos chilenos y datos financieros de Yahoo Finance. {/if}{#if tab === 'evaluador'}Evaluador: foto de hoy con los últimos estados financieros publicados (Yahoo Finance); los umbrales son reglas generales y dependen del sector. {/if}{#if tab === 'quant'}Modelo por score: foto de hoy, sin backtest; los datos financieros son los últimos publicados (Yahoo Finance). {/if}&nbsp;Backtest con comisión de {share(report.settings.commission ?? 0, 2)} por lado, sin impuestos, ponderación igual
+      Generado el {report.generated_at.replace('T', ' ')}. {#if tab === 'etfq'}ETFs por gestora: TER, AUM y categoría de Yahoo Finance; foto de hoy, sin backtest. {/if}{#if tab === 'evaluador'}Evaluador: foto de hoy con los últimos estados financieros publicados (Yahoo Finance); los umbrales son reglas generales y dependen del sector. {/if}{#if tab === 'visor'}Visor: foto de hoy, sin backtest; precios ajustados por dividendos y splits de Yahoo Finance, y SPY como referencia. {/if}{#if tab === 'quant'}Modelo por score: foto de hoy, sin backtest; los datos financieros son los últimos publicados (Yahoo Finance). {/if}&nbsp;Backtest con comisión de {share(report.settings.commission ?? 0, 2)} por lado, sin impuestos, ponderación igual
       entre los tickers seleccionados. Excluye tickers sin datos en Yahoo (sesgo de supervivencia). Herramienta de
       análisis, no una recomendación de inversión.
     </footer>

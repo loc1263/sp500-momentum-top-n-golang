@@ -27,7 +27,7 @@
     );
   });
 
-  let universe = $state(''); // el mercado se elige siempre: las capitalizaciones de USD y CLP no se pueden ordenar juntas
+  let universe = $state(''); // el mercado se elige siempre: las capitalizaciones en monedas distintas no se pueden ordenar juntas
   let query = $state('');
   let verdict = $state('');
   let sector = $state('');

@@ -160,38 +160,34 @@ equity_premium = 0.05
 # Días que se reutilizan los datos financieros descargados (cambian por trimestre)
 fundamentals_ttl_days = 7
 
-[ipsa]
-# IPSA (top3 ipsa): el mismo modelo por score que [quant] aplicado a las 30 acciones del IPSA (Bolsa de Santiago), en pesos chilenos.
-# Usa de [quant] los pesos de los scores y mu_shrink; aquí van la lista de acciones, la tasa y los límites de Markowitz.
-# Lista de acciones: tabla de Wikipedia (columna Nemotécnico). Se guarda en universe_file y se renueva cada universe_ttl_days días
-# (o con --no-cache); si Wikipedia falla se usa la guardada. Es un archivo versionado: se puede editar a mano si el índice cambia.
-wikipedia_url = "https://es.wikipedia.org/wiki/%C3%8Dndice_de_Precio_Selectivo_de_Acciones"
-universe_file = "history/ipsa_universe.json"
-universe_ttl_days = 30
-# Yahoo Finance: sufijo de la Bolsa de Santiago y alias (nemotécnico de Wikipedia = símbolo de Yahoo sin sufijo)
-suffix = ".SN"
-# Markowitz sobre las mejores: pocas, porque el índice tiene solo 30 acciones y varias comparten sector
-top_n = 6
-vol_target = 0.20
-w_max = 0.30
-w_min = 0.10
-# Los pesos finales se redondean a múltiplos de w_step (0.01 = porcentajes enteros; 0 = sin redondear)
-w_step = 0.01
-sector_max = 0.40
-# Tasa libre de riesgo de Chile y prima de mercado (el retorno de largo plazo esperado es la suma)
-risk_free = 0.05
-equity_premium = 0.06
-
 [evaluator]
-# Evaluador de empresas (top3 evaluator): análisis fundamental propio de cada acción del S&P 500 y del IPSA (rentabilidad,
+# Evaluador de empresas (top3 evaluator): análisis fundamental propio de cada acción del S&P 500 (rentabilidad,
 # crecimiento, caja, deuda y liquidez, valoración, tendencia y comparación con competidores). Es independiente de los scores:
 # solo toma de los otros modelos las listas de tickers. Los datos salen de Yahoo Finance.
 # JSON que lee la pestaña del frontend
 output = "../frontend/public/data/evaluator.json"
-# Universos a evaluar
+# Universo a evaluar
 sp500 = true
-ipsa = true
 # Competidores de cada empresa: los de su misma industria (o sector) y mercado con la capitalización más parecida
 peers = 3
 # Fracción mínima de las empresas que deben tener datos para guardar el resultado (si Yahoo falla, se conserva el JSON anterior)
+min_coverage = 0.5
+
+[visor]
+# Visor (top3 visor): rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, caída máxima y comparación contra SPY de las
+# acciones grandes de EE. UU. y de los ETFs de mayor AUM. Arma su propio universo con el screener de Yahoo Finance.
+# JSON que lee la pestaña del frontend
+output = "../frontend/public/data/visor.json"
+# ETFs que siempre se incluyen (aunque sean apalancados o estén fuera del top)
+tickers = ["SPY", "QQQ"]
+# Acciones: capitalización mínima (super large cap) y desde la que se llama mega cap, en miles de millones de US$
+cap_min_billions = 100
+cap_mega_billions = 200
+# ETFs del universo: cantidad (los de mayor AUM), AUM mínimo en millones de US$ y si se incluyen los apalancados e inversos
+etf_top = 300
+etf_aum_min_millions = 500
+include_leveraged = false
+# Tasa libre de riesgo (% anual) para el Sharpe
+rf = 3.0
+# Fracción mínima de los instrumentos que deben tener datos para guardar el resultado (si Yahoo falla, se conserva el JSON anterior)
 min_coverage = 0.5

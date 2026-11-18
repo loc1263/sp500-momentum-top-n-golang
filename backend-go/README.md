@@ -14,7 +14,7 @@ Desde esta carpeta (las rutas del `config.toml` son relativas a ella):
 
 ```
 go build -o bin/top3 ./cmd/top3    # bin/top3.exe en Windows (bin/ está ignorada por git)
-./bin/top3 pipeline                # todo: backtest, Top actual, ETFs, modelo por score, IPSA, evaluador, JSON del frontend y limpieza
+./bin/top3 pipeline                # todo: backtest, Top actual, ETFs, modelo por score, evaluador, JSON del frontend y limpieza
 ```
 
 o sin compilar: `go run ./cmd/top3 pipeline`.
@@ -26,16 +26,15 @@ o sin compilar: `go run ./cmd/top3 pipeline`.
 | `top3 actual` | `[--months N] [--top-n N] [--large-cap] [--min-cap-billions N] [--no-cache]` |
 | `top3 etfq` | `[--top-n N]` |
 | `top3 quant` | `[--no-cache]` |
-| `top3 ipsa` | `[--no-cache]` |
 | `top3 evaluator` | `[--no-cache]` |
+| `top3 visor` | |
 | `top3 export` | |
 | `top3 prune` | `[--keep-days N]` |
 
 Todos aceptan `--config otro.toml` y `--help`. `--tests` corre `go test ./...` antes del pipeline.
 
 La base y los logs quedan en `backend-go/data/` y `backend-go/log/`; el binario compilado, en `backend-go/bin/`. Lo que se versiona
-en git vive en `backend-go/history/`: el historial (`history.json`) y la lista del
-IPSA (`ipsa_universe.json`, que se renueva cada mes).
+en git vive en `backend-go/history/`: el historial (`history.json`).
 
 ## Estructura
 
@@ -54,8 +53,8 @@ internal/actual     Top actual y rotación
 internal/etf        score de momentum ajustado por riesgo de un ETF (lo usa etfq)
 internal/etfq       ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM)
 internal/quant      scores de momentum, salud y técnico, Markowitz (puntos interiores) y el JSON del modelo
-internal/ipsa       el mismo modelo para las 30 acciones del IPSA (lista desde Wikipedia, en pesos chilenos)
-internal/evaluator  evaluador de empresas: análisis fundamental del S&P 500 y el IPSA (propio, solo usa gohoo y las listas de tickers)
+internal/evaluator  evaluador de empresas: análisis fundamental del S&P 500 (propio, solo usa gohoo y la lista de tickers)
+internal/visor      visor: rendimientos, riesgo y comparación contra SPY de acciones grandes y ETFs (propio, solo usa gohoo)
 internal/report     el JSON del frontend
 internal/history    historial del Top actual y de ETFs en JSON versionado (la base SQLite es solo caché)
 internal/cleanup    limpieza de reportes, corridas y caché vencida

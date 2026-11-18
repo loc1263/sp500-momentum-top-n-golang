@@ -2,7 +2,7 @@
 // lleva su ID.
 //
 // Formato: TOP-<ÁREA>-<NNN>. Áreas: CFG configuración, NET descargas, DAT datos, BKT backtest, ACT Top actual,
-// ETF referencia libre de riesgo de los ETFs, GES ETFs por gestora, QNT modelo por score, IPS IPSA. Los IDs no se reutilizan ni se renumeran: documentarlos en la tabla de errores del README.
+// ETF referencia libre de riesgo de los ETFs, GES ETFs por gestora, QNT modelo por score, EVA evaluador, VIS visor. Los IDs no se reutilizan ni se renumeran: documentarlos en la tabla de errores del README.
 package errs
 
 import "fmt"
@@ -133,22 +133,27 @@ var (
 		"Descarga más historia (--no-cache) o baja [quant] top_n; revisa también TOP-DAT-005.")
 )
 
-// IPSA (Bolsa de Santiago)
-var (
-	IpsNoUniverse = code("TOP-IPS-001", "error", "No se pudo obtener la lista de acciones del IPSA",
-		"Revisa [ipsa] wikipedia_url y la conexión; si hay una lista guardada (universe_file) se usa aunque esté vencida.")
-	IpsNoSignal = code("TOP-IPS-002", "error", "No hay acciones suficientes para el ranking del IPSA",
-		"Descarga de nuevo (--no-cache) o baja [ipsa] top_n; Yahoo tiene pocos datos financieros de acciones chilenas.")
-)
-
 // Evaluador de empresas
 var (
 	EvaNoData = code("TOP-EVA-001", "warning", "Empresas sin datos fundamentales en Yahoo",
-		"Quedan fuera del evaluador; se reintentan en la próxima corrida. Es normal en algunas acciones chilenas.")
+		"Quedan fuera del evaluador; se reintentan en la próxima corrida.")
 	EvaTooFew = code("TOP-EVA-002", "error", "Se obtuvieron datos de muy pocas empresas",
 		"No se guardó el resultado para no reemplazar el anterior con uno incompleto. Suele ser un límite de Yahoo: reintenta más tarde "+
 			"o baja [evaluator] min_coverage.")
 	EvaNoList = code("TOP-EVA-003", "warning", "Una de las listas de empresas está vacía",
 		"El evaluador sigue con las demás. Para el S&P 500, corre antes top3 actual o el pipeline completo (bajan la lista actual del índice); "+
 			"si no quieres ese universo, pon [evaluator] sp500 = false.")
+)
+
+// Visor de acciones grandes y ETFs
+var (
+	VisNoRef = code("TOP-VIS-001", "error", "No se pudo bajar el historial de SPY",
+		"SPY es la referencia de beta y de los rendimientos relativos. Revisa la conexión o reintenta más tarde (suele ser un límite de Yahoo).")
+	VisNoUniverse = code("TOP-VIS-002", "error", "El screener de Yahoo no devolvió instrumentos",
+		"Revisa la conexión y [visor] (cap_min_billions, etf_top, etf_aum_min_millions); reintenta más tarde.")
+	VisNoData = code("TOP-VIS-003", "warning", "Instrumentos sin historial en Yahoo",
+		"Quedan fuera de la tabla; se reintentan en la próxima corrida.")
+	VisTooFew = code("TOP-VIS-004", "error", "Se obtuvieron datos de muy pocos instrumentos",
+		"No se guardó el resultado para no reemplazar el anterior con uno incompleto. Suele ser un límite de Yahoo: reintenta más tarde "+
+			"o baja [visor] min_coverage.")
 )

@@ -25,7 +25,7 @@ const data = {
   generated_at: '2026-10-31T19:00:00',
   universes: [
     { id: 'sp500', label: 'S&P 500', currency: 'USD', count: 2 },
-    { id: 'ipsa', label: 'IPSA (Chile)', currency: 'CLP', count: 1 },
+    { id: 'otro', label: 'Otro mercado', currency: 'EUR', count: 1 },
   ],
   sections: [
     { id: 'prof', title: 'Rentabilidad', why: 'Mide la ganancia.', labels: ['Bien', 'Atención', 'Alerta'] },
@@ -43,7 +43,7 @@ const data = {
   },
   companies: [
     { ticker: 'AAA', name: 'Alfa Corp', universe: 'sp500', sector: 'Tech', industry: 'Software', currency: 'USD', price: 100, market_cap: 5e11, as_of: '2026-09-30', verdict: 'good', categories: cats('good') },
-    { ticker: 'BBB', name: 'Beta SA', universe: 'ipsa', sector: 'Banks', currency: 'CLP', fin_currency: 'USD', bank: true, price: 5000, market_cap: 2e12, verdict: 'bad', categories: cats('bad') },
+    { ticker: 'BBB', name: 'Beta SA', universe: 'otro', sector: 'Banks', currency: 'EUR', fin_currency: 'USD', bank: true, price: 5000, market_cap: 2e12, verdict: 'bad', categories: cats('bad') },
     { ticker: 'CCC', name: 'Gamma Inc', universe: 'sp500', sector: 'Tech', currency: 'USD', price: 10, market_cap: 1e9, verdict: 'warn', categories: cats('warn') },
   ],
 };
@@ -55,13 +55,13 @@ describe('EvaluatorView: listado', () => {
     await screen.findByText('Alfa Corp');
     const tickers = [...document.querySelectorAll('tbody tr strong')].map((e) => e.textContent);
     expect(tickers).toEqual(['AAA', 'CCC']); // arranca en el primer mercado (S&P 500), por capitalización
-    expect(screen.getByText('2 de S&P 500 · 1 de IPSA (Chile)')).toBeInTheDocument();
+    expect(screen.getByText('2 de S&P 500 · 1 de Otro mercado')).toBeInTheDocument();
   });
 
   it('filtra por mercado y por texto', async () => {
     render(EvaluatorView, { load });
     await screen.findByText('Alfa Corp');
-    await fireEvent.change(screen.getByLabelText('Mercado'), { target: { value: 'ipsa' } });
+    await fireEvent.change(screen.getByLabelText('Mercado'), { target: { value: 'otro' } });
     expect(screen.queryByText('Alfa Corp')).toBeNull();
     expect(screen.getByText('Beta SA')).toBeInTheDocument();
     await fireEvent.change(screen.getByLabelText('Mercado'), { target: { value: 'sp500' } });
@@ -86,7 +86,7 @@ describe('EvaluatorView: detalle', () => {
   async function open(name) {
     render(EvaluatorView, { load });
     await screen.findByText('Alfa Corp');
-    if (name === 'Beta SA') await fireEvent.change(screen.getByLabelText('Mercado'), { target: { value: 'ipsa' } });
+    if (name === 'Beta SA') await fireEvent.change(screen.getByLabelText('Mercado'), { target: { value: 'otro' } });
     await fireEvent.click(screen.getByText(name));
   }
 
@@ -114,7 +114,7 @@ describe('EvaluatorView: detalle', () => {
   it('un banco aclara que caja y deuda no se evalúan, y los montos van en la moneda de los estados financieros', async () => {
     await open('Beta SA');
     expect(screen.getByText(/Banco o aseguradora/)).toBeInTheDocument();
-    expect(screen.getByText('100 B USD')).toBeInTheDocument(); // ingresos en USD aunque el precio sea CLP
+    expect(screen.getByText('100 B USD')).toBeInTheDocument(); // ingresos en USD aunque el precio sea EUR
     expect(screen.getByText(/Estados financieros en USD/)).toBeInTheDocument();
   });
 

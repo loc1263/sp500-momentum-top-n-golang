@@ -24,10 +24,10 @@ func TestPipelineSteps(t *testing.T) {
 	if n[0] != "Tests" || !reflect.DeepEqual(n[len(n)-2:], []string{"Exportar JSON del frontend", "Limpieza de datos y reportes viejos"}) {
 		t.Fatalf("pasos: %v", n)
 	}
-	if len(steps) != 1+1+3+1+1+1+1+1+1 { // tests + backtest + 3 universos + ETFs por gestora + modelo + IPSA + evaluador + export + limpieza
+	if len(steps) != 1+1+3+1+1+1+1+1+1 { // tests + backtest + 3 universos + ETFs por gestora + modelo + evaluador + visor + export + limpieza
 		t.Fatalf("%d pasos: %v", len(steps), n)
 	}
-	if !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "ETFs por gestora") }) || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "Modelo por score") }) || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "IPSA") }) || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "Evaluador") }) {
+	if !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "ETFs por gestora") }) || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "Modelo por score") }) || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "Evaluador") }) {
 		t.Fatalf("pasos: %v", n)
 	}
 	bt := steps[1].Cmd
@@ -44,7 +44,7 @@ func TestPipelineSteps(t *testing.T) {
 		t.Fatalf("universos del Top actual: %v", withCap)
 	}
 
-	only := BuildSteps(cfg, Options{Config: "config.toml", SkipBacktest: true, SkipActual: true, SkipEtfq: true, SkipQuant: true, SkipIpsa: true, SkipEvaluator: true, SkipPrune: true}, "top3")
+	only := BuildSteps(cfg, Options{Config: "config.toml", SkipBacktest: true, SkipActual: true, SkipEtfq: true, SkipQuant: true, SkipEvaluator: true, SkipVisor: true, SkipPrune: true}, "top3")
 	if !reflect.DeepEqual(names(only), []string{"Exportar JSON del frontend"}) {
 		t.Fatalf("solo export: %v", names(only))
 	}
@@ -61,7 +61,7 @@ func TestPipelinePassesNoCacheOnlyToTheFirstDownloadingStep(t *testing.T) {
 		}
 		return out
 	}
-	o := Options{Config: "config.toml", NoCache: true, SkipQuant: true, SkipIpsa: true, SkipEvaluator: true, SkipPrune: true}
+	o := Options{Config: "config.toml", NoCache: true, SkipQuant: true, SkipEvaluator: true, SkipPrune: true}
 	if got := flagged(o); len(got) != 1 || !strings.HasPrefix(got[0], "Backtest") { // solo el backtest
 		t.Fatalf("con backtest: %v", got)
 	}
@@ -75,49 +75,9 @@ func TestPipelinePassesNoCacheOnlyToTheFirstDownloadingStep(t *testing.T) {
 	}
 }
 
-func TestPipelinePassesNoCacheToIpsaIndependently(t *testing.T) {
-	has := func(o Options) bool {
-		for _, s := range BuildSteps(config.Default(), o, "top3") {
-			if strings.HasPrefix(s.Name, "IPSA") {
-				return slices.Contains(s.Cmd, "--no-cache")
-			}
-		}
-		t.Fatal("falta el paso del IPSA")
-		return false
-	}
-	if !has(Options{Config: "c.toml", NoCache: true}) || has(Options{Config: "c.toml"}) {
-		t.Fatal("--no-cache debe llegar al IPSA solo si se pidió")
-	}
-	for _, s := range BuildSteps(config.Default(), Options{Config: "c.toml", SkipIpsa: true}, "top3") {
-		if strings.HasPrefix(s.Name, "IPSA") {
-			t.Fatal("--skip-ipsa debe omitir el paso")
-		}
-	}
-}
-
-func TestPipelinePassesNoCacheToEvaluatorIndependently(t *testing.T) {
-	has := func(o Options) bool {
-		for _, s := range BuildSteps(config.Default(), o, "top3") {
-			if strings.HasPrefix(s.Name, "Evaluador") {
-				return slices.Contains(s.Cmd, "--no-cache")
-			}
-		}
-		t.Fatal("falta el paso del evaluador")
-		return false
-	}
-	if !has(Options{Config: "c.toml", NoCache: true}) || has(Options{Config: "c.toml"}) {
-		t.Fatal("--no-cache debe llegar al evaluador solo si se pidió")
-	}
-	for _, s := range BuildSteps(config.Default(), Options{Config: "c.toml", SkipEvaluator: true}, "top3") {
-		if strings.HasPrefix(s.Name, "Evaluador") {
-			t.Fatal("--skip-evaluator debe omitir el paso")
-		}
-	}
-}
-
-func TestOnlyTheEvaluatorIsOptional(t *testing.T) {
+func TestOnlyEvaluatorAndVisorAreOptional(t *testing.T) {
 	for _, s := range BuildSteps(config.Default(), Options{Config: "c.toml"}, "top3") {
-		if want := strings.HasPrefix(s.Name, "Evaluador"); s.Optional != want {
+		if want := strings.HasPrefix(s.Name, "Evaluador") || strings.HasPrefix(s.Name, "Visor"); s.Optional != want {
 			t.Errorf("%s: Optional = %v, quiero %v", s.Name, s.Optional, want)
 		}
 	}
@@ -128,5 +88,19 @@ func TestStepCommandsCarryTheConfigPath(t *testing.T) {
 		if s.Cmd[0] == "/bin/top3" && !(slices.Contains(s.Cmd, "--config") && slices.Contains(s.Cmd, "otro.toml")) {
 			t.Errorf("%s no lleva --config: %v", s.Name, s.Cmd)
 		}
+	}
+}
+
+func TestSkipVisorOmitsTheStep(t *testing.T) {
+	has := func(o Options) bool {
+		for _, s := range BuildSteps(config.Default(), o, "top3") {
+			if strings.HasPrefix(s.Name, "Visor") {
+				return slices.Contains(s.Cmd, "visor")
+			}
+		}
+		return false
+	}
+	if !has(Options{Config: "c.toml"}) || has(Options{Config: "c.toml", SkipVisor: true}) {
+		t.Fatal("--skip-visor debe omitir el paso y, sin la opción, el paso debe estar")
 	}
 }

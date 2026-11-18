@@ -5,6 +5,7 @@
 //	top3 pipeline --no-cache       # descarga todo de nuevo
 //	top3 pipeline --tests          # corre primero los tests
 //	top3 pipeline --skip-backtest  # solo Top actual + export
+//	top3 pipeline --skip-visor     # omite el visor de acciones grandes y ETFs
 //
 // Cada paso es un comando (`top3 <comando>`) que se ejecuta en su propio proceso; si uno falla, el pipeline se corta.
 // Períodos, plazos y universos salen de config.toml ([backtest] periods_years, [simulation] months,
@@ -43,8 +44,8 @@ type Options struct {
 	SkipBacktest  bool
 	SkipActual    bool
 	SkipQuant     bool
-	SkipIpsa      bool
 	SkipEvaluator bool
+	SkipVisor     bool
 	SkipEtfq      bool
 	SkipPrune     bool
 }
@@ -103,21 +104,13 @@ func BuildSteps(cfg config.Config, o Options, self string) []Step {
 	if !o.SkipQuant {
 		steps = append(steps, Step{Name: "Modelo por score: scores de momentum, salud y técnico, y Markowitz", Cmd: cmd("quant", cache())})
 	}
-	if !o.SkipIpsa {
-		// el IPSA no comparte descargas con los demás pasos (otra bolsa, otra lista): --no-cache le llega siempre
-		var ipsaCache []string
-		if o.NoCache {
-			ipsaCache = []string{"--no-cache"}
-		}
-		steps = append(steps, Step{Name: "IPSA (Bolsa de Santiago): modelo por score y Markowitz, en pesos chilenos", Cmd: cmd("ipsa", ipsaCache)})
-	}
 	if !o.SkipEvaluator {
 		// el evaluador baja sus propios datos fundamentales (no comparte nada con los otros pasos) y escribe su propio JSON
-		var evalCache []string
-		if o.NoCache {
-			evalCache = []string{"--no-cache"}
-		}
-		steps = append(steps, Step{Name: "Evaluador de empresas: análisis fundamental del S&P 500 y el IPSA", Cmd: cmd("evaluator", evalCache), Optional: true})
+		steps = append(steps, Step{Name: "Evaluador de empresas: análisis fundamental del S&P 500", Cmd: cmd("evaluator"), Optional: true})
+	}
+	if !o.SkipVisor {
+		// el visor baja sus propios datos (universo y historial de cada instrumento) y escribe su propio JSON
+		steps = append(steps, Step{Name: "Visor: rendimientos y riesgo de acciones grandes y ETFs", Cmd: cmd("visor"), Optional: true})
 	}
 	steps = append(steps, Step{Name: "Exportar JSON del frontend", Cmd: cmd("export")})
 	if !o.SkipPrune {
@@ -144,8 +137,8 @@ func Main(args []string) int {
 	fs.BoolVar(&o.SkipBacktest, "skip-backtest", false, "Omite el backtest")
 	fs.BoolVar(&o.SkipActual, "skip-actual", false, "Omite el Top actual")
 	fs.BoolVar(&o.SkipQuant, "skip-quant", false, "Omite el modelo por score (scores y Markowitz)")
-	fs.BoolVar(&o.SkipIpsa, "skip-ipsa", false, "Omite el modelo por score del IPSA")
 	fs.BoolVar(&o.SkipEvaluator, "skip-evaluator", false, "Omite el evaluador de empresas")
+	fs.BoolVar(&o.SkipVisor, "skip-visor", false, "Omite el visor de acciones grandes y ETFs")
 	fs.BoolVar(&o.SkipPrune, "skip-prune", false, "Omite la limpieza final de datos y reportes viejos")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {

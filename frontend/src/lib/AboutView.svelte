@@ -7,8 +7,7 @@
     ['Top actual', 'Las acciones que hoy lideran el ranking de momentum (N-0), con suplentes, qué entra y sale, próximo rebalanceo y seguimiento de selecciones pasadas.'],
     ['ETFs por gestora', 'Los ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum ajustado por riesgo y calidad (costo y tamaño) dentro de cada categoría. Es una foto de hoy, sin backtest.'],
     ['Modelo por score', 'Scores de momentum, salud financiera y técnico para todo el S&P 500, su promedio y Markowitz sobre las mejores. Es una foto de hoy, sin backtest.'],
-    ['Evaluador de empresas', 'Análisis fundamental de cada acción del S&P 500 y del IPSA: rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores, con un veredicto por categoría. Es independiente de los scores y usa reglas generales que dependen del sector.'],
-    ['Chile (IPSA)', 'El mismo modelo por score aplicado a las 30 acciones del IPSA de la Bolsa de Santiago, en pesos chilenos, con tasa libre de riesgo propia. La lista sale de Wikipedia y se renueva cada mes.'],
+    ['Evaluador de empresas', 'Análisis fundamental de cada acción del S&P 500: rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores, con un veredicto por categoría. Es independiente de los scores y usa reglas generales que dependen del sector.'],
   ];
 
   // Conceptos que aparecen en las tablas, en tarjetas cortas
@@ -20,7 +19,7 @@
     ['Resultado típico (mediana)', 'El resultado del medio entre todas las fechas de arranque posibles: la mitad terminó mejor y la mitad peor.'],
     ['Volatilidad', 'Cuánto oscila el precio en un año (desviación estándar anual). Más alta = más riesgo, para bien y para mal.'],
     ['Caída máxima', 'La mayor baja desde un máximo hasta el mínimo que le siguió. Muestra lo que habría dolido en el peor momento.'],
-    ['Tasa libre de riesgo', 'Lo que rinde una inversión sin riesgo (por ejemplo, bonos del Tesoro). Es el punto de comparación: 4% para EE. UU. y 5% para Chile.'],
+    ['Tasa libre de riesgo', 'Lo que rinde una inversión sin riesgo (por ejemplo, bonos del Tesoro). Es el punto de comparación: 4% en el modelo por score.'],
     ['Sharpe', 'Retorno por unidad de riesgo: (retorno esperado − tasa libre de riesgo) ÷ volatilidad. Más alto = más retorno para el riesgo asumido.'],
     ['Markowitz', 'Reparte el dinero entre varias acciones según su retorno esperado, su riesgo y cómo se mueven juntas. Sin posiciones cortas y con tope por acción y por sector.'],
     ['Máximo retorno', 'Cartera de Markowitz con el mayor retorno esperado cuya volatilidad no supera el tope fijado (por ejemplo, 20% anual).'],
@@ -35,7 +34,6 @@
   const sources = [
     ['Precios y datos financieros', 'Yahoo Finance (precios ajustados, volumen y últimos estados financieros).'],
     ['Composición del S&P 500', 'CSV de hanshof/sp500_constituents y altas y bajas de Wikipedia: en cada fecha solo compiten las empresas que estaban en el índice (Point-in-Time).'],
-    ['Acciones del IPSA', 'Tabla de Wikipedia con los nemotécnicos del índice (se guarda y renueva cada mes); precios y datos financieros de Yahoo Finance (sufijo .SN).'],
   ];
 
   const limits = [

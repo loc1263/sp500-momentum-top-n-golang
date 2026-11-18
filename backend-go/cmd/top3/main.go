@@ -1,6 +1,6 @@
 // Command top3 es el punto de entrada único del backend: `top3 <comando> [opciones]`.
 //
-// Comandos: backtest, actual, etfq, quant, ipsa, evaluator, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
+// Comandos: backtest, actual, etfq, quant, evaluator, visor, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
 package main
 
 import (
@@ -24,16 +24,16 @@ import (
 	"top3/internal/etfq"
 	"top3/internal/evaluator"
 	"top3/internal/history"
-	"top3/internal/ipsa"
 	"top3/internal/logx"
 	"top3/internal/market"
 	"top3/internal/pipeline"
 	"top3/internal/quant"
 	"top3/internal/report"
+	"top3/internal/visor"
 	"top3/internal/yahoo"
 )
 
-var commands = []string{"backtest", "actual", "etfq", "quant", "ipsa", "evaluator", "export", "prune", "pipeline"}
+var commands = []string{"backtest", "actual", "etfq", "quant", "evaluator", "visor", "export", "prune", "pipeline"}
 
 func main() {
 	// El proceso vive pocos segundos y mueve matrices grandes: se deja crecer el heap antes de cada GC (4x en vez de 2x),
@@ -144,10 +144,10 @@ func run(ctx context.Context, name string, args []string) error {
 		return runEtfq(ctx, args)
 	case "quant":
 		return runQuant(ctx, args)
-	case "ipsa":
-		return runIpsa(ctx, args)
 	case "evaluator":
 		return runEvaluator(ctx, args)
+	case "visor":
+		return runVisor(ctx, args)
 	case "export":
 		return runExport(args)
 	case "prune":
@@ -271,34 +271,8 @@ func runQuant(ctx context.Context, args []string) error {
 	return err
 }
 
-func runIpsa(ctx context.Context, args []string) error {
-	f := newFlags("ipsa", "Modelo por score de las 30 acciones del IPSA (Bolsa de Santiago, en pesos chilenos) y Markowitz del top")
-	noCache := f.Bool("no-cache", false, "Vuelve a bajar la lista del IPSA y los datos financieros en lugar de reutilizarlos")
-	if stop, err := f.parse(args); stop {
-		return err
-	}
-	cfg, err := start(f.config, func(o config.Output) string { return o.IpsaLog })
-	if err != nil {
-		return err
-	}
-	y, err := newYahoo(cfg)
-	if err != nil {
-		return err
-	}
-	payload, err := ipsa.Run(ctx, cfg, y, !*noCache)
-	if err != nil {
-		return err
-	}
-	for _, l := range payload.Summary() {
-		console.Println(l)
-	}
-	_, err = report.Export(cfg)
-	return err
-}
-
 func runEvaluator(ctx context.Context, args []string) error {
-	f := newFlags("evaluator", "Evaluador de empresas: análisis fundamental de las acciones del S&P 500 y del IPSA")
-	noCache := f.Bool("no-cache", false, "Vuelve a bajar la lista del IPSA en lugar de reutilizar la guardada")
+	f := newFlags("evaluator", "Evaluador de empresas: análisis fundamental de las acciones del S&P 500")
 	if stop, err := f.parse(args); stop {
 		return err
 	}
@@ -310,13 +284,34 @@ func runEvaluator(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	payload, err := evaluator.Run(ctx, cfg, y, !*noCache)
+	payload, err := evaluator.Run(ctx, cfg, y)
 	if err != nil {
 		return err
 	}
 	for _, l := range payload.Summary() {
 		console.Println(l)
 	}
+	return nil
+}
+
+func runVisor(ctx context.Context, args []string) error {
+	f := newFlags("visor", "Visor: rendimientos, riesgo y comparación contra SPY de las acciones grandes y los ETFs de mayor AUM de EE. UU.")
+	if stop, err := f.parse(args); stop {
+		return err
+	}
+	cfg, err := start(f.config, func(o config.Output) string { return o.VisorLog })
+	if err != nil {
+		return err
+	}
+	y, err := newYahoo(cfg)
+	if err != nil {
+		return err
+	}
+	payload, err := visor.Run(ctx, cfg, y)
+	if err != nil {
+		return err
+	}
+	console.Println("Visor: " + payload.Summary())
 	return nil
 }
 

@@ -17,7 +17,7 @@ export const price = (v, currency = '') => (v == null ? 'n/d' : `${dec(v, 2)}${c
 
 /**
  * Valor de una métrica como texto. `def` es su definición del diccionario (unidad) y `finCurrency` la moneda de los
- * estados financieros (distinta de la del precio en algunas acciones chilenas).
+ * estados financieros (distinta de la del precio en algunas empresas extranjeras).
  */
 export function formatMetric(m, def, finCurrency = '') {
   if (m.t) return m.t;

@@ -82,8 +82,8 @@ type Output struct {
 	ActualLog      string `toml:"actual_log" json:"actual_log"`
 	EtfqLog        string `toml:"etfq_log" json:"etfq_log"`
 	QuantLog       string `toml:"quant_log" json:"quant_log"`
-	IpsaLog        string `toml:"ipsa_log" json:"ipsa_log"`
 	EvaluatorLog   string `toml:"evaluator_log" json:"evaluator_log"`
+	VisorLog       string `toml:"visor_log" json:"visor_log"`
 	ExportLog      string `toml:"export_log" json:"export_log"`
 	PruneLog       string `toml:"prune_log" json:"prune_log"`
 	FrontendData   string `toml:"frontend_data" json:"frontend_data"`
@@ -131,39 +131,36 @@ type Quant struct {
 	FundamentalsTTLDays int       `toml:"fundamentals_ttl_days" json:"fundamentals_ttl_days"`
 }
 
-// Ipsa es [ipsa]: modelo por score aplicado a las acciones del IPSA (Bolsa de Santiago), en pesos chilenos. Reutiliza los pesos
-// de los scores y el encogimiento del retorno de [quant]; define su propia lista de acciones, tasa y límites de Markowitz.
-type Ipsa struct {
-	// Página de Wikipedia con la tabla de las 30 acciones (columna Nemotécnico) y archivo donde se guarda la lista
-	WikipediaURL string `toml:"wikipedia_url" json:"wikipedia_url"`
-	UniverseFile string `toml:"universe_file" json:"universe_file"`
-	// Días que se reutiliza la lista guardada antes de volver a bajarla de Wikipedia
-	UniverseTTLDays int `toml:"universe_ttl_days" json:"universe_ttl_days"`
-	// Sufijo de Yahoo Finance para la Bolsa de Santiago y alias nemotécnico de Wikipedia -> símbolo de Yahoo sin sufijo
-	Suffix  string            `toml:"suffix" json:"suffix"`
-	Aliases map[string]string `toml:"aliases" json:"aliases"`
-	// Markowitz sobre las mejores del ranking
-	TopN          int     `toml:"top_n" json:"top_n"`
-	VolTarget     float64 `toml:"vol_target" json:"vol_target"`
-	WMax          float64 `toml:"w_max" json:"w_max"`
-	WMin          float64 `toml:"w_min" json:"w_min"`
-	WStep         float64 `toml:"w_step" json:"w_step"`
-	SectorMax     float64 `toml:"sector_max" json:"sector_max"`
-	RiskFree      float64 `toml:"risk_free" json:"risk_free"`
-	EquityPremium float64 `toml:"equity_premium" json:"equity_premium"`
-}
-
 // Evaluator es [evaluator]: evaluador de empresas por análisis fundamental. Es una sección aparte: no usa los scores ni las tablas
-// de los otros modelos; solo toma de ellos las listas de tickers (S&P 500 actual e IPSA).
+// de los otros modelos; solo toma de ellos las listas de tickers (S&P 500 actual).
 type Evaluator struct {
 	// JSON que lee la pestaña del frontend
 	Output string `toml:"output" json:"output"`
 	// Competidores con los que se compara cada empresa (misma industria y mercado, capitalización parecida)
 	Peers int `toml:"peers" json:"peers"`
-	// Empresas del S&P 500 y del IPSA a evaluar
+	// Empresas del S&P 500 a evaluar
 	Sp500 bool `toml:"sp500" json:"sp500"`
-	Ipsa  bool `toml:"ipsa" json:"ipsa"`
 	// Fracción mínima de las empresas con datos para guardar el resultado (protege de una caída de Yahoo)
+	MinCoverage float64 `toml:"min_coverage" json:"min_coverage"`
+}
+
+// Visor es [visor]: tabla de rendimientos, riesgo y comparación contra SPY de las acciones grandes y de los ETFs de mayor AUM de
+// EE. UU. Es una sección aparte: arma su propio universo con el screener de Yahoo y escribe su propio JSON.
+type Visor struct {
+	// JSON que lee la pestaña del frontend
+	Output string `toml:"output" json:"output"`
+	// ETFs que siempre se incluyen (aunque sean apalancados o estén fuera del top)
+	Tickers []string `toml:"tickers" json:"tickers"`
+	// Acciones: capitalización mínima (super large cap) y desde la que se llama mega cap, en miles de millones de US$
+	CapMinBillions  float64 `toml:"cap_min_billions" json:"cap_min_billions"`
+	CapMegaBillions float64 `toml:"cap_mega_billions" json:"cap_mega_billions"`
+	// ETFs del universo: cantidad (por AUM), AUM mínimo en millones de US$ y si se incluyen los apalancados/inversos
+	EtfTop            int     `toml:"etf_top" json:"etf_top"`
+	EtfAumMinMillions float64 `toml:"etf_aum_min_millions" json:"etf_aum_min_millions"`
+	IncludeLeveraged  bool    `toml:"include_leveraged" json:"include_leveraged"`
+	// Tasa libre de riesgo (% anual) para el Sharpe
+	Rf float64 `toml:"rf" json:"rf"`
+	// Fracción mínima de los instrumentos con datos para guardar el resultado (protege de una caída de Yahoo)
 	MinCoverage float64 `toml:"min_coverage" json:"min_coverage"`
 }
 
@@ -182,8 +179,8 @@ type Config struct {
 	Output     Output     `toml:"output" json:"output"`
 	Etfq       Etfq       `toml:"etfq" json:"etfq"`
 	Quant      Quant      `toml:"quant" json:"quant"`
-	Ipsa       Ipsa       `toml:"ipsa" json:"ipsa"`
 	Evaluator  Evaluator  `toml:"evaluator" json:"evaluator"`
+	Visor      Visor      `toml:"visor" json:"visor"`
 	Universe   Universe   `toml:"universe" json:"universe"`
 }
 
@@ -225,7 +222,7 @@ func Default() Config {
 			BacktestPrefix: "top3_backtest", SweepPrefix: "top3_sweep", OffsetsPrefix: "top3_offsets",
 			ActualPrefix: "top3_actual", LogDir: "log",
 			BacktestLog: "top3_backtest.log", ActualLog: "top3_actual.log", EtfqLog: "top3_etfq.log",
-			QuantLog: "top3_quant.log", IpsaLog: "top3_ipsa.log", EvaluatorLog: "top3_evaluator.log", ExportLog: "export_frontend.log", PruneLog: "top3_prune.log",
+			QuantLog: "top3_quant.log", EvaluatorLog: "top3_evaluator.log", VisorLog: "top3_visor.log", ExportLog: "export_frontend.log", PruneLog: "top3_prune.log",
 			FrontendData: "../frontend/public/data/report.json",
 			HistoryFile:  "history/history.json",
 		},
@@ -242,14 +239,12 @@ func Default() Config {
 			WMax: 0.25, WMin: 0.10, WStep: 0.01, SectorMax: 0.40, MuShrink: 0.25, EquityPremium: 0.05, RiskFree: 0.04,
 			FundamentalsTTLDays: 7,
 		},
-		Ipsa: Ipsa{
-			WikipediaURL:    "https://es.wikipedia.org/wiki/%C3%8Dndice_de_Precio_Selectivo_de_Acciones",
-			UniverseFile:    "history/ipsa_universe.json",
-			UniverseTTLDays: 30, Suffix: ".SN", Aliases: map[string]string{},
-			TopN: 6, VolTarget: 0.20, WMax: 0.30, WMin: 0.10, WStep: 0.01, SectorMax: 0.40, RiskFree: 0.05, EquityPremium: 0.06,
+		Evaluator: Evaluator{Output: "../frontend/public/data/evaluator.json", Peers: 3, Sp500: true, MinCoverage: 0.5},
+		Visor: Visor{
+			Output: "../frontend/public/data/visor.json", Tickers: []string{"SPY", "QQQ"}, CapMinBillions: 100, CapMegaBillions: 200,
+			EtfTop: 300, EtfAumMinMillions: 500, Rf: 3, MinCoverage: 0.5,
 		},
-		Evaluator: Evaluator{Output: "../frontend/public/data/evaluator.json", Peers: 3, Sp500: true, Ipsa: true, MinCoverage: 0.5},
-		Universe:  Universe{MinCapBillions: 10, SweepMinCapBillions: []float64{0, 10, 200}},
+		Universe: Universe{MinCapBillions: 10, SweepMinCapBillions: []float64{0, 10, 200}},
 	}
 }
 

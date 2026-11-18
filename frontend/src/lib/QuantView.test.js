@@ -115,3 +115,21 @@ describe('QuantView', () => {
     expect(rankingRows()[0]).toBe('JPM');
   });
 });
+
+describe('QuantView: sector en una palabra', () => {
+  it('abrevia los sectores de varias palabras y deja el nombre completo de ayuda', () => {
+    const data = { ...quant, ranking: quant.ranking.map((r, i) => (i === 2 ? { ...r, sector: 'Financial Services' } : r)) };
+    render(QuantView, { quant: data });
+    const cell = [...document.querySelectorAll('td')].find((c) => c.textContent.trim() === 'Financial');
+    expect(cell).toBeTruthy();
+    expect(cell.getAttribute('title')).toBe('Financial Services');
+  });
+
+  it('también lo muestra en una palabra en la tabla de Markowitz', () => {
+    const data = { ...quant, ranking: quant.ranking.map((r) => ({ ...r, sector: 'Financial Services' })) };
+    render(QuantView, { quant: data });
+    const table = screen.getByRole('heading', { name: /mejores y sus pesos/ }).parentElement.querySelector('details.more + .wrap');
+    expect(within(table).getAllByText('Financial').length).toBeGreaterThan(0);
+    expect(within(table).queryByText('Financial Services')).toBeNull();
+  });
+});

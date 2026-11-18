@@ -1,5 +1,5 @@
 // Package evaluator es el evaluador de empresas: un análisis fundamental (rentabilidad, crecimiento, caja, deuda, valoración,
-// tendencia y comparación con competidores) de cada acción del S&P 500 y del IPSA, con un veredicto por categoría.
+// tendencia y comparación con competidores) de cada acción del S&P 500, con un veredicto por categoría.
 //
 // Es una sección aparte: no usa los scores, el ranking ni las tablas de los otros modelos. De ellos toma solo las listas de
 // tickers; los datos vienen de Yahoo Finance (gohoo) y el resultado es un JSON propio para el frontend.
@@ -20,17 +20,13 @@ import (
 	"top3/internal/config"
 	"top3/internal/db"
 	"top3/internal/errs"
-	"top3/internal/ipsa"
 	"top3/internal/logx"
 	"top3/internal/market"
 	"top3/internal/yahoo"
 )
 
-// Los universos que se evalúan.
-const (
-	SP500 = "sp500"
-	IPSA  = "ipsa"
-)
+// SP500 es el universo que se evalúa.
+const SP500 = "sp500"
 
 // UniverseInfo describe un universo en el JSON.
 type UniverseInfo struct {
@@ -62,8 +58,8 @@ type target struct {
 	ticker, universe string
 }
 
-// targets arma la lista de empresas: las del S&P 500 actual (de la base) y las del IPSA (de su archivo de universo), según [evaluator].
-func targets(cfg config.Config, useCache bool) ([]target, error) {
+// targets arma la lista de empresas: las del S&P 500 actual (de la base), según [evaluator].
+func targets(cfg config.Config) ([]target, error) {
 	var out []target
 	if cfg.Evaluator.Sp500 {
 		d, err := db.Open(cfg.Data.DBPath)
@@ -77,15 +73,6 @@ func targets(cfg config.Config, useCache bool) ([]target, error) {
 		}
 		for _, t := range c.Current {
 			out = append(out, target{t, SP500})
-		}
-	}
-	if cfg.Evaluator.Ipsa {
-		u, err := ipsa.EnsureUniverse(cfg, useCache, time.Now())
-		if err != nil {
-			return nil, err
-		}
-		for _, s := range u.Stocks {
-			out = append(out, target{ipsa.YahooTicker(s, cfg.Ipsa), IPSA})
 		}
 	}
 	return out, nil
@@ -102,15 +89,12 @@ func emptyUniverses(ts []target, cfg config.Config) []string {
 	if cfg.Evaluator.Sp500 && !have[SP500] {
 		out = append(out, "S&P 500")
 	}
-	if cfg.Evaluator.Ipsa && !have[IPSA] {
-		out = append(out, "IPSA")
-	}
 	return out
 }
 
 // Run evalúa todas las empresas y escribe el JSON de [evaluator] output.
-func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, useCache bool) (*Payload, error) {
-	ts, err := targets(cfg, useCache)
+func Run(ctx context.Context, cfg config.Config, y *yahoo.Client) (*Payload, error) {
+	ts, err := targets(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +102,7 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, useCache bool)
 		logx.Warnf(errs.EvaNoList.Msg("No hay empresas de %s en la lista; se evalúan solo las demás"), u)
 	}
 	if len(ts) == 0 {
-		return nil, errs.EvaTooFew.Errorf("no hay empresas que evaluar (revisa [evaluator] sp500 e ipsa)")
+		return nil, errs.EvaTooFew.Errorf("no hay empresas que evaluar (revisa [evaluator] sp500)")
 	}
 	logx.Infof("Evaluador: descargando datos fundamentales de %d empresas...", len(ts))
 	res := gohoo.ParallelMap(ctx, ts, cfg.Data.SharesWorkers, func(ctx context.Context, t target) (Raw, error) {
@@ -175,7 +159,7 @@ func Build(cs []Company, peers int) *Payload {
 		count[c.Universe]++
 	}
 	p := &Payload{GeneratedAt: time.Now().Format("2006-01-02T15:04:05"), Metrics: Metrics, Glossary: Glossary, Companies: cs}
-	for _, u := range []UniverseInfo{{SP500, "S&P 500", "USD", 0}, {IPSA, "IPSA (Chile)", "CLP", 0}} {
+	for _, u := range []UniverseInfo{{SP500, "S&P 500", "USD", 0}} {
 		if u.Count = count[u.ID]; u.Count > 0 {
 			p.Universes = append(p.Universes, u)
 		}

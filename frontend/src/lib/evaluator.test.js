@@ -44,7 +44,7 @@ describe('pillText', () => {
 
 const companies = [
   { ticker: 'AAA', name: 'Alfa Corp', universe: 'sp500', sector: 'Tech', verdict: 'warn', market_cap: 100 },
-  { ticker: 'BBB', name: 'Beta SA', universe: 'ipsa', sector: 'Banks', verdict: 'good', market_cap: 500 },
+  { ticker: 'BBB', name: 'Beta SA', universe: 'otro', sector: 'Banks', verdict: 'good', market_cap: 500 },
   { ticker: 'CCC', name: 'Gamma', universe: 'sp500', sector: 'Tech', verdict: 'bad', market_cap: null },
 ];
 

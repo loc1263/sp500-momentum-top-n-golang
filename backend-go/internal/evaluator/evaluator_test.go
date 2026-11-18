@@ -159,8 +159,8 @@ func TestPEFromPriceWhenMissing(t *testing.T) {
 
 func TestFcfYieldSkippedWhenCurrenciesDiffer(t *testing.T) {
 	r := healthy()
-	r.Currency, r.FinCurrency = "CLP", "USD"
-	if m := metric(Analyze(r, IPSA), "fcf_yield"); m.Value != nil || m.Level != NA {
+	r.Currency, r.FinCurrency = "EUR", "USD"
+	if m := metric(Analyze(r, SP500), "fcf_yield"); m.Value != nil || m.Level != NA {
 		t.Errorf("moneda distinta: %+v", m)
 	}
 }
@@ -202,8 +202,8 @@ func TestFinCurrencyOnlyWhenDifferent(t *testing.T) {
 	if Analyze(r, SP500).FinCurrency != "" {
 		t.Error("misma moneda: sin fin_currency")
 	}
-	r.Currency, r.FinCurrency = "CLP", "USD"
-	if Analyze(r, IPSA).FinCurrency != "USD" {
+	r.Currency, r.FinCurrency = "EUR", "USD"
+	if Analyze(r, SP500).FinCurrency != "USD" {
 		t.Error("moneda distinta: fin_currency")
 	}
 }
@@ -322,17 +322,6 @@ func TestPeersLevelsAndBest(t *testing.T) {
 	}
 }
 
-func TestPeersOnlyWithinUniverse(t *testing.T) {
-	a := company("A", "Software", 100, 20, 20)
-	b := company("B", "Software", 100, 20, 20)
-	b.Universe = IPSA
-	cs := []Company{a, b}
-	AttachPeers(cs, 3)
-	if cat(cs[0], "peers").Peers != nil {
-		t.Error("una empresa del IPSA no compite con una del S&P 500")
-	}
-}
-
 func TestBuildRawFromYahooShape(t *testing.T) {
 	info := map[string]any{
 		"longName": "Acme", "sector": "Tech", "industry": "Software", "currency": "USD", "financialCurrency": "USD",
@@ -381,19 +370,15 @@ func TestBuildRawFromYahooShape(t *testing.T) {
 
 func TestEmptyUniverses(t *testing.T) {
 	cfg := config.Default()
-	both := []target{{"AAPL", SP500}, {"COPEC.SN", IPSA}}
-	if got := emptyUniverses(both, cfg); len(got) != 0 {
-		t.Errorf("con las dos listas: %v", got)
+	if got := emptyUniverses([]target{{"AAPL", SP500}}, cfg); len(got) != 0 {
+		t.Errorf("con la lista: %v", got)
 	}
-	if got := emptyUniverses([]target{{"COPEC.SN", IPSA}}, cfg); len(got) != 1 || got[0] != "S&P 500" {
-		t.Errorf("sin S&P 500: %v", got)
+	if got := emptyUniverses(nil, cfg); len(got) != 1 || got[0] != "S&P 500" {
+		t.Errorf("sin nada: %v", got)
 	}
 	cfg.Evaluator.Sp500 = false // un universo desactivado no es un aviso
-	if got := emptyUniverses([]target{{"COPEC.SN", IPSA}}, cfg); len(got) != 0 {
+	if got := emptyUniverses(nil, cfg); len(got) != 0 {
 		t.Errorf("S&P 500 desactivado: %v", got)
-	}
-	if got := emptyUniverses(nil, cfg); len(got) != 1 || got[0] != "IPSA" {
-		t.Errorf("sin nada: %v", got)
 	}
 }
 

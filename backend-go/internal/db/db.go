@@ -81,6 +81,9 @@ CREATE TABLE IF NOT EXISTS etfq_runs (run_at TEXT PRIMARY KEY, as_of TEXT, paylo
 	{4, `
 CREATE TABLE IF NOT EXISTS ipsa_runs (run_at TEXT PRIMARY KEY, as_of TEXT, payload TEXT);
 `},
+	{5, `
+DROP TABLE IF EXISTS ipsa_runs;
+`},
 }
 
 // LatestVersion es la versión del esquema que conoce este código.

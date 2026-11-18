@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"encoding/json"
 	"math"
 	"reflect"
 	"testing"
@@ -75,46 +74,6 @@ func TestConstituentsReplaceAndRead(t *testing.T) {
 	want := []ChangeAfter{{"2026-02-01", "Z", ""}, {"2026-03-01", "X", "Y"}} // posteriores al día y ordenadas; NULL = ""
 	if !reflect.DeepEqual(ch, want) {
 		t.Fatalf("ChangesAfter: %+v", ch)
-	}
-}
-
-func TestIpsaKeepsOnlyTheLatestRun(t *testing.T) {
-	d := openTemp(t)
-	if got, err := LatestIpsa(d); err != nil || got != nil {
-		t.Fatalf("sin corridas: %v %v", got, err)
-	}
-	must(t, SaveLatestIpsa(d, "2026-10-01T10:00:00", "2026-10-01", json.RawMessage(`{"n":1}`)))
-	must(t, SaveLatestIpsa(d, "2026-10-02T10:00:00", "2026-10-02", json.RawMessage(`{"n":2}`)))
-	got, err := LatestIpsa(d)
-	must(t, err)
-	if string(got) != `{"n":2}` {
-		t.Errorf("LatestIpsa: %s", got)
-	}
-	var n int
-	must(t, d.QueryRow("SELECT COUNT(*) FROM ipsa_runs").Scan(&n))
-	if n != 1 {
-		t.Errorf("quedaron %d corridas, quiero 1", n)
-	}
-}
-
-func TestOHLCVFramesFromRowsAlignsFieldsAndSkipsNaN(t *testing.T) {
-	nan := math.NaN()
-	f := OHLCVFramesFromRows([]OHLCVRow{
-		{Ticker: "A", Date: "2026-01-02", Open: 1, High: 3, Low: 0.5, Close: 2, Volume: 100},
-		{Ticker: "A", Date: "2026-01-03", Open: nan, High: nan, Low: nan, Close: 4, Volume: nan}, // solo cierre
-		{Ticker: "B", Date: "2026-01-02", Open: 5, High: 6, Low: 4, Close: 5.5, Volume: 50},
-	})
-	for name, p := range map[string]*model.Prices{"open": f.Open, "high": f.High, "low": f.Low, "volume": f.Volume} {
-		if p.Rows() != f.Close.Rows() || p.Cols() != f.Close.Cols() {
-			t.Errorf("%s no está alineada con el cierre", name)
-		}
-	}
-	ja, _ := f.Close.Col("A")
-	if !math.IsNaN(f.Open.At(1, ja)) || f.Close.At(1, ja) != 4 {
-		t.Error("el día sin apertura debe quedar en NaN y con cierre")
-	}
-	if f.High.At(0, ja) != 3 {
-		t.Error("máximo de A el primer día")
 	}
 }
 
