@@ -40,11 +40,11 @@ export function cellClass(sec, col, v) {
   return '';
 }
 
-/** Filas cuyo ticker, nombre, sector, categoría o vs_spy contienen el texto buscado. */
+/** Filas cuyo ticker, nombre, sector, categoría o vs_spy contienen alguno de los términos buscados (separados por comas). */
 export function filterRows(sec, query) {
-  const q = query.trim().toLowerCase();
-  if (!q) return sec.rows;
-  return sec.rows.filter((r) => sec.search.some((i) => String(r[i] ?? '').toLowerCase().includes(q)));
+  const terms = query.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
+  if (!terms.length) return sec.rows;
+  return sec.rows.filter((r) => sec.search.some((i) => terms.some((t) => String(r[i] ?? '').toLowerCase().includes(t))));
 }
 
 const toNumber = (v) => {

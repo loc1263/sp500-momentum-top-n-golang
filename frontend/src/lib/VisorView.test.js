@@ -52,6 +52,9 @@ describe('lib/visor.js', () => {
   it('busca por texto y ordena dejando los vacíos al final', () => {
     expect(filterRows(sec, 'gam').map((r) => r[0])).toEqual(['CCC']);
     expect(filterRows(sec, '  ')).toHaveLength(3);
+    expect(filterRows(sec, ' , ')).toHaveLength(3);
+    expect(filterRows(sec, 'aaa, ccc').map((r) => r[0])).toEqual(['AAA', 'CCC']);
+    expect(filterRows(sec, 'aaa,zzz').map((r) => r[0])).toEqual(['AAA']);
     expect(sortRows(sec.rows, 3, true).map((r) => r[0])).toEqual(['AAA', 'BBB', 'CCC']);
     expect(sortRows(sec.rows, 3, false).map((r) => r[0])).toEqual(['BBB', 'AAA', 'CCC']);
   });

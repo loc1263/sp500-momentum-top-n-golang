@@ -85,7 +85,7 @@
     </div>
     <label class="grow">
       Buscar
-      <input type="search" placeholder="Ticker, nombre, sector o categoría" bind:value={query} />
+      <input type="search" placeholder="Ticker, nombre, sector o categoría; varios con comas" bind:value={query} />
     </label>
     {#if activeFilters(colFilters)}
       <button class="csv" onclick={() => (colFilters = {})}>Limpiar filtros ({activeFilters(colFilters)})</button>
