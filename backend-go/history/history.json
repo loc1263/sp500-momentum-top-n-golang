@@ -192,7 +192,19 @@
 {"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":1,"ticker":"GILD","return_lookback":0.3142381267085117,"price":170.25999450683594,"market_cap":211114757879.0229},
 {"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":2,"ticker":"TMO","return_lookback":0.3130256248687251,"price":686.7899780273438,"market_cap":253938730427.61},
 {"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":3,"ticker":"MSFT","return_lookback":0.27515527348719515,"price":506.239990234375,"market_cap":3759108076848.747},
-{"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":4,"ticker":"AMGN","return_lookback":0.2576621428227195,"price":457.92999267578125,"market_cap":247571610089.94293}
+{"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":4,"ticker":"AMGN","return_lookback":0.2576621428227195,"price":457.92999267578125,"market_cap":247571610089.94293},
+{"run_at":"2026-11-19T03:47:11","as_of":"2026-11-18","months":4,"min_cap_billions":null,"rank":1,"ticker":"MRNA","return_lookback":2.3888409560930772,"price":196.7899932861328,"market_cap":78565627915.89326},
+{"run_at":"2026-11-19T03:47:11","as_of":"2026-11-18","months":4,"min_cap_billions":null,"rank":2,"ticker":"PTC","return_lookback":0.7315003540508502,"price":195.85000610351562,"market_cap":21275622516.8385},
+{"run_at":"2026-11-19T03:47:11","as_of":"2026-11-18","months":4,"min_cap_billions":null,"rank":3,"ticker":"ACN","return_lookback":0.6369118234301248,"price":227.49000549316406,"market_cap":139210713737.9084},
+{"run_at":"2026-11-19T03:47:11","as_of":"2026-11-18","months":4,"min_cap_billions":null,"rank":4,"ticker":"CRL","return_lookback":0.5237768845459443,"price":333.25,"market_cap":16051896022.5},
+{"run_at":"2026-11-19T03:47:12","as_of":"2026-11-18","months":4,"min_cap_billions":10,"rank":1,"ticker":"MRNA","return_lookback":2.3888409560930772,"price":196.7899932861328,"market_cap":78565627915.89326},
+{"run_at":"2026-11-19T03:47:12","as_of":"2026-11-18","months":4,"min_cap_billions":10,"rank":2,"ticker":"PTC","return_lookback":0.7315003540508502,"price":195.85000610351562,"market_cap":21275622516.8385},
+{"run_at":"2026-11-19T03:47:12","as_of":"2026-11-18","months":4,"min_cap_billions":10,"rank":3,"ticker":"ACN","return_lookback":0.6369118234301248,"price":227.49000549316406,"market_cap":139210713737.9084},
+{"run_at":"2026-11-19T03:47:12","as_of":"2026-11-18","months":4,"min_cap_billions":10,"rank":4,"ticker":"CRL","return_lookback":0.5237768845459443,"price":333.25,"market_cap":16051896022.5},
+{"run_at":"2026-11-19T03:47:13","as_of":"2026-11-18","months":4,"min_cap_billions":200,"rank":1,"ticker":"TMO","return_lookback":0.3168539195478781,"price":692.739990234375,"market_cap":256138731292.82666},
+{"run_at":"2026-11-19T03:47:13","as_of":"2026-11-18","months":4,"min_cap_billions":200,"rank":2,"ticker":"MSFT","return_lookback":0.30462382079277317,"price":508.2900085449219,"market_cap":3774330581071.096},
+{"run_at":"2026-11-19T03:47:13","as_of":"2026-11-18","months":4,"min_cap_billions":200,"rank":3,"ticker":"GILD","return_lookback":0.303757387020976,"price":168.97999572753906,"market_cap":209527616794.24005},
+{"run_at":"2026-11-19T03:47:13","as_of":"2026-11-18","months":4,"min_cap_billions":200,"rank":4,"ticker":"DIS","return_lookback":0.27631164185727486,"price":122.36000061035156,"market_cap":211277410382.60605}
 ],
 "actual_alternates": [
 {"run_at":"2026-10-25T02:02:49","as_of":"2026-10-23","months":4,"min_cap_billions":null,"rank":5,"ticker":"PLTR","return_lookback":0.8341568579951784,"price":196.75,"market_cap":452665347480.75},
@@ -386,7 +398,19 @@
 {"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":5,"ticker":"DIS","return_lookback":0.2163511876826305,"price":116.94000244140625,"market_cap":201918770535.4242},
 {"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":6,"ticker":"KO","return_lookback":0.21238853951062153,"price":98.79000091552734,"market_cap":425048843655.0715},
 {"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":7,"ticker":"LLY","return_lookback":0.2074925397192655,"price":1415.550048828125,"market_cap":1262304590805.3608},
-{"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":8,"ticker":"MA","return_lookback":0.2013912538693099,"price":645.72998046875,"market_cap":561439045997.229}
+{"run_at":"2026-11-18T03:49:16","as_of":"2026-11-17","months":4,"min_cap_billions":200,"rank":8,"ticker":"MA","return_lookback":0.2013912538693099,"price":645.72998046875,"market_cap":561439045997.229},
+{"run_at":"2026-11-19T03:47:11","as_of":"2026-11-18","months":4,"min_cap_billions":null,"rank":5,"ticker":"VEEV","return_lookback":0.5020320109628464,"price":277.20001220703125,"market_cap":44881135196.42639},
+{"run_at":"2026-11-19T03:47:11","as_of":"2026-11-18","months":4,"min_cap_billions":null,"rank":6,"ticker":"REGN","return_lookback":0.4537212021708088,"price":945.530029296875,"market_cap":95628866709.28271},
+{"run_at":"2026-11-19T03:47:11","as_of":"2026-11-18","months":4,"min_cap_billions":null,"rank":7,"ticker":"TYL","return_lookback":0.44333843748544255,"price":410.3699951171875,"market_cap":16805584481.417725},
+{"run_at":"2026-11-19T03:47:11","as_of":"2026-11-18","months":4,"min_cap_billions":null,"rank":8,"ticker":"OKTA","return_lookback":0.43104833650289853,"price":195.61000061035156,"market_cap":32694207968.78401},
+{"run_at":"2026-11-19T03:47:12","as_of":"2026-11-18","months":4,"min_cap_billions":10,"rank":5,"ticker":"VEEV","return_lookback":0.5020320109628464,"price":277.20001220703125,"market_cap":44881135196.42639},
+{"run_at":"2026-11-19T03:47:12","as_of":"2026-11-18","months":4,"min_cap_billions":10,"rank":6,"ticker":"REGN","return_lookback":0.4537212021708088,"price":945.530029296875,"market_cap":95628866709.28271},
+{"run_at":"2026-11-19T03:47:12","as_of":"2026-11-18","months":4,"min_cap_billions":10,"rank":7,"ticker":"TYL","return_lookback":0.44333843748544255,"price":410.3699951171875,"market_cap":16805584481.417725},
+{"run_at":"2026-11-19T03:47:12","as_of":"2026-11-18","months":4,"min_cap_billions":10,"rank":8,"ticker":"OKTA","return_lookback":0.43104833650289853,"price":195.61000061035156,"market_cap":32694207968.78401},
+{"run_at":"2026-11-19T03:47:13","as_of":"2026-11-18","months":4,"min_cap_billions":200,"rank":5,"ticker":"CRWD","return_lookback":0.25798748053678344,"price":237.02999877929688,"market_cap":242703274349.33954},
+{"run_at":"2026-11-19T03:47:13","as_of":"2026-11-18","months":4,"min_cap_billions":200,"rank":6,"ticker":"PLTR","return_lookback":0.2576864297403929,"price":156.6699981689453,"market_cap":360452753041.69806},
+{"run_at":"2026-11-19T03:47:13","as_of":"2026-11-18","months":4,"min_cap_billions":200,"rank":7,"ticker":"AMGN","return_lookback":0.21973535341947814,"price":443.8900146484375,"market_cap":239981148618.86414},
+{"run_at":"2026-11-19T03:47:13","as_of":"2026-11-18","months":4,"min_cap_billions":200,"rank":8,"ticker":"MA","return_lookback":0.21122098293565705,"price":643.3699951171875,"market_cap":559387123422.1198}
 ],
 "etf_scores": [
 {"run_at":"2026-10-27T01:00:19","as_of":"2026-10-23","rank":1,"ticker":"VDE","score":1.78197840248134,"vol":0.21993136037592076,"max_dd":-0.15042103668082563,"sma_dist":0.18797175573876013,"returns":{"12":0.6016068069388196,"3":0.18010908355962663,"6":0.20860494078693126}},
