@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"top3/internal/evaluator"
+	"top/internal/evaluator"
 )
 
 var verdictLabel = map[evaluator.Level]string{evaluator.Good: "Bien", evaluator.Warn: "Atención", evaluator.Bad: "Alerta", evaluator.NA: "Sin datos"}

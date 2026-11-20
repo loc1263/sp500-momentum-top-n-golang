@@ -1,10 +1,10 @@
-# Datos generados por el backend (se recrean con top3 pipeline)
+# Datos generados por el backend (se recrean con top pipeline)
 backend-go/data/
 backend-go/log/
 backend-go/output/
 backend-go/bin/
 
-# Sitio estático generado por top3 site
+# Sitio estático generado por top site
 /site/
 
 # Editor / sistema

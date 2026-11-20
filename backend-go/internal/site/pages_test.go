@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"top3/internal/evaluator"
+	"top/internal/evaluator"
 )
 
 func ptr[T any](v T) *T { return &v }
@@ -154,7 +154,7 @@ func TestBuildSinJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, f := range []string{"index.html", "visor.html", "etfq.html", "evaluador.html", "about.html"} {
-		wantAll(t, f, read(t, out, f), "Ejecute top3", `class="best error"`)
+		wantAll(t, f, read(t, out, f), "Ejecute top", `class="best error"`)
 	}
 	if _, err := os.Stat(filepath.Join(stale, "VIEJA.html")); err == nil {
 		t.Error("quedó una página vieja de empresa en evaluador/")

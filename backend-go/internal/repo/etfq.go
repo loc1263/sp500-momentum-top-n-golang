@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"top3/internal/db"
+	"top/internal/db"
 )
 
 func SaveLatestEtfq(d *sql.DB, runAt, asOf string, payload json.RawMessage) error {

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"top3/internal/dateutil"
-	"top3/internal/model"
+	"top/internal/dateutil"
+	"top/internal/model"
 )
 
 func calendar(offset int, final, cagr float64) model.Calendar {

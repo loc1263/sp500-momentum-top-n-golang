@@ -16,7 +16,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"top3/internal/errs"
+	"top/internal/errs"
 )
 
 type Data struct {
@@ -160,7 +160,7 @@ func Default() Config {
 	return Config{
 		Data: Data{
 			HistoryYears:        12,
-			DBPath:              "data/top3.db",
+			DBPath:              "data/top.db",
 			HistoricalURL:       "https://raw.githubusercontent.com/hanshof/sp500_constituents/main/sp_500_historical_components.csv",
 			WikipediaURL:        "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
 			WikipediaChangesURL: "https://en.wikipedia.org/wiki/Historical_components_of_the_S%26P_500",
@@ -190,10 +190,10 @@ func Default() Config {
 		Simulation: Simulation{Months: []int{3, 4, 6, 8, 12}},
 		Output: Output{
 			Dir: "output", KeepDays: 7, BacktestSubdir: "backtest", ActualSubdir: "actual",
-			BacktestPrefix: "top3_backtest", SweepPrefix: "top3_sweep", OffsetsPrefix: "top3_offsets",
-			ActualPrefix: "top3_actual", LogDir: "log",
-			BacktestLog: "top3_backtest.log", ActualLog: "top3_actual.log", EtfqLog: "top3_etfq.log",
-			QuantLog: "top3_quant.log", EvaluatorLog: "top3_evaluator.log", VisorLog: "top3_visor.log", ExportLog: "export_frontend.log", PruneLog: "top3_prune.log",
+			BacktestPrefix: "top_backtest", SweepPrefix: "top_sweep", OffsetsPrefix: "top_offsets",
+			ActualPrefix: "top_actual", LogDir: "log",
+			BacktestLog: "top_backtest.log", ActualLog: "top_actual.log", EtfqLog: "top_etfq.log",
+			QuantLog: "top_quant.log", EvaluatorLog: "top_evaluator.log", VisorLog: "top_visor.log", ExportLog: "export_frontend.log", PruneLog: "top_prune.log",
 			FrontendData: "output/report.json",
 			HistoryFile:  "history/history.json",
 		},

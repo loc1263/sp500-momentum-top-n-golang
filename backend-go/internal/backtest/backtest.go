@@ -12,15 +12,15 @@ import (
 	"sort"
 	"time"
 
-	"top3/internal/config"
-	"top3/internal/console"
-	"top3/internal/dateutil"
-	"top3/internal/engine"
-	"top3/internal/errs"
-	"top3/internal/logx"
-	"top3/internal/market"
-	"top3/internal/model"
-	"top3/internal/repo"
+	"top/internal/config"
+	"top/internal/console"
+	"top/internal/dateutil"
+	"top/internal/engine"
+	"top/internal/errs"
+	"top/internal/logx"
+	"top/internal/market"
+	"top/internal/model"
+	"top/internal/repo"
 )
 
 const SkipMonths = 1

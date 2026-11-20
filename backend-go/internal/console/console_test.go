@@ -12,7 +12,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"top3/internal/model"
+	"top/internal/model"
 )
 
 func capture(t *testing.T) *bytes.Buffer {

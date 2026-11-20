@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"top3/internal/etfq"
+	"top/internal/etfq"
 )
 
 // tcol describe un encabezado de tabla ordenable (lo lee table.js).

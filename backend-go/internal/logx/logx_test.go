@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"top3/internal/errs"
+	"top/internal/errs"
 )
 
 func setup(t *testing.T) (*bytes.Buffer, string) {

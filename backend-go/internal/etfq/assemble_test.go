@@ -13,8 +13,8 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top3/internal/config"
-	"top3/internal/etf"
+	"top/internal/config"
+	"top/internal/etf"
 )
 
 func fund(ticker, issuer string, ter, aum *float64) Fund {

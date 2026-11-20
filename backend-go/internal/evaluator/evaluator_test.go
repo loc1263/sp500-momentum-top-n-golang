@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"top3/internal/config"
+	"top/internal/config"
 )
 
 func healthy() Raw {

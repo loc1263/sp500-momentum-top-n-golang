@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"top3/internal/quant"
+	"top/internal/quant"
 )
 
 // quantData es el bloque «quant» de report.json. Los números van como *float64 para distinguir «sin dato» (null) de cero.

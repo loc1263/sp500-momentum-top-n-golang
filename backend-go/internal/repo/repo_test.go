@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"top3/internal/db"
-	"top3/internal/model"
+	"top/internal/db"
+	"top/internal/model"
 )
 
 func must(t *testing.T, err error) {

@@ -11,8 +11,8 @@ import (
 	"math"
 	"sort"
 
-	"top3/internal/model"
-	"top3/internal/stats"
+	"top/internal/model"
+	"top/internal/stats"
 )
 
 func ledoitWolf(x [][]float64) [][]float64 {

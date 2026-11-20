@@ -16,10 +16,10 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top3/internal/config"
-	"top3/internal/model"
-	"top3/internal/repo"
-	"top3/internal/testutil"
+	"top/internal/config"
+	"top/internal/model"
+	"top/internal/repo"
+	"top/internal/testutil"
 )
 
 func syntheticPrices(n, days int, seed int64) *model.Prices {

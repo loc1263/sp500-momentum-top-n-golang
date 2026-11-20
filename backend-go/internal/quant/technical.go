@@ -9,7 +9,7 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top3/internal/stats"
+	"top/internal/stats"
 )
 
 const DayYear = 252

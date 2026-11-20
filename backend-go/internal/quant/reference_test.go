@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"top3/internal/dateutil"
-	"top3/internal/model"
+	"top/internal/dateutil"
+	"top/internal/model"
 )
 
 type F float64

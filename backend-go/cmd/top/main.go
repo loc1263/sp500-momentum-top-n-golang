@@ -1,4 +1,4 @@
-// Command top3 es el punto de entrada único del backend: `top3 <comando> [opciones]`.
+// Command top es el punto de entrada único del backend: `top <comando> [opciones]`.
 //
 // Comandos: backtest, actual, etfq, quant, evaluator, visor, export, site, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
 //
@@ -17,23 +17,23 @@ import (
 
 	_ "time/tzdata"
 
-	"top3/internal/actual"
-	"top3/internal/backtest"
-	"top3/internal/cleanup"
-	"top3/internal/config"
-	"top3/internal/console"
-	"top3/internal/errs"
-	"top3/internal/etfq"
-	"top3/internal/evaluator"
-	"top3/internal/history"
-	"top3/internal/logx"
-	"top3/internal/market"
-	"top3/internal/pipeline"
-	"top3/internal/quant"
-	"top3/internal/report"
-	"top3/internal/site"
-	"top3/internal/visor"
-	"top3/internal/yahoo"
+	"top/internal/actual"
+	"top/internal/backtest"
+	"top/internal/cleanup"
+	"top/internal/config"
+	"top/internal/console"
+	"top/internal/errs"
+	"top/internal/etfq"
+	"top/internal/evaluator"
+	"top/internal/history"
+	"top/internal/logx"
+	"top/internal/market"
+	"top/internal/pipeline"
+	"top/internal/quant"
+	"top/internal/report"
+	"top/internal/site"
+	"top/internal/visor"
+	"top/internal/yahoo"
 )
 
 var commands = []string{"backtest", "actual", "etfq", "quant", "evaluator", "visor", "export", "site", "prune", "pipeline"}
@@ -43,7 +43,7 @@ func main() {
 	debug.SetMemoryLimit(2 << 30)
 	logx.ConfigureConsole()
 	if len(os.Args) < 2 || !contains(commands, os.Args[1]) {
-		fmt.Fprintf(os.Stderr, "Uso: top3 {%s} [opciones]  (--help en cada comando)\n", strings.Join(commands, "|"))
+		fmt.Fprintf(os.Stderr, "Uso: top {%s} [opciones]  (--help en cada comando)\n", strings.Join(commands, "|"))
 		os.Exit(2)
 	}
 	name, args := os.Args[1], os.Args[2:]
@@ -53,7 +53,7 @@ func main() {
 	if name == "pipeline" {
 		os.Exit(pipeline.Main(args))
 	}
-	if path := os.Getenv("TOP3_CPUPROFILE"); path != "" {
+	if path := os.Getenv("TOP_CPUPROFILE"); path != "" {
 		if f, err := os.Create(path); err == nil {
 			if pprof.StartCPUProfile(f) == nil {
 				code := logx.RunCLI(func() error { return run(ctx, name, args) })
@@ -84,7 +84,7 @@ func newFlags(name, description string) *flags {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	fs.Usage = func() {
-		fmt.Fprintf(os.Stderr, "%s\n\nUso: top3 %s [opciones]\n\n", description, name)
+		fmt.Fprintf(os.Stderr, "%s\n\nUso: top %s [opciones]\n\n", description, name)
 		fs.PrintDefaults()
 	}
 	f := &flags{FlagSet: fs}

@@ -7,7 +7,7 @@ package repo
 import (
 	"database/sql"
 
-	"top3/internal/db"
+	"top/internal/db"
 )
 
 type HistoryRow struct{ Date, Tickers string }

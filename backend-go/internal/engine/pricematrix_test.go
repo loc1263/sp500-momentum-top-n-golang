@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"top3/internal/dateutil"
-	"top3/internal/model"
-	"top3/internal/testutil"
+	"top/internal/dateutil"
+	"top/internal/model"
+	"top/internal/testutil"
 )
 
 func messy(days, tickers int, seed int64) *model.Prices {

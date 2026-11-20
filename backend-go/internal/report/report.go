@@ -1,4 +1,4 @@
-// Package report arma el JSON que lee el sitio (top3 site) (Top actual + backtest + ETFs + modelo por score) con los últimos
+// Package report arma el JSON que lee el sitio (top site) (Top actual + backtest + ETFs + modelo por score) con los últimos
 // resultados guardados en SQLite.
 //
 // Fecha: 2026-11-19
@@ -14,15 +14,15 @@ import (
 	"sort"
 	"time"
 
-	"top3/internal/actual"
-	"top3/internal/config"
-	"top3/internal/dateutil"
-	"top3/internal/db"
-	"top3/internal/history"
-	"top3/internal/logx"
-	"top3/internal/market"
-	"top3/internal/model"
-	"top3/internal/repo"
+	"top/internal/actual"
+	"top/internal/config"
+	"top/internal/dateutil"
+	"top/internal/db"
+	"top/internal/history"
+	"top/internal/logx"
+	"top/internal/market"
+	"top/internal/model"
+	"top/internal/repo"
 )
 
 type EquityPoint struct {

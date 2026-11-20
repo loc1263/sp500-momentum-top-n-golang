@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"top3/internal/db"
+	"top/internal/db"
 )
 
 func openTemp(t *testing.T) *sql.DB {

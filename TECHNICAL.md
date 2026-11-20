@@ -37,7 +37,7 @@ backend y el rendimiento, [`backend-go/README.md`](backend-go/README.md).
    gana en las dos mitades, su ventaja se sostiene. Con períodos cortos cada mitad tiene muy pocos rebalanceos.
 7. **Caché.** Todo se guarda en SQLite. Si se vuelve a correr el mismo día se reutiliza lo descargado;
    `--no-cache` fuerza una descarga nueva, pero no repite dentro de la misma corrida lo que ya bajó (p. ej. las
-   acciones en circulación), y `top3 pipeline` lo aplica solo al primer paso que descarga: los siguientes leen de
+   acciones en circulación), y `top pipeline` lo aplica solo al primer paso que descarga: los siguientes leen de
    SQLite lo que ese paso acaba de guardar. Las acciones en circulación cambian por trimestre, así que se
    reutilizan hasta `[data] shares_ttl_days` días (30 por defecto) aunque sean de otro día. Si es otro día, los
    precios se actualizan de forma incremental: solo se baja lo que falta desde la última descarga (tickers
@@ -70,37 +70,37 @@ cuando no se filtra.
 
 ## Uso
 
-Los comandos del backend se corren desde `backend-go/` (las rutas del config son relativas a esa carpeta). Abajo `top3` es
-`go run ./cmd/top3` o el binario que deja `go build -o bin/top3 ./cmd/top3`.
+Los comandos del backend se corren desde `backend-go/` (las rutas del config son relativas a esa carpeta). Abajo `top` es
+`go run ./cmd/top` o el binario que deja `go build -o bin/top ./cmd/top`.
 
 ### Generar y abrir el sitio
 
 ```
-top3 pipeline                          # datos + JSON + sitio estático en ../site
-top3 site                              # regenera ../site desde los JSON de output/ (sin descargar nada)
-top3 site --serve localhost:8080       # además lo sirve por HTTP (Ctrl+C lo detiene)
-top3 site --out ../site --report output/report.json --visor output/visor.json --evaluator output/evaluator.json
+top pipeline                          # datos + JSON + sitio estático en ../site
+top site                              # regenera ../site desde los JSON de output/ (sin descargar nada)
+top site --serve localhost:8080       # además lo sirve por HTTP (Ctrl+C lo detiene)
+top site --out ../site --report output/report.json --visor output/visor.json --evaluator output/evaluator.json
 ```
 
-El sitio es HTML, CSS y JS plano, sin Node ni build: `top3 site` arma las páginas con `html/template` (paquete `internal/site`) a partir de
+El sitio es HTML, CSS y JS plano, sin Node ni build: `top site` arma las páginas con `html/template` (paquete `internal/site`) a partir de
 `output/report.json` (Top actual, ETFs, modelo por score, backtest y About), `output/evaluator.json` (Evaluador) y `output/visor.json` (Visor),
-que dejan `top3 pipeline`, `top3 export`, `top3 evaluator` y `top3 visor`. Si falta uno, esa página dice qué comando correr y el resto se
+que dejan `top pipeline`, `top export`, `top evaluator` y `top visor`. Si falta uno, esa página dice qué comando correr y el resto se
 genera igual. Primero hay que haber corrido el pipeline al menos una vez. La carpeta `site/` se puede publicar en cualquier hosting estático.
 ### Pipeline completo
 
 ```
 cd backend-go
-top3 pipeline                           # todo: actualiza datos, backtest, Top actual, JSON y sitio estático
-top3 pipeline --tests          # corre antes los tests
-top3 pipeline --no-cache       # descarga todo de nuevo (solo el primer paso que descarga; los demás leen lo que acaba de guardar)
-top3 pipeline --years 7        # backtest de un único período
-top3 pipeline --skip-backtest  # solo Top actual + JSON (rápido)
-top3 pipeline --skip-actual    # omite el Top actual
-top3 pipeline --skip-etfq      # omite los ETFs por gestora
-top3 pipeline --skip-quant     # omite el modelo por score
-top3 pipeline --skip-evaluator # omite el evaluador de empresas
-top3 pipeline --skip-visor     # omite el visor de acciones grandes y ETFs
-top3 pipeline --skip-site      # no genera el sitio estático al final
+top pipeline                           # todo: actualiza datos, backtest, Top actual, JSON y sitio estático
+top pipeline --tests          # corre antes los tests
+top pipeline --no-cache       # descarga todo de nuevo (solo el primer paso que descarga; los demás leen lo que acaba de guardar)
+top pipeline --years 7        # backtest de un único período
+top pipeline --skip-backtest  # solo Top actual + JSON (rápido)
+top pipeline --skip-actual    # omite el Top actual
+top pipeline --skip-etfq      # omite los ETFs por gestora
+top pipeline --skip-quant     # omite el modelo por score
+top pipeline --skip-evaluator # omite el evaluador de empresas
+top pipeline --skip-visor     # omite el visor de acciones grandes y ETFs
+top pipeline --skip-site      # no genera el sitio estático al final
 ```
 
 Cada paso corre en su propio proceso y, si uno falla, se corta. Al final imprime el tiempo de cada paso.
@@ -109,21 +109,21 @@ Las excepciones son el evaluador de empresas y el visor, que son pasos **opciona
 ### Scripts sueltos
 
 ```
-top3 backtest                       # backtest normal (plazo de config.toml)
-top3 backtest --months 3            # backtest normal con otro plazo
-top3 backtest --sweep               # todo: 3 universos x (sweep + offsets) 
-top3 backtest --sweep --large-cap   # solo ese universo (sweep + offsets)
-top3 backtest --offsets             # solo el detalle de calendarios de arranque (universo completo)
-top3 backtest --no-cache            # vuelve a descargar todo
-top3 backtest --large-cap           # solo large-cap + mega-cap (>= 10 B)
-top3 backtest --min-cap-billions 200  # solo mega-cap (>= 200 B)
-top3 backtest --years 5             # un único período de 5 años
-top3 backtest --config otro.toml    # otro archivo de configuración
-top3 actual                         # Top N de hoy (plazo y top_n del config)
-top3 actual --months 6 --top-n 3    # otro plazo / otra cantidad
-top3 actual --min-cap-billions 200  # solo mega-cap
-top3 etfq                           # ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad
-top3 prune                            # borra reportes, corridas y caché viejos (7 días)
+top backtest                       # backtest normal (plazo de config.toml)
+top backtest --months 3            # backtest normal con otro plazo
+top backtest --sweep               # todo: 3 universos x (sweep + offsets) 
+top backtest --sweep --large-cap   # solo ese universo (sweep + offsets)
+top backtest --offsets             # solo el detalle de calendarios de arranque (universo completo)
+top backtest --no-cache            # vuelve a descargar todo
+top backtest --large-cap           # solo large-cap + mega-cap (>= 10 B)
+top backtest --min-cap-billions 200  # solo mega-cap (>= 200 B)
+top backtest --years 5             # un único período de 5 años
+top backtest --config otro.toml    # otro archivo de configuración
+top actual                         # Top N de hoy (plazo y top_n del config)
+top actual --months 6 --top-n 3    # otro plazo / otra cantidad
+top actual --min-cap-billions 200  # solo mega-cap
+top etfq                           # ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad
+top prune                            # borra reportes, corridas y caché viejos (7 días)
 go test ./...                                 # tests del backend
 ```
 
@@ -150,14 +150,14 @@ al arranque. Si se pasa un filtro explícito
   (N-1), la diferencia en puntos porcentuales y cuál gana en cada plazo. Las corridas del N-1 se guardan en SQLite
   con `skip_months = 1` y se ven en la pestaña *N-0 vs N-1*.
 
-### Top actual (`top3 actual`)
+### Top actual (`top actual`)
 
 Aplica a hoy la misma lógica del backtest: toma la lista actual del S&P 500 (con los alias de tickers),
 calcula el retorno de las últimas N x 21 ruedas y muestra las `top_n` mejores con ponderación igual.
 Usa `[backtest] months` y `top_n` del `config.toml`, y acepta `--months`, `--top-n`, `--large-cap`,
 `--min-cap-billions`, `--no-cache` y `--config`. Por defecto: 4 meses y 4 acciones.
 
-Reutiliza la base `data/top3.db`: si el backtest ya descargó los precios hoy, los lee de ahí y solo baja lo que
+Reutiliza la base `data/top.db`: si el backtest ya descargó los precios hoy, los lee de ahí y solo baja lo que
 falte; si no, descarga la ventana reciente sin tocar el histórico guardado. Cada resultado se guarda en la tabla
 `actual_picks`. El último dato de la ventana es el precio más reciente disponible, que durante la
 rueda puede ser intradía.
@@ -180,7 +180,7 @@ Además del Top, muestra:
 
 Correr el script dos veces con los mismos datos reemplaza el resultado en lugar de duplicarlo.
 
-### Evaluador de empresas (`top3 evaluator`)
+### Evaluador de empresas (`top evaluator`)
 
 Análisis fundamental de cada acción del **S&P 500 actual** (~500 empresas), sin backtest: una foto de hoy. Es una
 sección aparte: **no usa ni modifica** los scores, el ranking, las tablas de precios ni `fundamentals` de los otros modelos. De ellos
@@ -189,7 +189,7 @@ vía `gohoo` (`quoteSummary` y `fundamentals-timeseries`: 2 requests por empresa
 cada corrida los baja de nuevo y reemplaza el JSON.
 
 ```
-top3 evaluator             # ~45 segundos
+top evaluator             # ~45 segundos
 ```
 
 El resultado es `[evaluator] output` (`output/evaluator.json`, ignorado por git como `report.json`), que la página
@@ -216,7 +216,7 @@ sus métricas, nivel (`good`, `warn`, `bad`, `info`, `na`) y veredicto. Los umbr
 - **Cobertura mínima**: si menos de `[evaluator] min_coverage` (50%) de las empresas tienen datos, no se guarda el resultado y se
   conserva el JSON anterior (`TOP-EVA-002`). Las empresas sin datos se avisan con `TOP-EVA-001`.
 
-### Visor (`top3 visor`)
+### Visor (`top visor`)
 
 Tabla de **rendimientos, riesgo y comparación contra SPY** de las acciones de EE. UU. con capitalización mayor a 100 B (mega cap desde
 200 B) y de los 300 ETFs de mayor AUM (más los de `[visor] tickers`), sin backtest: una foto de hoy. Es una sección aparte: arma su
@@ -224,7 +224,7 @@ propio universo con el screener de Yahoo (`gohoo`) y no usa la base SQLite ni lo
 historial de 6 años (con dividendos) de cada instrumento y reemplaza el JSON (~450 instrumentos, ~50 segundos).
 
 ```
-top3 visor
+top visor
 ```
 
 El resultado es `[visor] output` (`output/visor.json`, ignorado por git), con una tabla por tipo (`acciones` y `etf`):
@@ -247,14 +247,14 @@ columnas, filas (`null` = sin dato) y cómo se formatea y se colorea cada column
 - **Cobertura mínima**: si menos de `[visor] min_coverage` (50%) de los instrumentos de un tipo tienen datos, no se guarda nada y se
   conserva el JSON anterior (`TOP-VIS-004`). Los que no tienen historial se avisan con `TOP-VIS-003`.
 
-### Modelo por score (`top3 quant`)
+### Modelo por score (`top quant`)
 
 Un score para cada acción del S&P 500 actual, **sin backtest**: es una foto de hoy. Corre dentro del pipeline, deja todo en
 SQLite (`quant_runs`, `fundamentals` y `ohlcv`) y en el JSON que lee la web.
 
 ```
-top3 quant             # ~1-2 minutos (baja datos financieros y OHLCV de ~500 empresas)
-top3 quant --no-cache  # vuelve a descargar precios, OHLCV y datos financieros
+top quant             # ~1-2 minutos (baja datos financieros y OHLCV de ~500 empresas)
+top quant --no-cache  # vuelve a descargar precios, OHLCV y datos financieros
 ```
 
 1. **Score de momentum (0-100)**: promedio del ranking de cada acción en el retorno de 12 y de 6 meses, sin contar el último
@@ -307,16 +307,16 @@ Yahoo puede tener datos faltantes o desactualizados (el flujo de caja libre de l
 coincide con los estados anuales); los promedios de rankings tratan igual a todos los indicadores; y el
 S&P 500 actual no incluye a las empresas que salieron del índice.
 
-### ETFs por gestora (`top3 etfq`)
+### ETFs por gestora (`top etfq`)
 
 Los ETFs de **iShares, Vanguard, SPDR (State Street), Invesco y
 Schwab** rankeados por momentum **y por calidad** (costo y tamaño), **sin backtest**. Es la primera fase del modelo
 multi-factor de [`docs/modelo-multifactor-etfs.md`](docs/modelo-multifactor-etfs.md): solo TER y AUM.
 
 ```
-top3 etfq                # corre todo y guarda el resultado (la web lo muestra en «ETFs por gestora»)
-top3 etfq --top-n 30     # más filas en la consola (el JSON del sitio trae todos)
-top3 pipeline --skip-etfq
+top etfq                # corre todo y guarda el resultado (la web lo muestra en «ETFs por gestora»)
+top etfq --top-n 30     # más filas en la consola (el JSON del sitio trae todos)
+top pipeline --skip-etfq
 ```
 
 **De dónde sale cada dato.** Todo viene de Yahoo Finance: las páginas de las gestoras bloquean las descargas automáticas, y el
@@ -351,7 +351,7 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 | Sección | Clave | Por defecto | Descripción |
 |---|---|---|---|
 | `[data]` | `history_years` | `12` | Años de histórico a descargar (composición y precios); debe superar el mayor período + 1 año de ranking |
-| | `db_path` | `"data/top3.db"` | Base SQLite |
+| | `db_path` | `"data/top.db"` | Base SQLite |
 | | `historical_url` | CSV de `hanshof` | Composición histórica del S&P 500 |
 | | `wikipedia_url`, `wikipedia_changes_url` | páginas de Wikipedia | Lista actual y altas/bajas del índice |
 | | `user_agent` | `"Mozilla/5.0"` | User-Agent de las descargas a Wikipedia |
@@ -375,10 +375,10 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 | `[universe]` | `min_cap_billions` | `10` | Umbral de `--large-cap` (miles de millones de US$) |
 | | `sweep_min_cap_billions` | `[0, 10, 200]` | Universos que corre `--sweep` por defecto (0 = índice completo) |
 | `[output]` | `dir`, `keep_days`, `*_subdir`, `*_prefix` | | Reservadas; no se generan reportes HTML. `dir` y `keep_days` solo sirven para limpiar archivos viejos |
-| | `frontend_data` | `"output/report.json"` | JSON de datos (Top actual, ETFs, modelo por score y backtest) que lee `top3 site` |
+| | `frontend_data` | `"output/report.json"` | JSON de datos (Top actual, ETFs, modelo por score y backtest) que lee `top site` |
 | | `history_file` | `"history/history.json"` | Historial del Top actual, suplentes y ETFs, versionado en git (ver [Historial en JSON](#historial-en-json)); `""` = desactivado |
 | | `log_dir` | `"log"` | Carpeta de los logs |
-| | `backtest_log`, `actual_log`, `etfq_log`, `quant_log` | `top3_*.log` | Nombres de los archivos de log |
+| | `backtest_log`, `actual_log`, `etfq_log`, `quant_log` | `top_*.log` | Nombres de los archivos de log |
 | `[etfq]` | `horizons_months` | `[3, 6, 12]` | Plazos del retorno ajustado por riesgo; el score es el promedio de sus cocientes |
 | | `min_vol` | `0.01` | Volatilidad anual mínima para entrar al ranking (1%): los ETFs por debajo son de tipo efectivo (letras del Tesoro, bonos ultracortos) y quedan fuera; `0` = rankear todos |
 | | `risk_free_ticker` | `"VUSB"` | ETF cuyo retorno se resta al de cada ETF (referencia libre de riesgo); `""` = no restar |
@@ -416,7 +416,7 @@ Los títulos y marcos de los resúmenes (cada paso del pipeline, `RESUMEN` y `RE
 comando). Solo si la salida es una terminal: al redirigir a archivo o pipe, o con
 `NO_COLOR=1`, va sin color. El archivo de log nunca lleva códigos de color.
 
-Al terminar cada comando (y `top3 pipeline`, con los de todos sus pasos juntos) se imprime un **resumen de avisos y
+Al terminar cada comando (y `top pipeline`, con los de todos sus pasos juntos) se imprime un **resumen de avisos y
 errores** agrupado por código, con cuántas veces ocurrió, un ejemplo y qué hacer según la tabla de
 [códigos de error](#códigos-de-error-y-aviso); los errores van primero. Si no hubo ninguno, no se imprime nada.
 
@@ -435,7 +435,7 @@ rebalanceo y el seguimiento). Ese historial se guarda además en `backend-go/his
 Así se puede borrar `backend-go/data/` sin perder nada importante: solo hay que volver a descargar los precios. Para usar el
 historial en otro entorno basta con clonar el repositorio.
 
-### SQLite (`backend-go/data/top3.db`)
+### SQLite (`backend-go/data/top.db`)
 
 | Tabla | Contenido |
 |---|---|
@@ -453,20 +453,20 @@ historial en otro entorno basta con clonar el repositorio.
 | `fundamentals` | Últimos datos financieros descargados de cada empresa (JSON) y su fecha |
 | `ohlcv` | Apertura, máximo, mínimo, cierre ajustado y volumen diarios del último año y medio de cada acción del S&P 500 (para los indicadores técnicos) |
 | `quant_runs` | Último resultado del modelo por score (JSON: ranking y Markowitz) |
-| `actual_picks`, `actual_alternates` | Resultados de `top3 actual` (fecha de datos, plazo, ticker, retorno, precio, capitalización) y sus suplentes |
+| `actual_picks`, `actual_alternates` | Resultados de `top actual` (fecha de datos, plazo, ticker, retorno, precio, capitalización) y sus suplentes |
 
 ### Limpieza de la base
 
 Cada backtest guarda cientos de corridas (parámetros, selecciones y curva de capital) y el informe solo usa la última de
 cada combinación del día más reciente. Para que la base no crezca sin límite:
 
-- Al terminar `top3 backtest` (y por lo tanto `top3 pipeline`) se borran las corridas de más de
+- Al terminar `top backtest` (y por lo tanto `top pipeline`) se borran las corridas de más de
   `[data] runs_keep_days` días (contados desde el último día con corridas) y las que otra corrida del mismo día
   reemplaza: las que tienen el mismo universo, período, plazo, desfase y modelo (N-0 o N-1), que es lo que
   identifica una corrida en el informe. Es rápido, así que se hace en cada ejecución. Compactar el archivo
   (`VACUUM`) es lo lento: se hace como mucho una vez por día.
-- Para forzarlo a mano: `top3 prune` (o `--keep-days N`). Además de las corridas, esa limpieza completa
-  (que `top3 pipeline` corre como último paso; se omite con `--skip-prune`) borra:
+- Para forzarlo a mano: `top prune` (o `--keep-days N`). Además de las corridas, esa limpieza completa
+  (que `top pipeline` corre como último paso; se omite con `--skip-prune`) borra:
   - los precios anteriores a la ventana de `[data] history_years`;
   - los datos de caché ya vencidos (acciones en circulación, datos financieros y tickers sin datos), y luego compacta
     la base.
@@ -476,7 +476,7 @@ cada combinación del día más reciente. Para que la base no crezca sin límite
 
 ### Depuración
 
-Cada ejecución escribe `log/top3_backtest.log` (o `log/top3_actual.log`) con nivel DEBUG: respuestas HTTP, forma de las
+Cada ejecución escribe `log/top_backtest.log` (o `log/top_actual.log`) con nivel DEBUG: respuestas HTTP, forma de las
 tablas, tickers sin datos, filtros de capitalización y retornos por período. El log se sobrescribe en cada
 corrida; la consola muestra solo el nivel INFO. Los avisos y errores llevan un ID estable (`TOP-BKT-003: ...`).
 
@@ -505,7 +505,7 @@ Formato: `TOP-<ÁREA>-<NNN>`.
 
 **Aviso** = se continúa con lo que haya. **Error** = la operación se corta o falla.
 
-Para buscar en el log: `grep TOP-BKT backend-go/log/top3_backtest.log`.
+Para buscar en el log: `grep TOP-BKT backend-go/log/top_backtest.log`.
 
 | ID | Nivel | Qué significa | Qué hacer |
 |---|---|---|---|
@@ -541,7 +541,7 @@ Para buscar en el log: `grep TOP-BKT backend-go/log/top3_backtest.log`.
 | `TOP-GES-003` | Error | Ningún ETF de las gestoras se pudo rankear | Revisa la conexión y `[etfq] families`; los ETFs nuevos entran cuando acumulan historia para el plazo más largo. |
 | `TOP-QNT-001` | Error | No hay acciones suficientes para el ranking del modelo por score | Descarga más historia (`--no-cache`) o baja `[quant] top_n`; revisa también `TOP-DAT-005`. |
 | `TOP-EVA-001` | Aviso | Empresas sin datos fundamentales en Yahoo | Quedan fuera del evaluador y se reintentan en la próxima corrida. |
-| `TOP-EVA-003` | Aviso | Una de las listas de empresas está vacía | El evaluador sigue con las demás. Para el S&P 500, corre antes `top3 actual` o el pipeline completo; si no quieres ese universo, pon `[evaluator] sp500 = false`. |
+| `TOP-EVA-003` | Aviso | Una de las listas de empresas está vacía | El evaluador sigue con las demás. Para el S&P 500, corre antes `top actual` o el pipeline completo; si no quieres ese universo, pon `[evaluator] sp500 = false`. |
 | `TOP-EVA-002` | Error | Se obtuvieron datos de muy pocas empresas | No se guardó el resultado para no reemplazar el anterior con uno incompleto. Suele ser un límite de Yahoo: reintenta más tarde o baja `[evaluator] min_coverage`. |
 | `TOP-VIS-001` | Error | No se pudo bajar el historial de SPY | SPY es la referencia de beta y de los rendimientos relativos. Revisa la conexión o reintenta más tarde (suele ser un límite de Yahoo). |
 | `TOP-VIS-002` | Error | El screener de Yahoo no devolvió instrumentos | Revisa la conexión y `[visor]` (`cap_min_billions`, `etf_top`, `etf_aum_min_millions`); reintenta más tarde. |
@@ -554,24 +554,24 @@ Para buscar en el log: `grep TOP-BKT backend-go/log/top3_backtest.log`.
 backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, evaluador de empresas, visor, sitio estático y base SQLite
   config.toml         # configuración
   history/            # datos que se versionan en git: el historial
-  cmd/top3/           # línea de comandos: backtest, actual, etfq, quant, evaluator, visor, export, site, prune y pipeline
+  cmd/top/           # línea de comandos: backtest, actual, etfq, quant, evaluator, visor, export, site, prune y pipeline
   internal/           # la lógica, un paquete por responsabilidad (internal/site genera el sitio)
-  output/             # JSON de datos que lee top3 site (report.json, evaluator.json, visor.json); se crea solo
-site/                 # sitio estático generado por top3 site (no se versiona)
+  output/             # JSON de datos que lee top site (report.json, evaluator.json, visor.json); se crea solo
+site/                 # sitio estático generado por top site (no se versiona)
 ```
 
 | Comando | Para qué sirve |
 |---|---|
-| `top3 backtest` | Backtest Point-in-Time, comparación de plazos y sensibilidad al calendario de arranque |
-| `top3 actual` | Top N de hoy: las acciones del S&P 500 con mejor retorno en el plazo configurado |
-| `top3 etfq` | ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM) dentro de su categoría (sin backtest) |
-| `top3 quant` | Modelo por score: scores de momentum, de salud financiera y técnico del S&P 500 y Markowitz sobre las mejores (sin backtest) |
-| `top3 evaluator` | Evaluador de empresas: análisis fundamental del S&P 500; escribe `output/evaluator.json` |
-| `top3 visor` | Visor: rendimientos, riesgo y comparación contra SPY de las acciones grandes y los ETFs de mayor AUM; escribe `output/visor.json` |
-| `top3 pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + evaluador + visor + JSON + sitio estático + limpieza |
-| `top3 prune` | Limpieza de lo viejo: corridas del backtest y caché vencida (el pipeline la corre al final) |
-| `top3 site` | Genera el sitio estático en `site/` (con `--serve` también lo sirve) |
-| `top3 export` | Escribe el JSON en `output/report.json` (lo hacen solos los comandos al terminar) |
+| `top backtest` | Backtest Point-in-Time, comparación de plazos y sensibilidad al calendario de arranque |
+| `top actual` | Top N de hoy: las acciones del S&P 500 con mejor retorno en el plazo configurado |
+| `top etfq` | ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM) dentro de su categoría (sin backtest) |
+| `top quant` | Modelo por score: scores de momentum, de salud financiera y técnico del S&P 500 y Markowitz sobre las mejores (sin backtest) |
+| `top evaluator` | Evaluador de empresas: análisis fundamental del S&P 500; escribe `output/evaluator.json` |
+| `top visor` | Visor: rendimientos, riesgo y comparación contra SPY de las acciones grandes y los ETFs de mayor AUM; escribe `output/visor.json` |
+| `top pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + evaluador + visor + JSON + sitio estático + limpieza |
+| `top prune` | Limpieza de lo viejo: corridas del backtest y caché vencida (el pipeline la corre al final) |
+| `top site` | Genera el sitio estático en `site/` (con `--serve` también lo sirve) |
+| `top export` | Escribe el JSON en `output/report.json` (lo hacen solos los comandos al terminar) |
 | `backend-go/data/`, `backend-go/log/` | Base SQLite y logs; se crean solos |
 
 El detalle de los paquetes de `backend-go/internal/` (config, db, repo, yahoo, market, engine, backtest, actual, etf, etfq, quant,
@@ -615,7 +615,7 @@ push a `main`:
 1. Restaura la base SQLite desde el caché de Actions (`backend-go/data`), corre los tests y el pipeline.
 2. Hace commit de `backend-go/history/history.json` si cambió (el commit del bot no
    dispara otra ejecución).
-3. Publica en GitHub Pages la carpeta `site/`, que el pipeline genera con `top3 site`.
+3. Publica en GitHub Pages la carpeta `site/`, que el pipeline genera con `top site`.
 
 Requiere activar Settings > Pages > Source = **GitHub Actions**. Si el caché se pierde (GitHub lo borra tras 7 días sin
 uso), la siguiente ejecución vuelve a bajar los precios (varios minutos) y restaura el historial desde el JSON. Si el

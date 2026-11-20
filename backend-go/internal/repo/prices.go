@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"top3/internal/db"
-	"top3/internal/model"
+	"top/internal/db"
+	"top/internal/model"
 )
 
 func SavePrices(d *sql.DB, rows []model.PriceRow) error {

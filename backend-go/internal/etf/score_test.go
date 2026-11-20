@@ -10,9 +10,9 @@ import (
 	"reflect"
 	"testing"
 
-	"top3/internal/model"
-	"top3/internal/stats"
-	"top3/internal/testutil"
+	"top/internal/model"
+	"top/internal/stats"
+	"top/internal/testutil"
 )
 
 type drift struct{ drift, vol float64 }

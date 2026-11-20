@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"math"
 
-	"top3/internal/config"
-	"top3/internal/logx"
+	"top/internal/config"
+	"top/internal/logx"
 )
 
 const (

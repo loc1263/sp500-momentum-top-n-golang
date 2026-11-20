@@ -130,7 +130,7 @@ var (
 		"No se guardó el resultado para no reemplazar el anterior con uno incompleto. Suele ser un límite de Yahoo: reintenta más tarde "+
 			"o baja [evaluator] min_coverage.")
 	EvaNoList = code("TOP-EVA-003", "warning", "Una de las listas de empresas está vacía",
-		"El evaluador sigue con las demás. Para el S&P 500, corre antes top3 actual o el pipeline completo (bajan la lista actual del índice); "+
+		"El evaluador sigue con las demás. Para el S&P 500, corre antes top actual o el pipeline completo (bajan la lista actual del índice); "+
 			"si no quieres ese universo, pon [evaluator] sp500 = false.")
 )
 

@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"top3/internal/evaluator"
+	"top/internal/evaluator"
 )
 
 type pillView struct{ Level, Text string }

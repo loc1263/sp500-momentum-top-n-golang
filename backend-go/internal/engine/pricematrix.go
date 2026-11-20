@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"top3/internal/model"
+	"top/internal/model"
 )
 
 type Matrix struct {

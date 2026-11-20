@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"top3/internal/config"
-	"top3/internal/dateutil"
-	"top3/internal/db"
-	"top3/internal/model"
-	"top3/internal/repo"
+	"top/internal/config"
+	"top/internal/dateutil"
+	"top/internal/db"
+	"top/internal/model"
+	"top/internal/repo"
 )
 
 func openTemp(t *testing.T) *sql.DB {

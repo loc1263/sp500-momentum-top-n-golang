@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strconv"
 
-	"top3/internal/config"
-	"top3/internal/etf"
+	"top/internal/config"
+	"top/internal/etf"
 )
 
 type Settings struct {

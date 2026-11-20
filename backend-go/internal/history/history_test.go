@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"top3/internal/config"
-	"top3/internal/db"
+	"top/internal/config"
+	"top/internal/db"
 )
 
 func testConfig(t *testing.T) config.Config {

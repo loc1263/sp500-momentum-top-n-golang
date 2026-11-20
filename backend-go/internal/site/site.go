@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"top3/internal/visor"
+	"top/internal/visor"
 )
 
 //go:embed templates/*.html static/*

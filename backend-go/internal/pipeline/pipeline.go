@@ -1,13 +1,13 @@
 // Package pipeline corre el proceso completo: tests (opcional) -> backtest de todos los períodos y universos -> Top actual de
 // cada universo -> ranking de ETFs -> modelo por score -> evaluador de empresas -> JSON del sitio -> sitio estático -> limpieza de lo viejo.
 //
-//	top3 pipeline                  # todo, con caché y descarga incremental de precios
-//	top3 pipeline --no-cache       # descarga todo de nuevo
-//	top3 pipeline --tests          # corre primero los tests
-//	top3 pipeline --skip-backtest  # solo Top actual + export
-//	top3 pipeline --skip-visor     # omite el visor de acciones grandes y ETFs
+//	top pipeline                  # todo, con caché y descarga incremental de precios
+//	top pipeline --no-cache       # descarga todo de nuevo
+//	top pipeline --tests          # corre primero los tests
+//	top pipeline --skip-backtest  # solo Top actual + export
+//	top pipeline --skip-visor     # omite el visor de acciones grandes y ETFs
 //
-// Cada paso es un comando (`top3 <comando>`) que se ejecuta en su propio proceso; si uno falla, el pipeline se corta.
+// Cada paso es un comando (`top <comando>`) que se ejecuta en su propio proceso; si uno falla, el pipeline se corta.
 // Períodos, plazos y universos salen de config.toml ([backtest] periods_years, [simulation] months,
 // [universe] sweep_min_cap_billions).
 //
@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"top3/internal/config"
-	"top3/internal/logx"
+	"top/internal/config"
+	"top/internal/logx"
 )
 
 type Step struct {
@@ -156,7 +156,7 @@ func Main(args []string) int {
 	steps := BuildSteps(cfg, o, self)
 	fmt.Printf("Pipeline: %d pasos\n\n", len(steps))
 
-	dir, err := os.MkdirTemp("", "top3-pipeline-")
+	dir, err := os.MkdirTemp("", "top-pipeline-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1

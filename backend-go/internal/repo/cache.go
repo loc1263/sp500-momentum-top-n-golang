@@ -8,7 +8,7 @@ package repo
 import (
 	"database/sql"
 
-	"top3/internal/db"
+	"top/internal/db"
 )
 
 func FreshShares(d *sql.DB, cutoff string) (map[string]float64, error) {

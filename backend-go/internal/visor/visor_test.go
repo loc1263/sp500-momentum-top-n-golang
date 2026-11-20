@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"top3/internal/config"
+	"top/internal/config"
 )
 
 func series(start string, values ...float64) Series {

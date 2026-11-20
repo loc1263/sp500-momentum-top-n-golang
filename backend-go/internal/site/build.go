@@ -15,10 +15,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"top3/internal/etfq"
-	"top3/internal/evaluator"
-	"top3/internal/report"
-	"top3/internal/visor"
+	"top/internal/etfq"
+	"top/internal/evaluator"
+	"top/internal/report"
+	"top/internal/visor"
 )
 
 // Inputs son los datos de las páginas; un puntero nulo significa que ese JSON no existe todavía.
@@ -127,7 +127,7 @@ func Build(in Inputs, outDir string) (string, error) {
 
 func (b *builder) visor(p *visor.Payload) error {
 	if p == nil {
-		return b.missing("visor.html", "visor", "No se pudo cargar el JSON del Visor. Ejecute top3 visor (o el pipeline) en backend-go/ y vuelva a generar el sitio.")
+		return b.missing("visor.html", "visor", "No se pudo cargar el JSON del Visor. Ejecute top visor (o el pipeline) en backend-go/ y vuelva a generar el sitio.")
 	}
 	body, err := newVisorPage(*p)
 	if err != nil {
@@ -138,21 +138,21 @@ func (b *builder) visor(p *visor.Payload) error {
 
 func (b *builder) actual(r *report.Report) error {
 	if r == nil || len(r.Actual) == 0 {
-		return b.missing("index.html", "actual", "Sin Top actual. Ejecute top3 actual y top3 export (en backend-go/) y vuelva a generar el sitio.")
+		return b.missing("index.html", "actual", "Sin Top actual. Ejecute top actual y top export (en backend-go/) y vuelva a generar el sitio.")
 	}
 	return b.write("index.html", "actual", "actual", newActualPage(r.Actual))
 }
 
 func (b *builder) etfq(p *etfq.Payload) error {
 	if p == nil {
-		return b.missing("etfq.html", "etfq", "Sin ETFs por gestora. Ejecute top3 etfq y top3 export (en backend-go/) y vuelva a generar el sitio.")
+		return b.missing("etfq.html", "etfq", "Sin ETFs por gestora. Ejecute top etfq y top export (en backend-go/) y vuelva a generar el sitio.")
 	}
 	return b.write("etfq.html", "etfq", "etfq", newEtfqPage(*p))
 }
 
 func (b *builder) evaluator(p *evaluator.Payload) error {
 	if p == nil {
-		return b.missing("evaluador.html", "evaluador", "No se pudo cargar el JSON del evaluador. Ejecute top3 evaluator (o el pipeline) en backend-go/ y vuelva a generar el sitio.")
+		return b.missing("evaluador.html", "evaluador", "No se pudo cargar el JSON del evaluador. Ejecute top evaluator (o el pipeline) en backend-go/ y vuelva a generar el sitio.")
 	}
 	if err := b.write("evaluador.html", "evaluador", "evaluador", newEvaluatorList(*p)); err != nil {
 		return err
@@ -167,7 +167,7 @@ func (b *builder) evaluator(p *evaluator.Payload) error {
 
 func (b *builder) about(r *report.Report) error {
 	if r == nil {
-		return b.missing("about.html", "about", "No se pudo cargar el reporte. Ejecute top3 export (o el pipeline) en backend-go/ y vuelva a generar el sitio.")
+		return b.missing("about.html", "about", "No se pudo cargar el reporte. Ejecute top export (o el pipeline) en backend-go/ y vuelva a generar el sitio.")
 	}
 	return b.write("about.html", "about", "about", newAboutPage(b.meta))
 }
@@ -208,7 +208,7 @@ func (b *builder) writeShell(file, name string, sh shell) error {
 
 func (b *builder) quant(q *quantData) error {
 	if q == nil {
-		return b.missing("quant.html", "quant", "Sin modelo por score. Ejecute top3 quant y top3 export (en backend-go/) y vuelva a generar el sitio.")
+		return b.missing("quant.html", "quant", "Sin modelo por score. Ejecute top quant y top export (en backend-go/) y vuelva a generar el sitio.")
 	}
 	return b.write("quant.html", "quant", "quant", newQuantPage(*q))
 }

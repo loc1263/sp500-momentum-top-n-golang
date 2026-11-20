@@ -8,8 +8,8 @@ import (
 	"math"
 	"time"
 
-	"top3/internal/dateutil"
-	"top3/internal/model"
+	"top/internal/dateutil"
+	"top/internal/model"
 )
 
 func BDays(start, end string) []time.Time {

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"top3/internal/config"
-	"top3/internal/db"
-	"top3/internal/repo"
+	"top/internal/config"
+	"top/internal/db"
+	"top/internal/repo"
 )
 
 func touch(t *testing.T, path string) {
@@ -29,8 +29,8 @@ func exists(path string) bool { _, err := os.Stat(path); return err == nil }
 
 func TestPruneOutputFilesCountsDaysFromTheNewestReport(t *testing.T) {
 	dir := t.TempDir()
-	names := []string{"backtest/top3_sweep_20260401.html", "backtest/top3_sweep_20260410.html", "actual/top3_actual_20260418.html",
-		"actual/top3_actual_20260420.html", "etf/top3_etf_asof_2025-06-30_20260420.html", "etf/sin_fecha.html", "notas.txt"}
+	names := []string{"backtest/top_sweep_20260401.html", "backtest/top_sweep_20260410.html", "actual/top_actual_20260418.html",
+		"actual/top_actual_20260420.html", "etf/top_etf_asof_2025-06-30_20260420.html", "etf/sin_fecha.html", "notas.txt"}
 	for _, n := range names {
 		touch(t, filepath.Join(dir, n))
 	}

@@ -15,13 +15,13 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top3/internal/dateutil"
-	"top3/internal/db"
-	"top3/internal/errs"
-	"top3/internal/logx"
-	"top3/internal/repo"
-	"top3/internal/stats"
-	"top3/internal/yahoo"
+	"top/internal/dateutil"
+	"top/internal/db"
+	"top/internal/errs"
+	"top/internal/logx"
+	"top/internal/repo"
+	"top/internal/stats"
+	"top/internal/yahoo"
 )
 
 var Fields = []string{"shortName", "sector", "marketCap", "returnOnEquity", "returnOnAssets", "profitMargins", "operatingMargins",

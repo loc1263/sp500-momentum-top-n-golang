@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"top3/internal/errs"
-	"top3/internal/termfmt"
+	"top/internal/errs"
+	"top/internal/termfmt"
 )
 
 const (
@@ -32,8 +32,8 @@ const (
 var levelNames = map[int]string{Debug: "DEBUG", Info: "INFO", Warning: "WARNING", Error: "ERROR"}
 
 const (
-	SummaryFileEnv = "TOP3_SUMMARY_FILE"
-	StepEnv        = "TOP3_STEP"
+	SummaryFileEnv = "TOP_SUMMARY_FILE"
+	StepEnv        = "TOP_STEP"
 )
 
 var (

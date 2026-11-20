@@ -13,23 +13,23 @@ una base SQLite y los JSON de datos (`output/`) con los que genera el sitio est�
 Desde esta carpeta (las rutas del `config.toml` son relativas a ella):
 
 ```
-go build -o bin/top3 ./cmd/top3    # bin/top3.exe en Windows (bin/ está ignorada por git)
-./bin/top3 pipeline                # todo: backtest, Top actual, ETFs, modelo por score, evaluador, JSON, sitio estático y limpieza
+go build -o bin/top ./cmd/top    # bin/top.exe en Windows (bin/ está ignorada por git)
+./bin/top pipeline                # todo: backtest, Top actual, ETFs, modelo por score, evaluador, JSON, sitio estático y limpieza
 ```
 
-o sin compilar: `go run ./cmd/top3 pipeline`.
+o sin compilar: `go run ./cmd/top pipeline`.
 
 | Comando | Opciones |
 |---|---|
-| `top3 pipeline` | `[--no-cache] [--years N] [--tests] [--skip-...]` |
-| `top3 backtest` | `[--sweep] [--offsets] [--months N] [--years N] [--large-cap] [--min-cap-billions N] [--no-cache]` |
-| `top3 actual` | `[--months N] [--top-n N] [--large-cap] [--min-cap-billions N] [--no-cache]` |
-| `top3 etfq` | `[--top-n N]` |
-| `top3 quant` | `[--no-cache]` |
-| `top3 evaluator` | `[--no-cache]` |
-| `top3 visor` | |
-| `top3 export` | |
-| `top3 prune` | `[--keep-days N]` |
+| `top pipeline` | `[--no-cache] [--years N] [--tests] [--skip-...]` |
+| `top backtest` | `[--sweep] [--offsets] [--months N] [--years N] [--large-cap] [--min-cap-billions N] [--no-cache]` |
+| `top actual` | `[--months N] [--top-n N] [--large-cap] [--min-cap-billions N] [--no-cache]` |
+| `top etfq` | `[--top-n N]` |
+| `top quant` | `[--no-cache]` |
+| `top evaluator` | `[--no-cache]` |
+| `top visor` | |
+| `top export` | |
+| `top prune` | `[--keep-days N]` |
 
 Todos aceptan `--config otro.toml` y `--help`. `--tests` corre `go test ./...` antes del pipeline.
 
@@ -39,7 +39,7 @@ en git vive en `backend-go/history/`: el historial (`history.json`).
 ## Estructura
 
 ```
-cmd/top3            punto de entrada: los nueve comandos
+cmd/top            punto de entrada: los nueve comandos
 internal/config     config.toml tipado (claves desconocidas = TOP-CFG-004)
 internal/errs       catálogo de códigos TOP-XXX-NNN
 internal/logx       log a consola (colores) y a archivo, y resumen de avisos y errores por código
@@ -94,7 +94,7 @@ Con los datos en caché (sin descargas), sobre la base de 12 años: `backtest --
 
 Lo que no mejoró: leer los ~1,8 millones de precios desde SQLite (≈1,3 s) lo domina el driver; leerlos en paralelo con varias
 conexiones no ayudó (se pelean por los mutex del driver), así que se dejó una sola lectura. Para perfilar cualquier comando:
-`TOP3_CPUPROFILE=cpu.prof top3 backtest --sweep` y `go tool pprof -top -cum top3 cpu.prof`.
+`TOP_CPUPROFILE=cpu.prof top backtest --sweep` y `go tool pprof -top -cum top cpu.prof`.
 
 ## Tests
 

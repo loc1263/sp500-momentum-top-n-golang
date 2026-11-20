@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"top3/internal/visor"
+	"top/internal/visor"
 )
 
 func sample() visor.Payload {

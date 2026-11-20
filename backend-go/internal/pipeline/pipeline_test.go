@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"top3/internal/config"
+	"top/internal/config"
 )
 
 func names(steps []Step) []string {
@@ -24,7 +24,7 @@ func names(steps []Step) []string {
 
 func TestPipelineSteps(t *testing.T) {
 	cfg := config.Default()
-	steps := BuildSteps(cfg, Options{Config: "config.toml", NoCache: true, Years: 7, Tests: true}, "top3")
+	steps := BuildSteps(cfg, Options{Config: "config.toml", NoCache: true, Years: 7, Tests: true}, "top")
 	n := names(steps)
 	if n[0] != "Tests" || !reflect.DeepEqual(n[len(n)-3:], []string{"Exportar JSON para el sitio", "Generar el sitio estático (HTML, CSS y JS)", "Limpieza de datos y reportes viejos"}) {
 		t.Fatalf("pasos: %v", n)
@@ -49,7 +49,7 @@ func TestPipelineSteps(t *testing.T) {
 		t.Fatalf("universos del Top actual: %v", withCap)
 	}
 
-	only := BuildSteps(cfg, Options{Config: "config.toml", SkipBacktest: true, SkipActual: true, SkipEtfq: true, SkipQuant: true, SkipEvaluator: true, SkipVisor: true, SkipSite: true, SkipPrune: true}, "top3")
+	only := BuildSteps(cfg, Options{Config: "config.toml", SkipBacktest: true, SkipActual: true, SkipEtfq: true, SkipQuant: true, SkipEvaluator: true, SkipVisor: true, SkipSite: true, SkipPrune: true}, "top")
 	if !reflect.DeepEqual(names(only), []string{"Exportar JSON para el sitio"}) {
 		t.Fatalf("solo export: %v", names(only))
 	}
@@ -59,7 +59,7 @@ func TestPipelinePassesNoCacheOnlyToTheFirstDownloadingStep(t *testing.T) {
 	cfg := config.Default()
 	flagged := func(o Options) []string {
 		var out []string
-		for _, s := range BuildSteps(cfg, o, "top3") {
+		for _, s := range BuildSteps(cfg, o, "top") {
 			if slices.Contains(s.Cmd, "--no-cache") {
 				out = append(out, s.Name)
 			}
@@ -81,7 +81,7 @@ func TestPipelinePassesNoCacheOnlyToTheFirstDownloadingStep(t *testing.T) {
 }
 
 func TestOnlyEvaluatorAndVisorAreOptional(t *testing.T) {
-	for _, s := range BuildSteps(config.Default(), Options{Config: "c.toml"}, "top3") {
+	for _, s := range BuildSteps(config.Default(), Options{Config: "c.toml"}, "top") {
 		if want := strings.HasPrefix(s.Name, "Evaluador") || strings.HasPrefix(s.Name, "Visor"); s.Optional != want {
 			t.Errorf("%s: Optional = %v, quiero %v", s.Name, s.Optional, want)
 		}
@@ -89,8 +89,8 @@ func TestOnlyEvaluatorAndVisorAreOptional(t *testing.T) {
 }
 
 func TestStepCommandsCarryTheConfigPath(t *testing.T) {
-	for _, s := range BuildSteps(config.Default(), Options{Config: "otro.toml"}, "/bin/top3") {
-		if s.Cmd[0] == "/bin/top3" && !(slices.Contains(s.Cmd, "--config") && slices.Contains(s.Cmd, "otro.toml")) {
+	for _, s := range BuildSteps(config.Default(), Options{Config: "otro.toml"}, "/bin/top") {
+		if s.Cmd[0] == "/bin/top" && !(slices.Contains(s.Cmd, "--config") && slices.Contains(s.Cmd, "otro.toml")) {
 			t.Errorf("%s no lleva --config: %v", s.Name, s.Cmd)
 		}
 	}
@@ -98,7 +98,7 @@ func TestStepCommandsCarryTheConfigPath(t *testing.T) {
 
 func TestSkipVisorOmitsTheStep(t *testing.T) {
 	has := func(o Options) bool {
-		for _, s := range BuildSteps(config.Default(), o, "top3") {
+		for _, s := range BuildSteps(config.Default(), o, "top") {
 			if strings.HasPrefix(s.Name, "Visor") {
 				return slices.Contains(s.Cmd, "visor")
 			}

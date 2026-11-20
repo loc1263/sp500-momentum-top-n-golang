@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"top3/internal/dateutil"
+	"top/internal/dateutil"
 )
 
 type Changes struct {

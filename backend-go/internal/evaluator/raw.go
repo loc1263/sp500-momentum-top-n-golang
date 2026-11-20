@@ -14,7 +14,7 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top3/internal/yahoo"
+	"top/internal/yahoo"
 )
 
 type Trend struct {

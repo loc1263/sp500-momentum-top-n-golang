@@ -1,4 +1,4 @@
-module top3
+module top
 
 go 1.26.0
 

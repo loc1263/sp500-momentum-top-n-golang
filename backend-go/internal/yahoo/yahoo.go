@@ -11,8 +11,8 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top3/internal/errs"
-	"top3/internal/logx"
+	"top/internal/errs"
+	"top/internal/logx"
 )
 
 const (

@@ -1,6 +1,6 @@
 name: Actualizar datos y publicar
 
-# Corre el pipeline del backend, guarda el historial en git y publica el sitio estático (generado por top3 site) en GitHub Pages.
+# Corre el pipeline del backend, guarda el historial en git y publica el sitio estático (generado por top site) en GitHub Pages.
 # Requiere: Settings > Pages > Source = "GitHub Actions".
 on:
   schedule:
@@ -33,8 +33,8 @@ jobs:
         uses: actions/cache@v6
         with:
           path: backend-go/data
-          key: top3-db-${{ github.run_id }}
-          restore-keys: top3-db-
+          key: top-db-${{ github.run_id }}
+          restore-keys: top-db-
 
       # Se compila con el Go de go.mod (staticcheck debe estar hecho con una versión igual o más nueva que la del módulo).
       # Versión fija para que un release nuevo no frene la publicación; subirla a propósito.
@@ -51,8 +51,8 @@ jobs:
       - name: Pipeline
         working-directory: backend-go
         run: |
-          go build -o bin/top3 ./cmd/top3
-          ./bin/top3 pipeline
+          go build -o bin/top ./cmd/top
+          ./bin/top pipeline
 
       - name: Guardar historial en git
         run: |

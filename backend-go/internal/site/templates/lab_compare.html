@@ -4,7 +4,7 @@
 {{- with .Body}}
   {{template "labbar" .Bar}}
   {{- if .Empty}}
-  <p class="muted">Sin resultados del modelo skip-month para este universo y período. Ejecute top3 backtest --sweep (en backend-go/).</p>
+  <p class="muted">Sin resultados del modelo skip-month para este universo y período. Ejecute top backtest --sweep (en backend-go/).</p>
   {{- else}}
   <div class="best">
     <p class="line"><strong>{{.Headline}}</strong> Diferencia media del resultado típico (N-1 menos N-0): <strong class="{{.AvgClass}}">{{.AvgDiff}} anual</strong>.</p>

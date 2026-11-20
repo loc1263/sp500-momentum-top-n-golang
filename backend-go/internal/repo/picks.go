@@ -8,7 +8,7 @@ import (
 	"database/sql"
 	"sort"
 
-	"top3/internal/db"
+	"top/internal/db"
 )
 
 const (
