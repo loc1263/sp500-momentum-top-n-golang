@@ -116,7 +116,7 @@ func pillText(level evaluator.Level, own string, labels [3]string) string {
 	return verdictText(level)
 }
 
-// sparkSVG dibuja la serie corta como minigráfico SVG (equivale a Spark.svelte): línea, puntos con título y línea de cero.
+// sparkSVG dibuja la serie corta como minigráfico SVG: línea, puntos con título y línea de cero.
 func sparkSVG(values []*float64, years []string, label string) string {
 	const w, h, px, top, bottom = 300.0, 72.0, 12.0, 10.0, 62.0
 	type pt struct {

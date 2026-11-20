@@ -1,4 +1,4 @@
-// Gráfico de líneas SVG de series de capital en el tiempo (equivale a Chart.svelte): ejes, líneas y leyenda salen de Go; chart.js
+// Gráfico de líneas SVG de series de capital en el tiempo: ejes, líneas y leyenda salen de Go; chart.js
 // agrega el cursor y el cuadro de valores al pasar el mouse, a partir de los datos incrustados en data-chart.
 //
 // Fecha: 2026-11-19

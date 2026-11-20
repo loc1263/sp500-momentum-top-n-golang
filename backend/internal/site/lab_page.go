@@ -42,7 +42,7 @@ type rangeView struct {
 	Late                         bool
 }
 
-// newRange arma la leyenda «Período: desde a hasta (N años)» y avisa si el primer rebalanceo efectivo llegó tarde (Range.svelte).
+// newRange arma la leyenda «Período: desde a hasta (N años)» y avisa si el primer rebalanceo efectivo llegó tarde.
 func newRange(start, end string, years float64, first string) rangeView {
 	r := rangeView{Start: start, End: end, First: first}
 	if years != 0 {
