@@ -20,11 +20,14 @@
       <label>Veredicto
         <select data-filter="verdict"><option value="">Todos</option>{{range .Verdicts}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select>
       </label>
+      <label class="check"><input type="checkbox" data-filter-bool="solid"> Sólida</label>
+      <label class="check"><input type="checkbox" data-filter-bool="cheap"> Barata</label>
       <label class="grow">Buscar
         <input type="search" data-search placeholder="Ticker o nombre">
       </label>
     </div>
-    <p class="muted">Haga clic en una empresa para ver su análisis. El veredicto resume las categorías: «Bien» si el promedio es alto y ninguna es una alerta, «Alerta» si es bajo.</p>
+    <p class="muted">Haga clic en una empresa para ver su análisis. El veredicto resume las categorías: «Bien» si el promedio es alto y ninguna es una alerta, «Alerta» si es bajo.
+      La columna «Sólida y barata» es aparte: marca las empresas con Rentabilidad, Caja y Deuda en «Bien» (sólida) y con P/E, EV/EBITDA y EV/FCF sin ninguno caro (barata). Es un filtro para revisar, no una recomendación; los bancos no califican como sólidos porque no tienen sección de deuda.</p>
     <div class="wrap">
       <table>
         <thead>

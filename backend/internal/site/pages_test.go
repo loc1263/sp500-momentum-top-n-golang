@@ -131,7 +131,8 @@ func TestBuildPaginas(t *testing.T) {
 
 	wantAll(t, "evaluador.html", read(t, out, "evaluador.html"),
 		`data-href="empresa.html#BRK-B"`, `data-q="brk-b berkshire &lt;hathaway&gt;"`, `<span class="dotv good"`, `<span class="pill good">Bien</span>`, "1,0 B"[:0]+"1.000 B USD",
-		"Pares", "2 de S&amp;P 500"[:0]+"2 de S&amp;P 500", `<option value="good">Bien</option>`)
+		"Pares", "2 de S&amp;P 500"[:0]+"2 de S&amp;P 500", `<option value="good">Bien</option>`,
+		"Sólida y barata", `data-filter-bool="solid"`, `data-filter-bool="cheap"`, `data-f-solid="0"`, `data-f-cheap="0"`, `<td class="muted" data-v="3">—</td>`)
 
 	pagina := read(t, out, "empresa.html")
 	wantAll(t, "empresa.html", pagina, `href="site.css"`, `href="evaluador.html"`, `src="empresas.js"`, `src="alpine.min.js"`, `x-data="empresa"`)

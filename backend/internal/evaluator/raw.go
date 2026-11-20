@@ -18,26 +18,31 @@ import (
 )
 
 type Trend struct {
-	Years     []string
-	Revenue   []float64
-	NetIncome []float64
-	FCF       []float64
-	OpMargin  []float64
-	Debt      []float64
+	Years       []string
+	Revenue     []float64
+	NetIncome   []float64
+	EPS         []float64
+	GrossMargin []float64
+	FCF         []float64
+	OpMargin    []float64
+	Debt        []float64
 }
 
 type Raw struct {
 	Ticker, Name, Sector, Industry, Currency, FinCurrency, Rating string
 
-	Price, MarketCap, Beta, W52Low, W52High  float64
-	PE, FwdPE, EPS, Dividend                 float64
-	RevGrowth, EpsGrowth, ROE                float64
-	Target                                   float64
-	Revenue, NetIncome, OCF, FCF, Debt, Cash float64
-	CurrentRatio, DebtToEquity               float64
-	QRevenue, QOpIncome, QInterest, QEquity  float64
-	AsOf                                     string
-	Trend                                    Trend
+	Price, MarketCap, Beta, W52Low, W52High float64
+	PE, FwdPE, EPS, Dividend                float64
+	RevGrowth, EpsGrowth, ROE               float64
+	Target                                  float64
+	Revenue, NetIncome, OCF, FCF, Capex     float64
+	Debt, Cash                              float64
+	CurrentRatio, DebtToEquity              float64
+	EBITDA, EBIT, TaxRate, InvestedCapital  float64
+	GrossMargin, PB, PEG, Payout            float64
+	QRevenue, QOpIncome, QInterest, QEquity float64
+	AsOf                                    string
+	Trend                                   Trend
 }
 
 func (r Raw) sameCurrency() bool {
@@ -49,7 +54,8 @@ const financialSector = "Financial Services"
 func (r Raw) isBank() bool { return r.Sector == financialSector && isNaN(r.CurrentRatio) }
 
 func (r Raw) withoutCashAndDebt() Raw {
-	r.OCF, r.FCF, r.Debt, r.Cash, r.DebtToEquity, r.QInterest = nan, nan, nan, nan, nan, nan
+	r.OCF, r.FCF, r.Capex, r.Debt, r.Cash, r.DebtToEquity, r.QInterest = nan, nan, nan, nan, nan, nan, nan
+	r.EBITDA, r.EBIT, r.InvestedCapital = nan, nan, nan
 	blank := func(a []float64) []float64 {
 		out := make([]float64, len(a))
 		for i := range out {
@@ -64,6 +70,8 @@ func (r Raw) withoutCashAndDebt() Raw {
 var timeseriesTypes = []string{
 	"annualTotalRevenue", "annualNetIncome", "annualFreeCashFlow", "annualOperatingIncome", "annualTotalDebt",
 	"quarterlyTotalRevenue", "quarterlyOperatingIncome", "quarterlyInterestExpense", "quarterlyStockholdersEquity",
+	"trailingOperatingCashFlow", "trailingFreeCashFlow", "trailingCapitalExpenditure", "trailingEBITDA", "trailingEBIT",
+	"quarterlyInvestedCapital", "quarterlyTaxRateForCalcs", "annualDilutedEPS", "annualGrossProfit",
 }
 
 const TrendYears = 5
@@ -109,7 +117,13 @@ func BuildRaw(ticker string, info, ts map[string]any) Raw {
 		Target:  num(info, "targetMeanPrice"),
 		Revenue: num(info, "totalRevenue"), NetIncome: num(info, "netIncomeToCommon"), OCF: num(info, "operatingCashflow"), FCF: num(info, "freeCashflow"),
 		Debt: num(info, "totalDebt"), Cash: num(info, "totalCash"), CurrentRatio: num(info, "currentRatio"), DebtToEquity: num(info, "debtToEquity"),
-		QRevenue: nan, QOpIncome: nan, QInterest: nan, QEquity: nan,
+		EBITDA: num(info, "ebitda"), EBIT: nan, TaxRate: nan, InvestedCapital: nan,
+		GrossMargin: scale(num(info, "grossMargins"), 100), PB: num(info, "priceToBook"), PEG: num(info, "pegRatio"),
+		Payout: scale(num(info, "payoutRatio"), 100),
+		Capex:  nan, QRevenue: nan, QOpIncome: nan, QInterest: nan, QEquity: nan,
+	}
+	if r.GrossMargin == 0 { // Yahoo informa 0 en bancos y aseguradoras, que no tienen costo de ventas
+		r.GrossMargin = nan
 	}
 	if r.Name == "" {
 		r.Name = gohoo.AsString(info["shortName"])
@@ -130,8 +144,33 @@ func BuildRaw(ticker string, info, ts map[string]any) Raw {
 		r.QInterest = math.Abs(pointOn(ts, "quarterlyInterestExpense", r.AsOf))
 		r.QEquity = pointOn(ts, "quarterlyStockholdersEquity", r.AsOf)
 	}
+	// info.freeCashflow de Yahoo no cuadra con los estados financieros (MSFT: 3 mil millones contra 60 reales);
+	// las series de 12 meses sí, así que mandan y info queda de respaldo.
+	if v, ok := latest(ts, "trailingOperatingCashFlow"); ok {
+		r.OCF = v
+	}
+	if v, ok := latest(ts, "trailingFreeCashFlow"); ok {
+		r.FCF = v
+	}
+	if v, ok := latest(ts, "trailingCapitalExpenditure"); ok {
+		r.Capex = math.Abs(v)
+	}
+	for typ, dst := range map[string]*float64{"trailingEBITDA": &r.EBITDA, "trailingEBIT": &r.EBIT,
+		"quarterlyInvestedCapital": &r.InvestedCapital, "quarterlyTaxRateForCalcs": &r.TaxRate} {
+		if v, ok := latest(ts, typ); ok {
+			*dst = v
+		}
+	}
 	r.Trend = buildTrend(ts)
 	return r
+}
+
+func latest(ts map[string]any, typ string) (float64, bool) {
+	pts := gohoo.TimeseriesPoints(ts, typ)
+	if len(pts) == 0 || isNaN(pts[0].Value) {
+		return nan, false
+	}
+	return pts[0].Value, true
 }
 
 func pointOn(ts map[string]any, typ, date string) float64 {
@@ -157,6 +196,12 @@ func buildTrend(ts map[string]any) Trend {
 		t.Years = append(t.Years, fiscalYear(d))
 		t.Revenue = append(t.Revenue, base[i].Value)
 		t.NetIncome = append(t.NetIncome, pointOn(ts, "annualNetIncome", d))
+		t.EPS = append(t.EPS, pointOn(ts, "annualDilutedEPS", d))
+		gross := nan
+		if gp := pointOn(ts, "annualGrossProfit", d); !isNaN(gp) && base[i].Value != 0 {
+			gross = gp / base[i].Value * 100
+		}
+		t.GrossMargin = append(t.GrossMargin, gross)
 		t.FCF = append(t.FCF, pointOn(ts, "annualFreeCashFlow", d))
 		t.OpMargin = append(t.OpMargin, margin)
 		t.Debt = append(t.Debt, pointOn(ts, "annualTotalDebt", d))

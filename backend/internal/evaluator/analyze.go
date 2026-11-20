@@ -153,7 +153,8 @@ func Analyze(r Raw, universe string) Company {
 	}
 	c.Categories = cats
 	c.peerVals = map[string]float64{"pe": peOf(r), "fwd_pe": r.FwdPE, "rev_growth": r.RevGrowth, "net_margin": netMarginOf(r),
-		"op_margin": opMarginOf(r), "roe": roeOf(r), "fcf_margin": fcfMarginOf(r)}
+		"op_margin": opMarginOf(r), "roe": roeOf(r), "fcf_margin": fcfMarginOf(r), "roic": roicOf(r),
+		"ev_ebitda": evRatio(evOf(r), r.EBITDA), "ps": psOf(r), "pb": r.PB}
 	c.Verdict = overall(c.Categories)
 	return c
 }
@@ -188,6 +189,38 @@ func roeOf(r Raw) float64 {
 	return r.ROE
 }
 
+// evOf es el valor empresarial: capitalización + deuda − caja. NaN si falta algún dato o las monedas difieren.
+func evOf(r Raw) float64 {
+	if r.MarketCap > 0 && !isNaN(r.Debt) && !isNaN(r.Cash) && r.sameCurrency() {
+		return r.MarketCap + r.Debt - r.Cash
+	}
+	return nan
+}
+
+// evRatio divide el valor empresarial entre una medida de resultado. Con resultado negativo el cociente es negativo
+// (se clasifica como «sin utilidad»); con cero o sin dato no hay cociente.
+func evRatio(ev, d float64) float64 {
+	if isNaN(ev) || isNaN(d) || d == 0 || ev <= 0 {
+		return nan
+	}
+	return ev / d
+}
+
+func psOf(r Raw) float64 {
+	if r.MarketCap > 0 && r.Revenue > 0 && r.sameCurrency() {
+		return r.MarketCap / r.Revenue
+	}
+	return nan
+}
+
+// roicOf es el retorno sobre el capital invertido: EBIT después de impuestos ÷ capital invertido.
+func roicOf(r Raw) float64 {
+	if isNaN(r.EBIT) || isNaN(r.TaxRate) || !(r.InvestedCapital > 0) {
+		return nan
+	}
+	return r.EBIT * (1 - math.Min(1, math.Max(0, r.TaxRate))) / r.InvestedCapital * 100
+}
+
 func fcfMarginOf(r Raw) float64 {
 	if !isNaN(r.FCF) && r.Revenue > 0 {
 		return r.FCF / r.Revenue * 100
@@ -206,7 +239,10 @@ func profitability(r Raw) []Metric {
 	if roe > 60 {
 		prof[2].Level, prof[2].Label = Warn, "Muy alto"
 	}
-	return prof
+	roic := roicOf(r)
+	return append(prof,
+		m("roic", roic, ifOK(roic, func() Level { return hi(roic, 15, 10) })),
+		m("gross_margin", r.GrossMargin, Info))
 }
 
 // growth: crecimiento de ingresos y utilidad, y calidad de la utilidad (Forward P/E contra P/E).
@@ -234,11 +270,7 @@ func growth(r Raw) []Metric {
 
 // cashFlow: flujo de caja libre, su margen, la cobertura de la inversión y el rendimiento sobre la capitalización.
 func cashFlow(r Raw) []Metric {
-	fcf, ocf := r.FCF, r.OCF
-	capex := nan
-	if !isNaN(ocf) && !isNaN(fcf) {
-		capex = ocf - fcf
-	}
+	fcf, ocf, capex := r.FCF, r.OCF, r.Capex
 	fcfMargin := fcfMarginOf(r)
 	cover := nan
 	if !isNaN(ocf) && capex > 0 {
@@ -252,11 +284,16 @@ func cashFlow(r Raw) []Metric {
 	if fcf > 0 {
 		fcfLevel = Good
 	}
+	payout := r.Payout
+	if isNaN(r.Dividend) || r.Dividend == 0 || payout < 0 {
+		payout = nan
+	}
 	return []Metric{
 		m("fcf", fcf, fcfLevel),
 		m("fcf_margin", fcfMargin, ifOK(fcfMargin, func() Level { return hi(fcfMargin, 8, 0) })),
 		m("capex_cover", cover, ifOK(cover, func() Level { return hi(cover, 1.1, 0.8) })),
 		m("fcf_yield", fcfYield, ifOK(fcfYield, func() Level { return hi(fcfYield, 3, 0) })),
+		m("payout", payout, ifOK(payout, func() Level { return lo(payout, 60, 80) })),
 	}
 }
 
@@ -270,6 +307,10 @@ func leverage(r Raw) []Metric {
 	netDebtYears := nan
 	if !isNaN(netDebt) && ocf > 0 {
 		netDebtYears = math.Max(netDebt, 0) / ocf
+	}
+	netDebtEBITDA := nan
+	if !isNaN(netDebt) && r.EBITDA > 0 {
+		netDebtEBITDA = math.Max(netDebt, 0) / r.EBITDA
 	}
 	interestCover := nan
 	if !isNaN(r.QOpIncome) && r.QInterest > 0 {
@@ -299,6 +340,7 @@ func leverage(r Raw) []Metric {
 	}
 	return []Metric{
 		nd,
+		m("net_debt_ebitda", netDebtEBITDA, ifOK(netDebtEBITDA, func() Level { return lo(netDebtEBITDA, 2, 3) })),
 		m("net_debt_years", netDebtYears, ifOK(netDebtYears, func() Level { return lo(netDebtYears, 1, 3) })),
 		m("interest_cover", interestCover, ifOK(interestCover, func() Level { return hi(interestCover, 8, 3) })),
 		m("current_ratio", r.CurrentRatio, ifOK(r.CurrentRatio, func() Level { return hi(r.CurrentRatio, 1.2, 1) })),
@@ -317,9 +359,12 @@ func valuationMetrics(r Raw) []Metric {
 	if r.W52High > r.W52Low && !isNaN(r.Price) {
 		pos = math.Min(100, math.Max(0, (r.Price-r.W52Low)/(r.W52High-r.W52Low)*100))
 	}
-	peM, fpeM := m("pe", pe, NA), m("fwd_pe", r.FwdPE, NA)
-	peM.Level, peM.Label = valuation(pe)
-	fpeM.Level, fpeM.Label = valuation(r.FwdPE)
+	peM, fpeM := valMetric("pe", pe, 15, 30, "Sin utilidad"), valMetric("fwd_pe", r.FwdPE, 15, 30, "Sin utilidad")
+	ev := evOf(r)
+	evEbitdaM := valMetric("ev_ebitda", evRatio(ev, r.EBITDA), 10, 18, "Sin utilidad")
+	evFcfM := valMetric("ev_fcf", evRatio(ev, r.FCF), 15, 30, "Sin caja libre")
+	pegM := valMetric("peg", r.PEG, 1, 2, "Sin crecimiento")
+	psM, pbM := m("ps", psOf(r), Info), m("pb", r.PB, Info)
 	upM := m("target_upside", upside, ifOK(upside, func() Level { return hi(upside, 15, 0) }))
 	switch {
 	case isNaN(upside):
@@ -360,7 +405,7 @@ func valuationMetrics(r Raw) []Metric {
 	if r.Rating != "" {
 		ratingM = Metric{ID: "rating", Level: Info, Text: r.Rating}
 	}
-	return []Metric{peM, fpeM, upM, posM, betaM, divM, ratingM}
+	return []Metric{peM, fpeM, evEbitdaM, evFcfM, pegM, psM, pbM, upM, posM, betaM, divM, ratingM}
 }
 
 func ifOK(v float64, f func() Level) Level {
@@ -370,18 +415,26 @@ func ifOK(v float64, f func() Level) Level {
 	return f()
 }
 
-func valuation(v float64) (Level, string) {
+// valuationBand clasifica un múltiplo de valoración: barato bajo cheap, medio hasta fair, caro por encima.
+// Un valor no positivo (sin utilidad, sin caja o sin crecimiento) es alerta con la etiqueta none.
+func valuationBand(v, cheap, fair float64, none string) (Level, string) {
 	switch {
 	case isNaN(v):
 		return NA, ""
 	case v <= 0:
-		return Bad, "Sin utilidad"
-	case v < 15:
+		return Bad, none
+	case v < cheap:
 		return Good, "Barato"
-	case v <= 30:
+	case v <= fair:
 		return Warn, "Medio"
 	}
 	return Bad, "Caro"
+}
+
+func valMetric(id string, v, cheap, fair float64, none string) Metric {
+	mt := m(id, v, NA)
+	mt.Level, mt.Label = valuationBand(v, cheap, fair, none)
+	return mt
 }
 
 func overall(cats []Category) Level {
@@ -443,19 +496,23 @@ func trend(r Raw) Category {
 		add("tr_revenue", t.Revenue, b, ifOK(revCagr, func() Level { return hi(revCagr, 10, 3) }), "Crecimiento anual compuesto de las ventas"+span(i, j)+".")
 		cat.Metrics[len(cat.Metrics)-1].Label = pctLabel(revCagr)
 	}
-	if i, j, a, b, ok := firstLast(t.NetIncome); ok {
-		c := cagr(a, b, j-i)
-		lv := Bad
-		if isNaN(c) {
-			if b > 0 {
-				lv = Warn
+	earnings := func(id string, vals []float64, what string) {
+		if i, j, a, b, ok := firstLast(vals); ok {
+			c := cagr(a, b, j-i)
+			lv := Bad
+			if isNaN(c) {
+				if b > 0 {
+					lv = Warn
+				}
+			} else {
+				lv = hi(c, 10, 3)
 			}
-		} else {
-			lv = hi(c, 10, 3)
+			add(id, vals, b, lv, "Crecimiento anual compuesto de "+what+span(i, j)+".")
+			cat.Metrics[len(cat.Metrics)-1].Label = pctLabel(c)
 		}
-		add("tr_net_income", t.NetIncome, b, lv, "Crecimiento anual compuesto de la ganancia"+span(i, j)+".")
-		cat.Metrics[len(cat.Metrics)-1].Label = pctLabel(c)
 	}
+	earnings("tr_net_income", t.NetIncome, "la ganancia")
+	earnings("tr_eps", t.EPS, "la ganancia por acción")
 	if i, j, a, b, ok := firstLast(t.FCF); ok {
 		c := cagr(a, b, j-i)
 		lv := Bad
@@ -478,18 +535,22 @@ func trend(r Raw) Category {
 		add("tr_fcf", t.FCF, b, lv, note)
 		cat.Metrics[len(cat.Metrics)-1].Label = pctLabel(c)
 	}
-	if i, j, a, b, ok := firstLast(t.OpMargin); ok {
-		d := b - a
-		lv := Bad
-		switch {
-		case d >= 1:
-			lv = Good
-		case d > -2:
-			lv = Warn
+	margin := func(id string, vals []float64, note string) {
+		if i, j, a, b, ok := firstLast(vals); ok {
+			d := b - a
+			lv := Bad
+			switch {
+			case d >= 1:
+				lv = Good
+			case d > -2:
+				lv = Warn
+			}
+			add(id, vals, b, lv, note+span(i, j)+".")
+			cat.Metrics[len(cat.Metrics)-1].Label = signed(d, 1) + " pp"
 		}
-		add("tr_op_margin", t.OpMargin, b, lv, "Si el margen sube, la empresa gana más por cada dólar vendido"+span(i, j)+".")
-		cat.Metrics[len(cat.Metrics)-1].Label = signed(d, 1) + " pp"
 	}
+	margin("tr_op_margin", t.OpMargin, "Si el margen sube, la empresa gana más por cada dólar vendido")
+	margin("tr_gross_margin", t.GrossMargin, "Si el margen bruto sube, la empresa conserva más de cada dólar vendido después de sus costos directos")
 	if i, j, a, b, ok := firstLast(t.Debt); ok {
 		c := cagr(a, b, j-i)
 		lv := Warn
@@ -547,7 +608,8 @@ type PeerTable struct {
 var peerMetrics = []struct {
 	ID          string
 	LowerBetter bool
-}{{"pe", true}, {"fwd_pe", true}, {"rev_growth", false}, {"net_margin", false}, {"op_margin", false}, {"roe", false}, {"fcf_margin", false}}
+}{{"pe", true}, {"fwd_pe", true}, {"ev_ebitda", true}, {"ps", true}, {"pb", true}, {"rev_growth", false}, {"net_margin", false},
+	{"op_margin", false}, {"roe", false}, {"roic", false}, {"fcf_margin", false}}
 
 func median(a []float64) float64 {
 	if len(a) == 0 {

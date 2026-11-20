@@ -65,6 +65,7 @@ func newEvaluatorList(p evaluator.Payload) evaluatorList {
 	l.Cols = []tcol{
 		{Label: "Ticker", Dir: "asc"}, {Label: "Empresa", Dir: "asc"}, {Label: "Sector", Dir: "asc"},
 		{Label: "Capitalización", Num: true, Dir: "desc", Initial: "desc"}, {Label: "Veredicto", Num: true, Dir: "asc"},
+		{Label: "Sólida y barata", Num: true, Dir: "asc", Help: screenHelp},
 	}
 	l.Cols = newCols(l.Cols)
 	for _, s := range p.Sections {
@@ -92,11 +93,35 @@ func shortTitle(t string) string {
 	return strings.NewReplacer(" (5 años)", "", "Vs. competidores", "Pares").Replace(t)
 }
 
+const screenHelp = "Sólida: Rentabilidad, Caja y Deuda y liquidez en «Bien». Barata: al menos dos de P/E, EV/EBITDA y EV/FCF con dato y ninguno en «Caro». Es un filtro para revisar, no una recomendación."
+
+// screenCell es la celda de la columna «Sólida y barata»; V ordena primero las que cumplen las dos condiciones.
+func screenCell(solid, cheap bool) cellView {
+	switch {
+	case solid && cheap:
+		return cellView{PillLevel: string(evaluator.Good), Text: "Sólida y barata", V: "0"}
+	case solid:
+		return cellView{PillLevel: string(evaluator.Info), Text: "Sólida", V: "1"}
+	case cheap:
+		return cellView{PillLevel: string(evaluator.Info), Text: "Barata", V: "2"}
+	}
+	return cellView{Class: "muted", Text: "—", V: "3"}
+}
+
+func flag(b bool) string {
+	if b {
+		return "1"
+	}
+	return "0"
+}
+
 func companyRow(c evaluator.Company, p evaluator.Payload) trow {
+	solid, cheap := evaluator.Screen(c)
 	row := trow{
 		Href:   companyHref(c.Ticker),
 		Search: strings.ToLower(c.Ticker + " " + c.Name),
-		Attrs:  map[string]string{"universe": c.Universe, "sector": c.Sector, "verdict": string(c.Verdict)},
+		Attrs: map[string]string{"universe": c.Universe, "sector": c.Sector, "verdict": string(c.Verdict),
+			"solid": flag(solid), "cheap": flag(cheap)},
 	}
 	row.Cells = []cellView{
 		{Text: c.Ticker, Href: companyHref(c.Ticker), Strong: true},
@@ -104,6 +129,7 @@ func companyRow(c evaluator.Company, p evaluator.Payload) trow {
 		{Class: "muted", Text: c.Sector},
 		{Class: "r", Text: money(c.MarketCap, c.Currency), V: vOf(c.MarketCap)},
 		{PillLevel: string(c.Verdict), Text: verdictText(c.Verdict), V: strconv.Itoa(levelOrder[c.Verdict])},
+		screenCell(solid, cheap),
 	}
 	for _, s := range p.Sections {
 		v := evaluator.NA

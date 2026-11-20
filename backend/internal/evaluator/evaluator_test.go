@@ -18,10 +18,10 @@ import (
 func healthy() Raw {
 	r := emptyRaw()
 	r.Ticker, r.Name, r.Sector, r.Industry, r.Currency, r.FinCurrency = "OK", "Ok Corp", "Tech", "Software", "USD", "USD"
-	r.Price, r.MarketCap, r.Beta, r.W52Low, r.W52High = 100, 1000e9, 0.9, 80, 120
+	r.Price, r.MarketCap, r.Beta, r.W52Low, r.W52High = 100, 300e9, 0.9, 80, 120
 	r.PE, r.FwdPE, r.EPS, r.Dividend = 12, 10, 8, 1.5
 	r.RevGrowth, r.EpsGrowth, r.ROE, r.Target = 12, 15, 20, 130
-	r.Revenue, r.NetIncome, r.OCF, r.FCF, r.Debt, r.Cash = 100e9, 20e9, 30e9, 25e9, 10e9, 40e9
+	r.Revenue, r.NetIncome, r.OCF, r.FCF, r.Capex, r.Debt, r.Cash = 100e9, 20e9, 30e9, 25e9, 5e9, 10e9, 40e9
 	r.CurrentRatio = 2
 	r.QRevenue, r.QOpIncome, r.QInterest, r.QEquity = 25e9, 7e9, 0.2e9, 50e9
 	r.Rating, r.AsOf = "Buy", "2026-09-30"
@@ -39,8 +39,8 @@ func healthy() Raw {
 func emptyRaw() Raw {
 	r := Raw{}
 	for _, p := range []*float64{&r.Price, &r.MarketCap, &r.Beta, &r.W52Low, &r.W52High, &r.PE, &r.FwdPE, &r.EPS, &r.Dividend,
-		&r.RevGrowth, &r.EpsGrowth, &r.ROE, &r.Target, &r.Revenue, &r.NetIncome, &r.OCF, &r.FCF, &r.Debt, &r.Cash,
-		&r.CurrentRatio, &r.DebtToEquity, &r.QRevenue, &r.QOpIncome, &r.QInterest, &r.QEquity} {
+		&r.RevGrowth, &r.EpsGrowth, &r.ROE, &r.Target, &r.Revenue, &r.NetIncome, &r.OCF, &r.FCF, &r.Capex, &r.Debt, &r.Cash,
+		&r.CurrentRatio, &r.DebtToEquity, &r.EBITDA, &r.EBIT, &r.TaxRate, &r.InvestedCapital, &r.GrossMargin, &r.PB, &r.PEG, &r.Payout, &r.QRevenue, &r.QOpIncome, &r.QInterest, &r.QEquity} {
 		*p = nan
 	}
 	return r
@@ -87,7 +87,7 @@ func TestHealthyCompanyIsGood(t *testing.T) {
 	near(t, metric(c, "op_margin").Value, 28)
 	near(t, metric(c, "fcf_margin").Value, 25)
 	near(t, metric(c, "capex_cover").Value, 6)
-	near(t, metric(c, "fcf_yield").Value, 2.5)
+	near(t, metric(c, "fcf_yield").Value, 25.0/300*100)
 	near(t, metric(c, "net_debt").Value, -30e9)
 	if metric(c, "net_debt").Label != "Caja neta" {
 		t.Error("más caja que deuda debe decir «Caja neta»")
@@ -120,7 +120,7 @@ func TestMissingDataIsNA(t *testing.T) {
 func TestThresholds(t *testing.T) {
 	r := healthy()
 	r.RevGrowth, r.ROE, r.PE = 2, 70, 35
-	r.OCF, r.FCF = 10e9, -5e9
+	r.OCF, r.FCF, r.Capex = 10e9, -5e9, 15e9
 	r.Debt, r.Cash = 50e9, 10e9
 	c := Analyze(r, SP500)
 	if metric(c, "rev_growth").Level != Bad {
@@ -257,6 +257,151 @@ func TestTrend(t *testing.T) {
 	}
 }
 
+func TestNewIndicators(t *testing.T) {
+	r := healthy()
+	r.EBITDA, r.EBIT, r.TaxRate, r.InvestedCapital = 30e9, 25e9, 0.2, 100e9
+	r.GrossMargin, r.PB, r.PEG, r.Payout = 60, 3, 1.5, 50
+	c := Analyze(r, SP500)
+
+	// EV = 300 + 10 − 40 = 270 mil millones.
+	for _, tc := range []struct {
+		id    string
+		value float64
+		level Level
+		label string
+	}{
+		{"ev_ebitda", 9, Good, "Barato"},
+		{"ev_fcf", 10.8, Good, "Barato"},
+		{"peg", 1.5, Warn, "Medio"},
+		{"ps", 3, Info, ""},
+		{"pb", 3, Info, ""},
+		{"roic", 20, Good, ""},
+		{"gross_margin", 60, Info, ""},
+		{"net_debt_ebitda", 0, Good, ""},
+		{"payout", 50, Good, ""},
+	} {
+		m := metric(c, tc.id)
+		near(t, m.Value, tc.value)
+		if m.Level != tc.level || m.Label != tc.label {
+			t.Errorf("%s: %+v", tc.id, m)
+		}
+	}
+
+	r.EBITDA, r.FCF = -5e9, -5e9
+	r.Debt, r.Cash = 50e9, 10e9
+	r.Payout, r.PEG = 90, -1
+	c = Analyze(r, SP500)
+	if m := metric(c, "ev_ebitda"); m.Level != Bad || m.Label != "Sin utilidad" {
+		t.Errorf("EBITDA negativo: %+v", m)
+	}
+	if m := metric(c, "ev_fcf"); m.Level != Bad || m.Label != "Sin caja libre" {
+		t.Errorf("FCF negativo: %+v", m)
+	}
+	if m := metric(c, "peg"); m.Level != Bad || m.Label != "Sin crecimiento" {
+		t.Errorf("PEG negativo: %+v", m)
+	}
+	if m := metric(c, "payout"); m.Level != Bad {
+		t.Errorf("payout 90 %%: %+v", m)
+	}
+	if m := metric(c, "net_debt_ebitda"); m.Value != nil {
+		t.Errorf("sin EBITDA positivo no hay cociente: %+v", m)
+	}
+
+	r.EBITDA, r.Dividend = 10e9, 0
+	c = Analyze(r, SP500)
+	near(t, metric(c, "net_debt_ebitda").Value, 4)
+	if m := metric(c, "net_debt_ebitda"); m.Level != Bad {
+		t.Errorf("4× es alerta: %+v", m)
+	}
+	if m := metric(c, "payout"); m.Value != nil || m.Level != NA {
+		t.Errorf("sin dividendo no hay payout: %+v", m)
+	}
+}
+
+func TestNewIndicatorsNeedComparableData(t *testing.T) {
+	r := healthy()
+	r.EBITDA, r.EBIT, r.TaxRate, r.InvestedCapital = 30e9, 25e9, 0.2, 100e9
+	r.FinCurrency = "EUR"
+	c := Analyze(r, SP500)
+	for _, id := range []string{"ev_ebitda", "ev_fcf", "ps"} {
+		if m := metric(c, id); m.Value != nil {
+			t.Errorf("%s con monedas distintas debe quedar sin dato: %+v", id, m)
+		}
+	}
+
+	b := healthy()
+	b.Sector, b.CurrentRatio = financialSector, nan
+	b.EBITDA, b.EBIT, b.TaxRate, b.InvestedCapital = 30e9, 25e9, 0.2, 100e9
+	c = Analyze(b, SP500)
+	for _, id := range []string{"ev_ebitda", "ev_fcf", "roic", "net_debt_ebitda"} {
+		if m := metric(c, id); m.Value != nil {
+			t.Errorf("%s no aplica a un banco: %+v", id, m)
+		}
+	}
+}
+
+func TestNewTrendSeries(t *testing.T) {
+	r := healthy()
+	r.Trend.EPS = []float64{2, 2.5, 3, 3.5}
+	r.Trend.GrossMargin = []float64{50, 52, 55, 60}
+	c := cat(Analyze(r, SP500), "trend")
+	var eps, gross Metric
+	for _, m := range c.Metrics {
+		switch m.ID {
+		case "tr_eps":
+			eps = m
+		case "tr_gross_margin":
+			gross = m
+		}
+	}
+	near(t, eps.Value, 3.5)
+	if eps.Level != Good || eps.Label != "+20,5 %/año" {
+		t.Errorf("EPS: %+v", eps)
+	}
+	near(t, gross.Value, 60)
+	if gross.Level != Good || gross.Label != "+10,0 pp" {
+		t.Errorf("margen bruto: %+v", gross)
+	}
+}
+
+func TestBuildRawZeroGrossMarginIsMissing(t *testing.T) {
+	r := BuildRaw("BANK", map[string]any{"grossMargins": 0.0, "regularMarketPrice": 10.0}, nil)
+	if !isNaN(r.GrossMargin) {
+		t.Errorf("margen bruto 0 de Yahoo debe quedar sin dato: %v", r.GrossMargin)
+	}
+}
+
+func TestScreenSolidAndCheap(t *testing.T) {
+	solid, cheap := Screen(Analyze(healthy(), SP500))
+	if !solid || !cheap {
+		t.Errorf("empresa sana y barata: sólida=%v barata=%v", solid, cheap)
+	}
+
+	r := healthy()
+	r.PE = 35
+	if solid, cheap := Screen(Analyze(r, SP500)); !solid || cheap {
+		t.Errorf("con un P/E caro no es barata: sólida=%v barata=%v", solid, cheap)
+	}
+
+	r = healthy()
+	r.Debt, r.Cash = nan, nan
+	if _, cheap := Screen(Analyze(r, SP500)); cheap {
+		t.Error("con un solo múltiplo disponible no se puede decir que es barata")
+	}
+
+	r = healthy()
+	r.Debt, r.Cash, r.OCF = 200e9, 10e9, 30e9
+	if solid, _ := Screen(Analyze(r, SP500)); solid {
+		t.Error("con deuda pesada no es sólida")
+	}
+
+	b := healthy()
+	b.Sector, b.CurrentRatio = financialSector, nan
+	if solid, _ := Screen(Analyze(b, SP500)); solid {
+		t.Error("un banco no tiene sección de deuda y no califica como sólido")
+	}
+}
+
 func TestTrendWithoutData(t *testing.T) {
 	r := healthy()
 	r.Trend = Trend{}
@@ -347,8 +492,33 @@ func TestBuildRawFromYahooShape(t *testing.T) {
 		series("quarterlyTotalRevenue", pt("2025-06-30", 24), pt("2025-09-30", 26)),
 		series("quarterlyOperatingIncome", pt("2025-09-30", 6.5)),
 		series("quarterlyInterestExpense", pt("2025-09-30", 1.3)),
+		series("trailingOperatingCashFlow", pt("2025-09-30", 16)),
+		series("trailingFreeCashFlow", pt("2025-09-30", 14)),
+		series("trailingCapitalExpenditure", pt("2025-09-30", -2)),
+		series("trailingEBITDA", pt("2025-09-30", 30)),
+		series("trailingEBIT", pt("2025-09-30", 25)),
+		series("quarterlyInvestedCapital", pt("2025-09-30", 100)),
+		series("quarterlyTaxRateForCalcs", pt("2025-09-30", 0.2)),
+		series("annualGrossProfit", pt("2024-12-31", 45), pt("2025-12-31", 60)),
+		series("annualDilutedEPS", pt("2024-12-31", 2), pt("2025-12-31", 2.4)),
 	}}}
+	info["freeCashflow"], info["operatingCashflow"] = 3.0, 16.0
+	info["ebitda"], info["grossMargins"], info["priceToBook"], info["pegRatio"], info["payoutRatio"] = 1.0, 0.6, 4.0, 1.8, 0.45
 	r := BuildRaw("ACME", info, ts)
+	near(t, &r.EBITDA, 30)
+	near(t, &r.EBIT, 25)
+	near(t, &r.InvestedCapital, 100)
+	near(t, &r.TaxRate, 0.2)
+	near(t, &r.GrossMargin, 60)
+	near(t, &r.PB, 4)
+	near(t, &r.PEG, 1.8)
+	near(t, &r.Payout, 45)
+	near(t, &r.Trend.GrossMargin[0], 50)
+	near(t, &r.Trend.GrossMargin[1], 60)
+	near(t, &r.Trend.EPS[1], 2.4)
+	near(t, &r.OCF, 16)
+	near(t, &r.FCF, 14)
+	near(t, &r.Capex, 2)
 	near(t, &r.RevGrowth, 12)
 	near(t, &r.ROE, 30)
 	near(t, &r.QRevenue, 26)
@@ -357,7 +527,7 @@ func TestBuildRawFromYahooShape(t *testing.T) {
 	if r.AsOf != "2025-09-30" || r.Rating != "Strong Buy" || r.Name != "Acme" {
 		t.Errorf("%+v", r)
 	}
-	if !isNaN(r.QEquity) || !isNaN(r.FCF) {
+	if !isNaN(r.QEquity) {
 		t.Error("lo que Yahoo no informa debe quedar en NaN")
 	}
 	if len(r.Trend.Years) != 2 || r.Trend.Years[1] != "FY2025" {

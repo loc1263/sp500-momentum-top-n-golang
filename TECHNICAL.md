@@ -203,14 +203,25 @@ sus métricas, nivel (`good`, `warn`, `bad`, `info`, `na`) y veredicto. Los umbr
 
 | Categoría | Métricas |
 |---|---|
-| Rentabilidad | margen neto, margen operativo del último trimestre, ROE |
+| Rentabilidad | margen neto, margen operativo del último trimestre, ROE, ROIC, margen bruto (informativo) |
 | Crecimiento | crecimiento de ingresos y del EPS, calidad de la utilidad (Forward P/E ÷ P/E) |
-| Caja | flujo de caja libre, su margen, cobertura del capex y rendimiento sobre la capitalización |
-| Deuda y liquidez | deuda neta, años de flujo operativo para pagarla, cobertura de intereses, liquidez corriente, deuda/patrimonio |
-| Valoración | P/E, Forward P/E, potencial al precio objetivo, posición en el rango de 52 semanas, beta, dividendo, consenso (las tres últimas son informativas) |
-| Tendencia | ingresos, utilidad, flujo libre, margen operativo y deuda de hasta 5 años fiscales (CAGR o variación) |
+| Caja | flujo de caja libre, su margen, cobertura del capex, rendimiento sobre la capitalización y payout (solo si paga dividendo) |
+| Deuda y liquidez | deuda neta, deuda neta/EBITDA, años de flujo operativo para pagarla, cobertura de intereses, liquidez corriente, deuda/patrimonio |
+| Valoración | P/E, Forward P/E, EV/EBITDA, EV/FCF, PEG, P/S y P/B (informativos), potencial al precio objetivo, posición en el rango de 52 semanas, beta, dividendo, consenso (las tres últimas son informativas) |
+| Tendencia | ingresos, utilidad, EPS, flujo libre, margen operativo, margen bruto y deuda de hasta 5 años fiscales (CAGR o variación; Yahoo suele traer 4) |
 | Vs. competidores | las métricas clave frente a la mediana de hasta `[evaluator] peers` = 3 empresas de la misma industria (si no hay, del mismo sector) y mercado, con la capitalización más cercana |
 
+- **Fuente de los datos de caja y resultado**: las series de 12 meses (`trailing*`) mandan sobre `quoteSummary`, porque `freeCashflow` y `ebitda` de
+  `quoteSummary` no cuadran con los estados financieros (en MSFT el FCF de `quoteSummary` era 3 mil millones contra 60 reales). Con esas series se
+  calculan el EV (capitalización + deuda − caja; sin dato si las monedas difieren), EV/EBITDA, EV/FCF, deuda neta/EBITDA y ROIC
+  (EBIT × (1 − tasa) ÷ capital invertido).
+- **Umbrales de valoración**: EV/EBITDA barato bajo 10 y caro sobre 18; EV/FCF bajo 15 y sobre 30; PEG bajo 1 y sobre 2 (como el P/E: bajo 15 y sobre 30).
+  Un resultado negativo es «Sin utilidad», «Sin caja libre» o «Sin crecimiento». Deuda neta/EBITDA: bajo 2× bien, sobre 3× alerta. ROIC: 15 % o más bien, bajo 10 % alerta.
+  Payout: bajo 60 % bien, sobre 80 % alerta.
+- **Sólida y barata** (columna y filtros del listado, `internal/evaluator/screen.go`): *sólida* = Rentabilidad, Caja y Deuda y liquidez en «Bien»;
+  *barata* = al menos dos de P/E, EV/EBITDA y EV/FCF con dato y ninguno en «Caro». No usa el veredicto de Valoración, que también promedia beta y
+  potencial al precio objetivo. Se calcula en el sitio a partir de los niveles ya guardados, así que no cambia el JSON. Los bancos no califican como
+  sólidos (sin sección de deuda). Es un filtro para revisar, no una recomendación.
 - **ROE**: sobre 60 % queda en «Atención» con la etiqueta «Muy alto», porque suele ser un patrimonio muy pequeño (recompras o pérdidas) y no eficiencia.
 - **Veredicto**: «Bien» si el promedio de los niveles es alto (≥ 1,5 sobre 2) y ninguno es alerta, «Alerta» si es bajo (< 0,9). El
   general aplica la misma regla a los veredictos de las categorías. Las métricas informativas y sin datos no cuentan.
