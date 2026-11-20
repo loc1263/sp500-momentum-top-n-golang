@@ -34,7 +34,7 @@ price_drift_tolerance = 0.0001
 start_date = ""
 end_date = ""
 backtest_years = 12
-# Períodos que se simulan (en años hacia atrás desde end_date); el frontend deja elegir entre ellos.
+# Períodos que se simulan (en años hacia atrás desde end_date); el sitio deja elegir entre ellos.
 # Con start_date explícito se simula un único período. Se puede limitar por corrida con --years N.
 periods_years = [2, 4, 6, 8, 10]
 # Plazo del backtest normal, en meses: el ranking mira N meses hacia atrás y se rebalancea cada N meses.
@@ -87,8 +87,8 @@ log_dir = "log"
 backtest_log = "top3_backtest.log"
 actual_log = "top3_actual.log"
 export_log = "export_frontend.log"
-# JSON que lee el frontend (resultados del día: Top actual y backtest)
-frontend_data = "../frontend/public/data/report.json"
+# JSON con los resultados del día (Top actual, ETFs, modelo por score y backtest); lo lee top3 site
+frontend_data = "output/report.json"
 # Historial del Top actual y de ETFs (se versiona en git). La base SQLite es solo caché: si no tiene historial, se restaura de aquí
 history_file = "history/history.json"
 
@@ -104,7 +104,7 @@ months = [2, 4, 6, 8, 10, 12]
 horizons_months = [3, 6, 12]
 risk_free_ticker = "VUSB"
 min_vol = 0.01
-# ETFs que se muestran en la consola (el JSON del frontend trae todos)
+# ETFs que se muestran en la consola (el JSON del sitio trae todos)
 top_n = 20
 # Filtro de elegibilidad: TER máximo (% anual) y AUM mínimo (millones de US$); 0 = sin tope / sin mínimo
 max_ter = 0.50
@@ -164,8 +164,8 @@ fundamentals_ttl_days = 7
 # Evaluador de empresas (top3 evaluator): análisis fundamental propio de cada acción del S&P 500 (rentabilidad,
 # crecimiento, caja, deuda y liquidez, valoración, tendencia y comparación con competidores). Es independiente de los scores:
 # solo toma de los otros modelos las listas de tickers. Los datos salen de Yahoo Finance.
-# JSON que lee la pestaña del frontend
-output = "../frontend/public/data/evaluator.json"
+# JSON que lee top3 site
+output = "output/evaluator.json"
 # Universo a evaluar
 sp500 = true
 # Competidores de cada empresa: los de su misma industria (o sector) y mercado con la capitalización más parecida
@@ -176,8 +176,8 @@ min_coverage = 0.5
 [visor]
 # Visor (top3 visor): rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, caída máxima y comparación contra SPY de las
 # acciones grandes de EE. UU. y de los ETFs de mayor AUM. Arma su propio universo con el screener de Yahoo Finance.
-# JSON que lee la pestaña del frontend
-output = "../frontend/public/data/visor.json"
+# JSON que lee top3 site
+output = "output/visor.json"
 # ETFs que siempre se incluyen (aunque sean apalancados o estén fuera del top)
 tickers = ["SPY", "QQQ"]
 # Acciones: capitalización mínima (super large cap) y desde la que se llama mega cap, en miles de millones de US$

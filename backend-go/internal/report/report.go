@@ -1,5 +1,7 @@
-// Package report arma el JSON que lee el frontend (Top actual + backtest + ETFs + modelo por score) con los últimos
+// Package report arma el JSON que lee el sitio (top3 site) (Top actual + backtest + ETFs + modelo por score) con los últimos
 // resultados guardados en SQLite.
+//
+// Fecha: 2026-11-19
 package report
 
 import (
@@ -23,20 +25,17 @@ import (
 	"top3/internal/repo"
 )
 
-// EquityPoint es el capital en una fecha.
 type EquityPoint struct {
 	Date    string  `json:"date"`
 	Capital float64 `json:"capital"`
 }
 
-// HistoryPick es una acción elegida en un rebalanceo.
 type HistoryPick struct {
 	Rank   int     `json:"rank"`
 	Ticker string  `json:"ticker"`
 	Return float64 `json:"return"`
 }
 
-// HistoryEntry es un rebalanceo con el capital al entrar y la ganancia acumulada.
 type HistoryEntry struct {
 	Date    string        `json:"date"`
 	Picks   []HistoryPick `json:"picks"`
@@ -44,7 +43,6 @@ type HistoryEntry struct {
 	Gain    *float64      `json:"gain"`
 }
 
-// Calendar es un calendario de arranque: resumen de la corrida, curva de capital e historial de selecciones.
 type Calendar struct {
 	Offset         int            `json:"offset"`
 	StartDate      string         `json:"start_date"`
@@ -58,14 +56,12 @@ type Calendar struct {
 	History        []HistoryEntry `json:"history"`
 }
 
-// Halves es el CAGR mediano de cada mitad del período.
 type Halves struct {
 	Split  string   `json:"split"`
 	First  *float64 `json:"first"`
 	Second *float64 `json:"second"`
 }
 
-// TermSummary resume los calendarios de un plazo.
 type TermSummary struct {
 	Calendars     int     `json:"calendars"`
 	CagrMedian    float64 `json:"cagr_median"`
@@ -77,14 +73,12 @@ type TermSummary struct {
 	Halves        Halves  `json:"halves"`
 }
 
-// Term es un plazo con sus calendarios.
 type Term struct {
 	Months    int         `json:"months"`
 	Calendars []Calendar  `json:"calendars"`
 	Summary   TermSummary `json:"summary"`
 }
 
-// Period es un período del backtest.
 type Period struct {
 	Years     float64 `json:"years"`
 	StartDate string  `json:"start_date"`
@@ -92,14 +86,12 @@ type Period struct {
 	Terms     []Term  `json:"terms"`
 }
 
-// Universe es un universo del backtest con sus períodos.
 type Universe struct {
 	MinCapBillions *float64 `json:"min_cap_billions"`
 	Label          string   `json:"label"`
 	Periods        []Period `json:"periods"`
 }
 
-// TrackPick es cómo le fue a una acción de una selección guardada.
 type TrackPick struct {
 	Ticker string  `json:"ticker"`
 	Price  float64 `json:"price"`
@@ -107,7 +99,6 @@ type TrackPick struct {
 	Return float64 `json:"return"`
 }
 
-// Tracking es cómo le fue a una selección guardada del Top actual.
 type Tracking struct {
 	AsOf   string      `json:"as_of"`
 	Until  string      `json:"until"`
@@ -117,7 +108,6 @@ type Tracking struct {
 	Return float64     `json:"return"`
 }
 
-// ActualPick es una acción del Top actual (o suplente).
 type ActualPick struct {
 	Rank      int      `json:"rank"`
 	Ticker    string   `json:"ticker"`
@@ -126,14 +116,12 @@ type ActualPick struct {
 	MarketCap *float64 `json:"market_cap"`
 }
 
-// Changes son los cambios contra la corrida anterior.
 type Changes struct {
 	Entered []string `json:"entered"`
 	Exited  []string `json:"exited"`
 	Kept    []string `json:"kept"`
 }
 
-// Actual es el último Top actual de un universo y un plazo.
 type Actual struct {
 	MinCapBillions *float64     `json:"min_cap_billions"`
 	Label          string       `json:"label"`
@@ -149,7 +137,6 @@ type Actual struct {
 	Tracking       []Tracking   `json:"tracking"`
 }
 
-// Settings son los parámetros con los que se corrió el backtest.
 type Settings struct {
 	TopN           int       `json:"top_n"`
 	Months         int       `json:"months"`
@@ -161,7 +148,6 @@ type Settings struct {
 	PeriodsYears   []float64 `json:"periods_years"`
 }
 
-// Report es todo lo que lee el frontend.
 type Report struct {
 	GeneratedAt  string          `json:"generated_at"`
 	RunDate      *string         `json:"run_date"`
@@ -187,7 +173,6 @@ func capPtr(cap float64) *float64 {
 	return &cap
 }
 
-// latestRuns es la última corrida (por id) de cada clave entre las de la fecha más reciente.
 func latestRuns(d *sql.DB) (string, map[repo.RunKey]repo.RunRow, error) {
 	lastDay, err := repo.LatestRunDay(d)
 	if err != nil || lastDay == "" {
@@ -210,7 +195,6 @@ func latestRuns(d *sql.DB) (string, map[repo.RunKey]repo.RunRow, error) {
 	return lastDay, latest, nil
 }
 
-// runDetail son la curva de capital y las selecciones (con el capital al entrar y la ganancia acumulada) de una corrida.
 func runDetail(d *sql.DB, runID int64, initialCapital float64) ([]EquityPoint, []HistoryEntry, error) {
 	curve, err := repo.EquityCurve(d, runID)
 	if err != nil {
@@ -247,13 +231,8 @@ func runDetail(d *sql.DB, runID int64, initialCapital float64) ([]EquityPoint, [
 	return equity, history, nil
 }
 
-// minHalfDays: una mitad más corta que esto no da un CAGR con sentido.
 const minHalfDays = 90
 
-// halves es el CAGR mediano de cada mitad del período (por fecha), para ver si el resultado se sostiene en el tiempo.
-//
-// Se parte la curva de capital de cada calendario en la fecha media del período; el corte se hace en el punto de la curva más
-// cercano a esa fecha (hay uno por rebalanceo). Una mitad sin datos suficientes queda en nil.
 func halves(calendars []Calendar) (Halves, error) {
 	base := calendars[0]
 	for _, c := range calendars {
@@ -360,8 +339,6 @@ func maxOf(x []float64) float64 {
 	return m
 }
 
-// backtest agrupa universo -> período (años) -> plazo -> calendarios de arranque, de un modelo (skipMonths = 0 el de siempre,
-// 1 el skip-month).
 func backtest(d *sql.DB, latest map[repo.RunKey]repo.RunRow, initialCapital float64, skipMonths int) ([]Universe, error) {
 	keys := make([]repo.RunKey, 0, len(latest))
 	for k := range latest {
@@ -422,7 +399,7 @@ func backtest(d *sql.DB, latest map[repo.RunKey]repo.RunRow, initialCapital floa
 				}
 				p.Terms = append(p.Terms, Term{Months: m, Calendars: cals, Summary: sum})
 			}
-			base := p.Terms[0].Calendars[0] // calendario base (desfase 0): define el período
+			base := p.Terms[0].Calendars[0]
 			p.StartDate, p.EndDate = base.StartDate, base.EndDate
 			u.Periods = append(u.Periods, p)
 		}
@@ -440,7 +417,6 @@ func containsF(list []float64, v float64) bool {
 	return false
 }
 
-// termEnd es el fin de la tenencia: el mismo día del mes, months meses después (un 29-31 en un mes más corto cae en el 28).
 func termEnd(bought time.Time, months int) time.Time {
 	total := bought.Year()*12 + int(bought.Month()) - 1 + months
 	y, m := total/12, total%12+1
@@ -450,10 +426,6 @@ func termEnd(bought time.Time, months int) time.Time {
 	return dateutil.Date(y, time.Month(m), bought.Day())
 }
 
-// tracking dice cómo le fue a cada selección guardada del Top actual (de la más nueva a la más vieja).
-//
-// Se mide con el precio guardado al elegirla y el último precio disponible, sin pasar de los months meses que dura la
-// tenencia: si ya pasaron, la selección figura como cerrada y su retorno es el del plazo completo.
 func tracking(d *sql.DB, cap float64, months int) ([]Tracking, error) {
 	lastStr, err := repo.LatestPriceDate(d)
 	if err != nil {
@@ -516,7 +488,6 @@ func changesOf(c actual.Changes) *Changes {
 	return &Changes{Entered: c.Entered, Exited: c.Exited, Kept: c.Kept}
 }
 
-// buildActual es el último Top actual de cada (universo, plazo) entre los de la fecha más reciente.
 func buildActual(d *sql.DB, today time.Time) ([]Actual, error) {
 	lastRunAt, err := repo.LatestPickRunAt(d)
 	if err != nil || lastRunAt == "" {
@@ -530,7 +501,7 @@ func buildActual(d *sql.DB, today time.Time) ([]Actual, error) {
 		cap    float64
 		months int
 	}
-	latest := map[key]string{} // (universo, plazo) -> run_at de la última corrida
+	latest := map[key]string{}
 	for _, r := range rows {
 		latest[key{r.Cap, r.Months}] = r.RunAt
 	}
@@ -594,14 +565,13 @@ func buildActual(d *sql.DB, today time.Time) ([]Actual, error) {
 	return out, nil
 }
 
-// Build arma el reporte con lo último que hay en SQLite.
 func Build(d *sql.DB, cfg config.Config, today time.Time) (*Report, error) {
 	bt := cfg.Backtest
 	runDay, latest, err := latestRuns(d)
 	if err != nil {
 		return nil, err
 	}
-	if bt.StartDate == "" { // solo los períodos configurados (ignora corridas sueltas de otros años)
+	if bt.StartDate == "" {
 		wanted := map[float64]bool{}
 		for _, y := range bt.PeriodsYears {
 			wanted[y] = true
@@ -662,7 +632,6 @@ func nonNil(u []Universe) []Universe {
 	return u
 }
 
-// Export escribe el JSON para el frontend ([output] frontend_data) y devuelve la ruta.
 func Export(cfg config.Config) (string, error) {
 	d, err := db.Open(cfg.Data.DBPath)
 	if err != nil {
@@ -690,6 +659,6 @@ func Export(cfg config.Config) (string, error) {
 		return "", err
 	}
 	abs, _ := filepath.Abs(path)
-	logx.Infof("JSON del frontend guardado: %s (%d universos de backtest, %d Top actual)", abs, len(rep.Backtest), len(rep.Actual))
+	logx.Infof("JSON para el sitio guardado: %s (%d universos de backtest, %d Top actual)", abs, len(rep.Backtest), len(rep.Actual))
 	return path, nil
 }

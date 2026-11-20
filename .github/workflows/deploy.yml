@@ -1,6 +1,6 @@
 name: Actualizar datos y publicar
 
-# Corre el pipeline del backend, guarda el historial en git y publica el frontend en GitHub Pages.
+# Corre el pipeline del backend, guarda el historial en git y publica el sitio estático (generado por top3 site) en GitHub Pages.
 # Requiere: Settings > Pages > Source = "GitHub Actions".
 on:
   schedule:
@@ -26,12 +26,6 @@ jobs:
         with:
           go-version-file: backend-go/go.mod
           cache-dependency-path: backend-go/go.sum
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
       # La base SQLite es solo caché: si se pierde, se vuelven a bajar los precios y el historial se restaura de
       # backend-go/history/history.json. Cada ejecución guarda su propia clave y restaura la más reciente.
@@ -73,19 +67,9 @@ jobs:
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
-      - name: Tests del frontend
-        working-directory: frontend
-        run: |
-          npm ci
-          npm test
-
-      - name: Build del frontend
-        working-directory: frontend
-        run: npm run build
-
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: frontend/dist
+          path: site
 
   deploy:
     needs: build

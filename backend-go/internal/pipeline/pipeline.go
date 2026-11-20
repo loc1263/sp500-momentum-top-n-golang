@@ -1,5 +1,5 @@
 // Package pipeline corre el proceso completo: tests (opcional) -> backtest de todos los períodos y universos -> Top actual de
-// cada universo -> ranking de ETFs -> modelo por score -> evaluador de empresas -> JSON del frontend -> limpieza de lo viejo.
+// cada universo -> ranking de ETFs -> modelo por score -> evaluador de empresas -> JSON del sitio -> sitio estático -> limpieza de lo viejo.
 //
 //	top3 pipeline                  # todo, con caché y descarga incremental de precios
 //	top3 pipeline --no-cache       # descarga todo de nuevo
@@ -10,6 +10,8 @@
 // Cada paso es un comando (`top3 <comando>`) que se ejecuta en su propio proceso; si uno falla, el pipeline se corta.
 // Períodos, plazos y universos salen de config.toml ([backtest] periods_years, [simulation] months,
 // [universe] sweep_min_cap_billions).
+//
+// Fecha: 2026-11-19
 package pipeline
 
 import (
@@ -26,16 +28,12 @@ import (
 	"top3/internal/logx"
 )
 
-// Step es un paso del pipeline: su nombre y el comando que lo corre.
 type Step struct {
-	Name string
-	Cmd  []string // el primer elemento es el ejecutable
-	// Optional: si falla, se avisa y el pipeline sigue (no cambia el código de salida). Para pasos que no alimentan a los demás y
-	// que dependen de límites externos (Yahoo), de modo que una caída no impida exportar y publicar el resto.
+	Name     string
+	Cmd      []string
 	Optional bool
 }
 
-// Options son las opciones del pipeline.
 type Options struct {
 	Config        string
 	NoCache       bool
@@ -47,23 +45,21 @@ type Options struct {
 	SkipEvaluator bool
 	SkipVisor     bool
 	SkipEtfq      bool
+	SkipSite      bool
 	SkipPrune     bool
 }
 
 func universeArgs(level float64) []string {
 	if level == 0 {
-		return nil // índice completo (sin filtro)
+		return nil
 	}
 	return []string{"--min-cap-billions", strconv.FormatFloat(level, 'g', -1, 64)}
 }
 
-// BuildSteps arma los pasos del pipeline. self es el ejecutable de top3.
 func BuildSteps(cfg config.Config, o Options, self string) []Step {
 	base := []string{"--config", o.Config}
 	pending := o.NoCache
 	cache := func() []string {
-		// --no-cache solo para el primer paso que descarga: los siguientes reutilizan lo que ese paso acaba de guardar en
-		// SQLite en vez de volver a bajar lo mismo (los Top actual repetían 3 veces las descargas)
 		if pending {
 			pending = false
 			return []string{"--no-cache"}
@@ -105,14 +101,15 @@ func BuildSteps(cfg config.Config, o Options, self string) []Step {
 		steps = append(steps, Step{Name: "Modelo por score: scores de momentum, salud y técnico, y Markowitz", Cmd: cmd("quant", cache())})
 	}
 	if !o.SkipEvaluator {
-		// el evaluador baja sus propios datos fundamentales (no comparte nada con los otros pasos) y escribe su propio JSON
 		steps = append(steps, Step{Name: "Evaluador de empresas: análisis fundamental del S&P 500", Cmd: cmd("evaluator"), Optional: true})
 	}
 	if !o.SkipVisor {
-		// el visor baja sus propios datos (universo y historial de cada instrumento) y escribe su propio JSON
 		steps = append(steps, Step{Name: "Visor: rendimientos y riesgo de acciones grandes y ETFs", Cmd: cmd("visor"), Optional: true})
 	}
-	steps = append(steps, Step{Name: "Exportar JSON del frontend", Cmd: cmd("export")})
+	steps = append(steps, Step{Name: "Exportar JSON para el sitio", Cmd: cmd("export")})
+	if !o.SkipSite {
+		steps = append(steps, Step{Name: "Generar el sitio estático (HTML, CSS y JS)", Cmd: cmd("site")})
+	}
 	if !o.SkipPrune {
 		steps = append(steps, Step{Name: "Limpieza de datos y reportes viejos", Cmd: cmd("prune")})
 	}
@@ -126,7 +123,6 @@ type result struct {
 	optional bool
 }
 
-// Main corre el pipeline con los argumentos de la línea de comandos y devuelve el código de salida.
 func Main(args []string) int {
 	fs := flag.NewFlagSet("pipeline", flag.ContinueOnError)
 	var o Options
@@ -139,6 +135,7 @@ func Main(args []string) int {
 	fs.BoolVar(&o.SkipQuant, "skip-quant", false, "Omite el modelo por score (scores y Markowitz)")
 	fs.BoolVar(&o.SkipEvaluator, "skip-evaluator", false, "Omite el evaluador de empresas")
 	fs.BoolVar(&o.SkipVisor, "skip-visor", false, "Omite el visor de acciones grandes y ETFs")
+	fs.BoolVar(&o.SkipSite, "skip-site", false, "Omite la generación del sitio estático")
 	fs.BoolVar(&o.SkipPrune, "skip-prune", false, "Omite la limpieza final de datos y reportes viejos")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -165,7 +162,7 @@ func Main(args []string) int {
 		return 1
 	}
 	defer os.RemoveAll(dir)
-	summaryFile := filepath.Join(dir, "summary.jsonl") // cada paso deja ahí sus avisos y errores
+	summaryFile := filepath.Join(dir, "summary.jsonl")
 
 	rule := logx.Heading(strings.Repeat("=", 78), os.Stdout)
 	var results []result

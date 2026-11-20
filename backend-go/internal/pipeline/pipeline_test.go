@@ -1,3 +1,8 @@
+// Pruebas del pipeline: pasos, caché solo en el primer paso de descarga, pasos opcionales y ruta de
+// configuración.
+//
+// Fecha: 2026-11-19
+
 package pipeline
 
 import (
@@ -21,10 +26,10 @@ func TestPipelineSteps(t *testing.T) {
 	cfg := config.Default()
 	steps := BuildSteps(cfg, Options{Config: "config.toml", NoCache: true, Years: 7, Tests: true}, "top3")
 	n := names(steps)
-	if n[0] != "Tests" || !reflect.DeepEqual(n[len(n)-2:], []string{"Exportar JSON del frontend", "Limpieza de datos y reportes viejos"}) {
+	if n[0] != "Tests" || !reflect.DeepEqual(n[len(n)-3:], []string{"Exportar JSON para el sitio", "Generar el sitio estático (HTML, CSS y JS)", "Limpieza de datos y reportes viejos"}) {
 		t.Fatalf("pasos: %v", n)
 	}
-	if len(steps) != 1+1+3+1+1+1+1+1+1 { // tests + backtest + 3 universos + ETFs por gestora + modelo + evaluador + visor + export + limpieza
+	if len(steps) != 1+1+3+1+1+1+1+1+1+1 {
 		t.Fatalf("%d pasos: %v", len(steps), n)
 	}
 	if !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "ETFs por gestora") }) || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "Modelo por score") }) || !slices.ContainsFunc(n, func(s string) bool { return strings.HasPrefix(s, "Evaluador") }) {
@@ -44,8 +49,8 @@ func TestPipelineSteps(t *testing.T) {
 		t.Fatalf("universos del Top actual: %v", withCap)
 	}
 
-	only := BuildSteps(cfg, Options{Config: "config.toml", SkipBacktest: true, SkipActual: true, SkipEtfq: true, SkipQuant: true, SkipEvaluator: true, SkipVisor: true, SkipPrune: true}, "top3")
-	if !reflect.DeepEqual(names(only), []string{"Exportar JSON del frontend"}) {
+	only := BuildSteps(cfg, Options{Config: "config.toml", SkipBacktest: true, SkipActual: true, SkipEtfq: true, SkipQuant: true, SkipEvaluator: true, SkipVisor: true, SkipSite: true, SkipPrune: true}, "top3")
+	if !reflect.DeepEqual(names(only), []string{"Exportar JSON para el sitio"}) {
 		t.Fatalf("solo export: %v", names(only))
 	}
 }
@@ -62,10 +67,10 @@ func TestPipelinePassesNoCacheOnlyToTheFirstDownloadingStep(t *testing.T) {
 		return out
 	}
 	o := Options{Config: "config.toml", NoCache: true, SkipQuant: true, SkipEvaluator: true, SkipPrune: true}
-	if got := flagged(o); len(got) != 1 || !strings.HasPrefix(got[0], "Backtest") { // solo el backtest
+	if got := flagged(o); len(got) != 1 || !strings.HasPrefix(got[0], "Backtest") {
 		t.Fatalf("con backtest: %v", got)
 	}
-	o.SkipBacktest = true // sin backtest, el primer Top actual
+	o.SkipBacktest = true
 	if got := flagged(o); !reflect.DeepEqual(got, []string{"Top actual - índice completo"}) {
 		t.Fatalf("sin backtest: %v", got)
 	}

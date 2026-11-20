@@ -1,6 +1,8 @@
 // Package config es la configuración tipada: una struct por sección de config.toml, con los valores por defecto en
 // Default(). Los tags json coinciden con los nombres de las secciones y claves porque la configuración de cada corrida
 // del backtest se guarda en SQLite como JSON (tabla runs.params) y el informe la lee de ahí.
+//
+// Fecha: 2026-11-19
 package config
 
 import (
@@ -17,7 +19,6 @@ import (
 	"top3/internal/errs"
 )
 
-// Data es [data]: histórico, base SQLite y parámetros de las descargas (Wikipedia, CSV histórico y Yahoo).
 type Data struct {
 	HistoryYears        float64 `toml:"history_years" json:"history_years"`
 	DBPath              string  `toml:"db_path" json:"db_path"`
@@ -37,13 +38,11 @@ type Data struct {
 	NoDataTTLDays       int     `toml:"no_data_ttl_days" json:"no_data_ttl_days"`
 }
 
-// HistoryStart es el primer día del histórico a descargar (YYYY-MM-DD): `history_years` años antes de `today`.
 func (d Data) HistoryStart(today time.Time) string {
 	days := int(math.RoundToEven(d.HistoryYears * 365.25))
 	return today.AddDate(0, 0, -days).Format("2006-01-02")
 }
 
-// Backtest es [backtest]: período, plazo, cartera y costos.
 type Backtest struct {
 	StartDate           string    `toml:"start_date" json:"start_date"`
 	EndDate             string    `toml:"end_date" json:"end_date"`
@@ -57,17 +56,14 @@ type Backtest struct {
 	TradingDaysPerMonth int       `toml:"trading_days_per_month" json:"trading_days_per_month"`
 }
 
-// Tickers es [tickers]: símbolo viejo -> símbolo actual en Yahoo.
 type Tickers struct {
 	Aliases map[string]string `toml:"aliases" json:"aliases"`
 }
 
-// Simulation es [simulation]: plazos que compara --sweep.
 type Simulation struct {
 	Months []int `toml:"months" json:"months"`
 }
 
-// Output es [output]: reportes, logs y JSON del frontend.
 type Output struct {
 	Dir            string `toml:"dir" json:"dir"`
 	KeepDays       int    `toml:"keep_days" json:"keep_days"`
@@ -90,32 +86,24 @@ type Output struct {
 	HistoryFile    string `toml:"history_file" json:"history_file"`
 }
 
-// Family es una gestora de [etfq]: Name es como la identifica Yahoo Finance (fundFamily) y Label el nombre que se muestra.
 type Family struct {
 	Name  string `toml:"name" json:"name"`
 	Label string `toml:"label" json:"label"`
 }
 
-// Etfq es [etfq]: ETFs de las grandes gestoras, con su momentum y su calidad (costos y liquidez).
 type Etfq struct {
-	// Score de momentum: plazos (meses), referencia libre de riesgo (un ETF de la propia tabla) y volatilidad anual mínima
-	// (por debajo, el ETF es de tipo efectivo y no rankea)
-	HorizonsMonths []int    `toml:"horizons_months" json:"horizons_months"`
-	MinVol         float64  `toml:"min_vol" json:"min_vol"`
-	RiskFreeTicker string   `toml:"risk_free_ticker" json:"risk_free_ticker"`
-	Families       []Family `toml:"families" json:"families"`
-	TopN           int      `toml:"top_n" json:"top_n"`
-	// TER máximo en % anual y AUM mínimo en millones de US$ para ser elegible (0 = sin tope / sin mínimo)
-	MaxTER         float64 `toml:"max_ter" json:"max_ter"`
-	MinAumMillions float64 `toml:"min_aum_millions" json:"min_aum_millions"`
-	// Peso de la calidad en el score final (0-1) y pesos de TER y AUM dentro de la calidad
-	QualityWeight  float64   `toml:"quality_weight" json:"quality_weight"`
-	QualityWeights []float64 `toml:"quality_weights" json:"quality_weights"`
-	// Días que se reutiliza la categoría guardada de cada ETF (casi no cambia)
-	CategoryTTLDays int `toml:"category_ttl_days" json:"category_ttl_days"`
+	HorizonsMonths  []int     `toml:"horizons_months" json:"horizons_months"`
+	MinVol          float64   `toml:"min_vol" json:"min_vol"`
+	RiskFreeTicker  string    `toml:"risk_free_ticker" json:"risk_free_ticker"`
+	Families        []Family  `toml:"families" json:"families"`
+	TopN            int       `toml:"top_n" json:"top_n"`
+	MaxTER          float64   `toml:"max_ter" json:"max_ter"`
+	MinAumMillions  float64   `toml:"min_aum_millions" json:"min_aum_millions"`
+	QualityWeight   float64   `toml:"quality_weight" json:"quality_weight"`
+	QualityWeights  []float64 `toml:"quality_weights" json:"quality_weights"`
+	CategoryTTLDays int       `toml:"category_ttl_days" json:"category_ttl_days"`
 }
 
-// Quant es [quant]: modelo por score y Markowitz.
 type Quant struct {
 	Weights             []float64 `toml:"weights" json:"weights"`
 	HealthWeights       []float64 `toml:"health_weights" json:"health_weights"`
@@ -131,46 +119,30 @@ type Quant struct {
 	FundamentalsTTLDays int       `toml:"fundamentals_ttl_days" json:"fundamentals_ttl_days"`
 }
 
-// Evaluator es [evaluator]: evaluador de empresas por análisis fundamental. Es una sección aparte: no usa los scores ni las tablas
-// de los otros modelos; solo toma de ellos las listas de tickers (S&P 500 actual).
 type Evaluator struct {
-	// JSON que lee la pestaña del frontend
-	Output string `toml:"output" json:"output"`
-	// Competidores con los que se compara cada empresa (misma industria y mercado, capitalización parecida)
-	Peers int `toml:"peers" json:"peers"`
-	// Empresas del S&P 500 a evaluar
-	Sp500 bool `toml:"sp500" json:"sp500"`
-	// Fracción mínima de las empresas con datos para guardar el resultado (protege de una caída de Yahoo)
+	Output      string  `toml:"output" json:"output"`
+	Peers       int     `toml:"peers" json:"peers"`
+	Sp500       bool    `toml:"sp500" json:"sp500"`
 	MinCoverage float64 `toml:"min_coverage" json:"min_coverage"`
 }
 
-// Visor es [visor]: tabla de rendimientos, riesgo y comparación contra SPY de las acciones grandes y de los ETFs de mayor AUM de
-// EE. UU. Es una sección aparte: arma su propio universo con el screener de Yahoo y escribe su propio JSON.
 type Visor struct {
-	// JSON que lee la pestaña del frontend
-	Output string `toml:"output" json:"output"`
-	// ETFs que siempre se incluyen (aunque sean apalancados o estén fuera del top)
-	Tickers []string `toml:"tickers" json:"tickers"`
-	// Acciones: capitalización mínima (super large cap) y desde la que se llama mega cap, en miles de millones de US$
-	CapMinBillions  float64 `toml:"cap_min_billions" json:"cap_min_billions"`
-	CapMegaBillions float64 `toml:"cap_mega_billions" json:"cap_mega_billions"`
-	// ETFs del universo: cantidad (por AUM), AUM mínimo en millones de US$ y si se incluyen los apalancados/inversos
-	EtfTop            int     `toml:"etf_top" json:"etf_top"`
-	EtfAumMinMillions float64 `toml:"etf_aum_min_millions" json:"etf_aum_min_millions"`
-	IncludeLeveraged  bool    `toml:"include_leveraged" json:"include_leveraged"`
-	// Tasa libre de riesgo (% anual) para el Sharpe
-	Rf float64 `toml:"rf" json:"rf"`
-	// Fracción mínima de los instrumentos con datos para guardar el resultado (protege de una caída de Yahoo)
-	MinCoverage float64 `toml:"min_coverage" json:"min_coverage"`
+	Output            string   `toml:"output" json:"output"`
+	Tickers           []string `toml:"tickers" json:"tickers"`
+	CapMinBillions    float64  `toml:"cap_min_billions" json:"cap_min_billions"`
+	CapMegaBillions   float64  `toml:"cap_mega_billions" json:"cap_mega_billions"`
+	EtfTop            int      `toml:"etf_top" json:"etf_top"`
+	EtfAumMinMillions float64  `toml:"etf_aum_min_millions" json:"etf_aum_min_millions"`
+	IncludeLeveraged  bool     `toml:"include_leveraged" json:"include_leveraged"`
+	Rf                float64  `toml:"rf" json:"rf"`
+	MinCoverage       float64  `toml:"min_coverage" json:"min_coverage"`
 }
 
-// Universe es [universe]: filtro por capitalización.
 type Universe struct {
 	MinCapBillions      float64   `toml:"min_cap_billions" json:"min_cap_billions"`
 	SweepMinCapBillions []float64 `toml:"sweep_min_cap_billions" json:"sweep_min_cap_billions"`
 }
 
-// Config es toda la configuración: valores por defecto con lo que defina el TOML encima (sección por sección).
 type Config struct {
 	Data       Data       `toml:"data" json:"data"`
 	Backtest   Backtest   `toml:"backtest" json:"backtest"`
@@ -184,7 +156,6 @@ type Config struct {
 	Universe   Universe   `toml:"universe" json:"universe"`
 }
 
-// Default son los valores que se usan cuando el TOML no dice otra cosa.
 func Default() Config {
 	return Config{
 		Data: Data{
@@ -223,7 +194,7 @@ func Default() Config {
 			ActualPrefix: "top3_actual", LogDir: "log",
 			BacktestLog: "top3_backtest.log", ActualLog: "top3_actual.log", EtfqLog: "top3_etfq.log",
 			QuantLog: "top3_quant.log", EvaluatorLog: "top3_evaluator.log", VisorLog: "top3_visor.log", ExportLog: "export_frontend.log", PruneLog: "top3_prune.log",
-			FrontendData: "../frontend/public/data/report.json",
+			FrontendData: "output/report.json",
 			HistoryFile:  "history/history.json",
 		},
 		Etfq: Etfq{
@@ -239,9 +210,9 @@ func Default() Config {
 			WMax: 0.25, WMin: 0.10, WStep: 0.01, SectorMax: 0.40, MuShrink: 0.25, EquityPremium: 0.05, RiskFree: 0.04,
 			FundamentalsTTLDays: 7,
 		},
-		Evaluator: Evaluator{Output: "../frontend/public/data/evaluator.json", Peers: 3, Sp500: true, MinCoverage: 0.5},
+		Evaluator: Evaluator{Output: "output/evaluator.json", Peers: 3, Sp500: true, MinCoverage: 0.5},
 		Visor: Visor{
-			Output: "../frontend/public/data/visor.json", Tickers: []string{"SPY", "QQQ"}, CapMinBillions: 100, CapMegaBillions: 200,
+			Output: "output/visor.json", Tickers: []string{"SPY", "QQQ"}, CapMinBillions: 100, CapMegaBillions: 200,
 			EtfTop: 300, EtfAumMinMillions: 500, Rf: 3, MinCoverage: 0.5,
 		},
 		Universe: Universe{MinCapBillions: 10, SweepMinCapBillions: []float64{0, 10, 200}},
@@ -252,8 +223,6 @@ func defaultAliases() map[string]string {
 	return map[string]string{"BK": "BNY", "FI": "FISV", "MMC": "MRSH", "EQR": "VMRK", "PSKY": "SKYD", "SATS": "ECHO"}
 }
 
-// Load es Default() con lo que defina el TOML de `path` encima. Un archivo que no existe da los valores por defecto
-// (existed = false). Una sección o clave desconocida es un error: casi siempre es un typo que de otro modo se ignoraría.
 func Load(path string) (cfg Config, existed bool, err error) {
 	cfg = Default()
 	raw, err := os.ReadFile(path)
@@ -263,7 +232,7 @@ func Load(path string) (cfg Config, existed bool, err error) {
 	if err != nil {
 		return cfg, false, err
 	}
-	cfg.Tickers.Aliases = nil // si el TOML define alias, reemplazan a los de fábrica (no se mezclan)
+	cfg.Tickers.Aliases = nil
 	md, err := toml.Decode(string(raw), &cfg)
 	if err != nil {
 		return cfg, true, fmt.Errorf("%s: %w", path, err)

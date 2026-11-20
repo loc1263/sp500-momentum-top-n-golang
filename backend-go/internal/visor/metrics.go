@@ -2,8 +2,10 @@
 // ETFs de mayor AUM de EE. UU.: rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, drawdown, distancia al máximo de 52
 // semanas, precio contra la media de 200 ruedas y dividend yield.
 //
-// Es una sección aparte: arma su propio universo con el screener de Yahoo (gohoo) y escribe su propio JSON para el frontend. No usa
+// Es una sección aparte: arma su propio universo con el screener de Yahoo (gohoo) y escribe su propio JSON para el sitio. No usa
 // los scores ni las tablas de los otros modelos.
+//
+// Fecha: 2026-11-19
 package visor
 
 import (
@@ -16,27 +18,23 @@ import (
 	"top3/internal/stats"
 )
 
-// Parámetros del cálculo (ruedas por año y plazos).
 const (
 	TradingDays = 252
-	MonthDays   = 21 // ruedas por mes de los rendimientos mensuales
+	MonthDays   = 21
 	maDays      = 200
 )
 
-// Months y Years son los plazos de los rendimientos acumulados; RelYears, los que se comparan contra SPY.
 var (
 	Months   = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 	Years    = []int{1, 2, 3, 5}
 	RelYears = []int{1, 3}
 )
 
-// Series son los cierres ajustados de un instrumento, en orden cronológico, con su fecha "AAAA-MM-DD".
 type Series struct {
 	Dates []string
 	Close []float64
 }
 
-// SeriesOf arma la serie de una descarga de gohoo: cierre ajustado por dividendos y splits, sin las barras sin dato.
 func SeriesOf(bars []gohoo.Bar) Series {
 	var s Series
 	for _, b := range bars {
@@ -49,13 +47,11 @@ func SeriesOf(bars []gohoo.Bar) Series {
 	return s
 }
 
-// Returns son los retornos diarios (simples) de una serie, con su fecha.
 type Returns struct {
 	Dates []string
 	R     []float64
 }
 
-// ReturnsOf son los retornos diarios de las últimas `last` ruedas de s (todos si last <= 0).
 func ReturnsOf(s Series, last int) Returns {
 	if len(s.Close) < 2 {
 		return Returns{}
@@ -67,7 +63,6 @@ func ReturnsOf(s Series, last int) Returns {
 	return r
 }
 
-// PeriodReturn es el retorno acumulado % de las últimas n ruedas (nil si no hay historial).
 func PeriodReturn(p []float64, n int) *float64 {
 	if len(p) <= n {
 		return nil
@@ -75,7 +70,6 @@ func PeriodReturn(p []float64, n int) *float64 {
 	return ptr((p[len(p)-1]/p[len(p)-1-n] - 1) * 100)
 }
 
-// YTD es el retorno % desde el último cierre del año anterior (nil si la serie no tiene un año anterior).
 func YTD(s Series) *float64 {
 	if len(s.Close) == 0 {
 		return nil
@@ -89,7 +83,6 @@ func YTD(s Series) *float64 {
 	return nil
 }
 
-// MaxDrawdown es la mayor caída % desde un máximo previo (valor negativo o cero).
 func MaxDrawdown(p []float64) float64 {
 	worst, peak := 0.0, math.Inf(-1)
 	for _, x := range p {
@@ -99,22 +92,19 @@ func MaxDrawdown(p []float64) float64 {
 	return worst * 100
 }
 
-// Metrics son las métricas de precio de un instrumento (nil = no se pueden calcular con el historial disponible).
 type Metrics struct {
 	YTD         *float64
 	RetMonths   map[int]*float64
 	RetYears    map[int]*float64
-	Volatility  *float64 // % anual, 3 años
-	Beta        *float64 // 3 años, contra SPY
-	CAGR3       *float64 // % anual, 3 años
-	MaxDrawdown *float64 // % , 5 años
-	DistMax52   *float64 // % bajo el máximo de 52 semanas
-	VsMA200     *float64 // % sobre la media de 200 ruedas
-	DivYield    *float64 // % , dividendos de los últimos 365 días sobre el último cierre
+	Volatility  *float64
+	Beta        *float64
+	CAGR3       *float64
+	MaxDrawdown *float64
+	DistMax52   *float64
+	VsMA200     *float64
+	DivYield    *float64
 }
 
-// Compute calcula las métricas de s. divs son los dividendos por fecha "AAAA-MM-DD" y spy, los retornos diarios de SPY (los últimos
-// 3 años). Con menos de dos cierres devuelve ok = false.
 func Compute(s Series, divs map[string]float64, spy Returns) (m Metrics, ok bool) {
 	n := len(s.Close)
 	if n < 2 {
@@ -144,7 +134,6 @@ func Compute(s Series, divs map[string]float64, spy Returns) (m Metrics, ok bool
 	return m, true
 }
 
-// dividendYield es la suma de los dividendos de los 365 días anteriores al último cierre, sobre ese cierre, en %.
 func dividendYield(s Series, divs map[string]float64) float64 {
 	end, err := time.Parse(time.DateOnly, s.Dates[len(s.Dates)-1])
 	if err != nil {
@@ -160,7 +149,6 @@ func dividendYield(s Series, divs map[string]float64) float64 {
 	return sum / s.Close[len(s.Close)-1] * 100
 }
 
-// beta es cov(r, spy) / var(spy) sobre las fechas en común; nil con 252 fechas o menos, o si SPY no varía.
 func beta(r, spy Returns) *float64 {
 	bySpy := make(map[string]float64, len(spy.Dates))
 	for i, d := range spy.Dates {
@@ -187,7 +175,6 @@ func beta(r, spy Returns) *float64 {
 	return ptr(cov / vy)
 }
 
-// tail son los últimos n valores de p (todos si hay menos).
 func tail(p []float64, n int) []float64 {
 	if len(p) <= n {
 		return p

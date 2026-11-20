@@ -1,3 +1,8 @@
+// Pruebas de la carga de configuración: valores por defecto, sobrescritura por sección, claves
+// desconocidas y config.toml incluido.
+//
+// Fecha: 2026-11-19
+
 package config
 
 import (
