@@ -1,4 +1,4 @@
-// Formato del evaluador de empresas (equivalente a frontend/src/lib/evaluator.js): montos, métricas, distintivos y minigráfico.
+// Formato del evaluador de empresas: montos, métricas, distintivos y minigráfico.
 //
 // Fecha: 2026-11-19
 

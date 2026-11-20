@@ -1,56 +1,62 @@
 <!-- Lab · Backtest: curva de capital, historial de selecciones y calendarios de arranque por plazo (un bloque por plazo).
-     Fecha: 2026-11-19 -->
+     Alpine lo pinta con la página del universo y período elegidos en lab-datos.js (lab.js).
+     Fecha: 2026-11-20 -->
 {{define "content"}}
-{{- with .Body}}
-  {{template "labbar" .Bar}}
-  <div class="toolbar">
-    <label>Plazo
-      <select data-switch="term">{{range .Terms}}<option value="{{.Months}}"{{if .Selected}} selected{{end}}>{{.Months}} meses</option>{{end}}</select>
-    </label>
-  </div>
-  {{- range .Terms}}
-  <section data-case-of="term" data-case="{{.Months}}"{{if not .Selected}} hidden{{end}}>
-    <p class="sub">{{.Sub}}</p>
-    <p class="range overview">
-      <strong>Capital inicial</strong> US$ {{.Cap0}} ·
-      <strong>Capital final</strong> US$ {{.Cap1}} <span class="muted">(empezando en {{.First}})</span> ·
-      <strong>Ganancia total</strong> <span class="{{.TotalClass}}">{{.Total}}</span> ·
-      <strong>Rendimiento anual</strong> <span class="{{.CAGRClass}}">{{.CAGR}}</span> <span class="muted">(CAGR, mismo arranque)</span> ·
-      <strong>Resultado típico</strong> <span class="{{.MedianClass}}">{{.Median}} anual</span> <span class="muted">(el del medio entre {{.Calendars}} fechas de arranque posibles)</span> ·
-      <strong>Según el mes de arranque</strong> {{.Min}} a {{.Max}} <span class="muted">anual, del peor al mejor</span>
-    </p>
+<div x-data="lab('backtest')" x-cloak>
+  <template x-if="!p"><p class="muted" x-text="loaded ? 'No hay datos del Lab. Ejecute topwx backtest (en backend/).' : 'Cargando…'"></p></template>
+  <template x-if="p">
+    <div>
+      {{template "labbar"}}
+      <div class="toolbar">
+        <label>Plazo
+          <select @change="term = Number($event.target.value)"><template x-for="t in p.Terms"><option :value="t.Months" :selected="t.Months === term" x-text="t.Months + ' meses'"></option></template></select>
+        </label>
+      </div>
+      <template x-for="t in p.Terms" :key="t.Months">
+        <section x-show="t.Months === term">
+          <p class="sub" x-text="t.Sub"></p>
+          <p class="range overview">
+            <strong>Capital inicial</strong> US$ <span x-text="t.Cap0"></span> ·
+            <strong>Capital final</strong> US$ <span x-text="t.Cap1"></span> <span class="muted">(empezando en <span x-text="t.First"></span>)</span> ·
+            <strong>Ganancia total</strong> <span :class="t.TotalClass" x-text="t.Total"></span> ·
+            <strong>Rendimiento anual</strong> <span :class="t.CAGRClass" x-text="t.CAGR"></span> <span class="muted">(CAGR, mismo arranque)</span> ·
+            <strong>Resultado típico</strong> <span :class="t.MedianClass" x-text="t.Median + ' anual'"></span> <span class="muted">(el del medio entre <span x-text="t.Calendars"></span> fechas de arranque posibles)</span> ·
+            <strong>Según el mes de arranque</strong> <span x-text="t.Min + ' a ' + t.Max"></span> <span class="muted">anual, del peor al mejor</span>
+          </p>
 
-    <h2>Curva de capital</h2>
-    {{template "range" .Range1}}
-    <p class="sub">En gris, los demás calendarios de arranque posibles del mismo plazo.</p>
-    {{.Chart}}
+          <h2>Curva de capital</h2>
+          {{template "labrange" "t.Range1"}}
+          <p class="sub">En gris, los demás calendarios de arranque posibles del mismo plazo.</p>
+          {{template "labchart" "t.Chart"}}
 
-    <h2>Historial de selecciones (calendario base)</h2>
-    {{template "range" .Range2}}
-    <p class="sub">Capital = valor al entrar a los tickers de la fila. Gan/Pérd = acumulado vs. capital inicial.</p>
-    <div class="wrap">
-      <table>
-        <thead>
-          <tr><th>Fecha</th>{{range .HistHeads}}<th>#{{.}}</th>{{end}}<th class="r">Capital (US$)</th><th class="r">Ganancia acumulada</th></tr>
-        </thead>
-        <tbody>{{template "rows" .History}}</tbody>
-      </table>
+          <h2>Historial de selecciones (calendario base)</h2>
+          {{template "labrange" "t.Range2"}}
+          <p class="sub">Capital = valor al entrar a los tickers de la fila. Gan/Pérd = acumulado vs. capital inicial.</p>
+          <div class="wrap">
+            <table>
+              <thead>
+                <tr><th>Fecha</th><template x-for="h in t.HistHeads"><th x-text="'#' + h"></th></template><th class="r">Capital (US$)</th><th class="r">Ganancia acumulada</th></tr>
+              </thead>
+              <tbody>{{template "labrows" "t.History"}}</tbody>
+            </table>
+          </div>
+
+          <h2>Calendarios de arranque posibles (<span x-text="t.CalCount"></span>)</h2>
+          {{template "labrange" "t.Range3"}}
+          <p class="sub" x-text="'El mismo plazo de ' + t.Months + ' meses empezando en cada uno de los ' + t.Months + ' meses posibles.'"></p>
+          <div class="wrap">
+            <table>
+              <thead>
+                <tr><th>Desde</th><th>Hasta</th><th>Primer rebalanceo</th><th class="r">Rebalanceos</th><th class="r">Capital final (US$)</th><th class="r">Ganancia total</th><th class="r">Rendimiento anual</th></tr>
+              </thead>
+              <tbody>{{template "labrows" "t.CalRows"}}</tbody>
+            </table>
+          </div>
+        </section>
+      </template>
     </div>
-
-    <h2>Calendarios de arranque posibles ({{.CalCount}})</h2>
-    {{template "range" .Range3}}
-    <p class="sub">El mismo plazo de {{.Months}} meses empezando en cada uno de los {{.Months}} meses posibles.</p>
-    <div class="wrap">
-      <table>
-        <thead>
-          <tr><th>Desde</th><th>Hasta</th><th>Primer rebalanceo</th><th class="r">Rebalanceos</th><th class="r">Capital final (US$)</th><th class="r">Ganancia total</th><th class="r">Rendimiento anual</th></tr>
-        </thead>
-        <tbody>{{template "rows" .CalRows}}</tbody>
-      </table>
-    </div>
-  </section>
-  {{- end}}
-{{end}}
+  </template>
+</div>
 {{end}}
 
-{{define "scripts"}}<script src="{{.Root}}pager.js" defer></script><script src="{{.Root}}table.js" defer></script><script src="{{.Root}}chart.js" defer></script>{{end}}
+{{define "scripts"}}<script src="{{.Root}}lab-datos.js" defer></script><script src="{{.Root}}chart.js" defer></script><script src="{{.Root}}lab.js" defer></script><script src="{{.Root}}alpine.min.js" defer></script>{{end}}

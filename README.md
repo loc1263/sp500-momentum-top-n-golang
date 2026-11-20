@@ -30,7 +30,7 @@ La barra de pestañas tiene cinco grupos: **Momentum** (Top actual), **ETFs**, *
 - [Go](https://go.dev/dl/) 1.26 o superior
 - Conexión a internet
 
-No hace falta Node.js ni Python: el sitio es HTML, CSS y JS plano que genera el propio programa en Go.
+No hace falta Node.js ni Python: el sitio es HTML, CSS y JS que genera el propio programa en Go (con Alpine.js incluido como un solo archivo, sin instalar nada). La carpeta `frontend/` queda en unos 22 archivos.
 
 ## Cómo ejecutarlo
 

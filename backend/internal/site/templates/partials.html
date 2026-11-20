@@ -1,5 +1,5 @@
 <!-- Piezas comunes: celda de tabla, encabezados ordenables y fila (con los atributos data-* que lee table.js).
-     Fecha: 2026-11-19 -->
+     Fecha: 2026-11-20 -->
 {{define "cell" -}}
 <td{{if .Views}} data-views="{{.Views}}"{{end}}{{if .Class}} class="{{.Class}}"{{end}}{{if .V}} data-v="{{.V}}"{{end}}{{if and .Title (not .Dot)}} title="{{.Title}}"{{end}}>
 {{- if .Href}}<a href="{{.Href}}"{{if .Ext}} target="_blank" rel="noopener noreferrer" title="Ver {{.Text}} en stockanalysis.com"{{end}}>{{if or .Ext .Strong}}<strong>{{.Text}}</strong>{{else}}{{.Text}}{{end}}</a>
@@ -27,13 +27,18 @@
 {{- if .Late}} <span class="neg">· primer rebalanceo efectivo: {{.First}} (antes no había suficientes empresas que cumplan el universo)</span>{{end}}</p>
 {{- end}}
 
+{{define "labrange" -}}
+<p class="range"><strong>Período:</strong> <span x-text="{{.}}.Start"></span> a <span x-text="{{.}}.End"></span> <template x-if="{{.}}.YearsText"><span class="muted" x-text="{{.}}.YearsText"></span></template>
+<template x-if="{{.}}.Late"><span class="neg" x-text="'· primer rebalanceo efectivo: ' + {{.}}.First + ' (antes no había suficientes empresas que cumplan el universo)'"></span></template></p>
+{{- end}}
+
 {{define "labbar" -}}
 <div class="tfilters">
   <label>Período
-    <select data-nav>{{range .Periods}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+    <select @change="go($event.target.value)"><template x-for="o in p.Bar.Periods"><option :value="o.Value" :selected="o.Selected" x-text="o.Label"></option></template></select>
   </label>
   <label>Universo
-    <select data-nav>{{range .Universes}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+    <select @change="go($event.target.value)"><template x-for="o in p.Bar.Universes"><option :value="o.Value" :selected="o.Selected" x-text="o.Label"></option></template></select>
   </label>
 </div>
 <details class="glossary">
@@ -57,4 +62,12 @@
 
 {{define "hint" -}}
 <span class="hint" tabindex="0" role="img" aria-label="{{.}}" title="{{.}}">?</span>
+{{- end}}
+
+{{define "labrows" -}}
+<template x-for="r in {{.}}"><tr><template x-for="c in r.Cells"><td :class="c.Class" x-html="cell(c)"></td></template></tr></template>
+{{- end}}
+
+{{define "labchart" -}}
+<div x-html="{{.}}" x-effect="initCharts($el, {{.}})"></div>
 {{- end}}

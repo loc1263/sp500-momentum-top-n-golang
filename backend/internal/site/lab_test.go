@@ -85,30 +85,28 @@ func TestLab(t *testing.T) {
 	if _, err := Build(in, out); err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"lab.html", "lab/backtest-200-2.html", "lab/sweep-200-2.html", "lab/compare-200-2.html", "chart.js"} {
+	for _, f := range []string{"lab.html", "lab-backtest.html", "lab-sweep.html", "lab-compare.html", "lab-datos.js", "lab.js", "chart.js"} {
 		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(f))); err != nil {
 			t.Errorf("falta %s: %v", f, err)
 		}
 	}
-	wantAll(t, "lab.html", read(t, out, "lab.html"), `url=lab/backtest-200-2.html`)
+	wantAll(t, "lab.html", read(t, out, "lab.html"), `url=lab-backtest.html`)
 
-	bt := read(t, out, "lab/backtest-200-2.html")
+	bt := read(t, out, "lab-backtest.html")
 	wantAll(t, "backtest", bt,
-		"<title>Momentum y Scores · Lab: Backtest</title>", `href="../site.css"`, `href="../index.html">Volver a la app</a>`, `<a class="tab active" href="../lab/backtest-200-2.html" aria-current="page">`,
-		`href="../lab/sweep-200-2.html"`, `href="../lab/compare-200-2.html"`, `<option value="backtest-200-2.html" selected>2 años (2024–2026)</option>`, "¿Cómo leer esta página?",
-		`<option value="4" selected>4 meses</option>`, `<section data-case-of="term" data-case="6" hidden>`, "Capital inicial</strong> US$ 15.000,00", "Capital final</strong> US$ 20.000,00",
-		"Calendario base", `data-chart="`, "<path", "AAPL", "&#43;20,0%", "-10,0%", "#2", "Calendarios de arranque posibles (2)", "Corrida del 2026-11-18.",
-		"primer rebalanceo efectivo: 2024-04-01")
+		"<title>Momentum y Scores · Lab: Backtest</title>", `href="site.css"`, `href="index.html">Volver a la app</a>`, `<a class="tab active" href="lab-backtest.html" aria-current="page">`,
+		`href="lab-sweep.html"`, `href="lab-compare.html"`, "¿Cómo leer esta página?", `x-data="lab('backtest')"`, `src="lab-datos.js"`, `src="alpine.min.js"`, "Calendario base"[:0]+"Calendarios de arranque posibles")
 	if strings.Contains(bt, ">Acerca") || strings.Contains(bt, ">About<") {
 		t.Error("el Lab no debería tener el botón About")
 	}
 
-	sweep := read(t, out, "lab/sweep-200-2.html")
-	wantAll(t, "sweep", sweep, "Plazo más consistente: 4 meses.", "También es el que más dinero dejó", "más consistente", "Arranques probados: 4m: 2 · 6m: 2", `class="basedot"`, "rendimiento anual", `data-chart="`, "6 meses")
-
-	cmp := read(t, out, "lab/compare-200-2.html")
-	wantAll(t, "compare", cmp, "Empate: cada modelo gana en 1 de 2 plazos.", "Diferencia media", "¿Se sostiene en el tiempo?", "corte cerca del 2025-01-01", "N-1 en las dos",
-		"N-0 gana las dos mitades en 0 de 2 plazos, N-1 en 1", `data-switch="cterm"`, "4-0 (actual)", "6-1 (skip-month)")
+	datos := read(t, out, "lab-datos.js")
+	wantAll(t, "lab-datos.js", datos,
+		"window.LAB=", `"default":"200-2"`, `"backtest":{"200-2":`, `"sweep":{"200-2":`, `"compare":{"200-2":`,
+		`"Value":"200-2","Label":"mega-cap","Selected":true`, `"Label":"2 años (2024–2026)"`, `"Months":4,"Selected":true`, `"Cap0":"15.000,00"`, `"Cap1":"20.000,00"`,
+		"data-chart=", "AAPL", "+20,0%", "-10,0%", `"CalCount":2`, "primer rebalanceo efectivo"[:0]+`"Late":true`, `"First":"2024-04-01"`,
+		"Plazo más consistente"[:0]+`"HasBest":true`, `"SameWinner":true`, "Arranques probados: 4m: 2 · 6m: 2", `"Headline":"Empate: cada modelo gana en 1 de 2 plazos."`,
+		`"HasHalves":true`, `"Split":"2025-01-01"`, "N-0 gana las dos mitades en 0 de 2 plazos, N-1 en 1", "N-1 en las dos", "4-0 (actual)", "6-1 (skip-month)")
 }
 
 func TestLabSinSkip(t *testing.T) {
@@ -126,7 +124,7 @@ func TestLabSinSkip(t *testing.T) {
 	if _, err := Build(in, out); err != nil {
 		t.Fatal(err)
 	}
-	wantAll(t, "compare", read(t, out, "lab/compare-200-2.html"), "Sin resultados del modelo skip-month")
+	wantAll(t, "compare", read(t, out, "lab-datos.js"), `"compare":{"200-2":{"Bar":`, `"Empty":true`)
 }
 
 func TestChartHTML(t *testing.T) {
@@ -157,7 +155,7 @@ func TestRangeYAnios(t *testing.T) {
 	if r := newRange("2020-01-01", "2021-01-01", 0, ""); r.Late || r.YearsText != "" {
 		t.Errorf("sin años ni primer rebalanceo: %+v", r)
 	}
-	if got := labFile("sweep", "0", 10); got != "lab/sweep-0-10.html" {
-		t.Errorf("labFile = %q", got)
+	if got := labKey("0", 10); got != "0-10" {
+		t.Errorf("labKey = %q", got)
 	}
 }

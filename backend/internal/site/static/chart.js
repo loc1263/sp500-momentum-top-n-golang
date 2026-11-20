@@ -1,7 +1,8 @@
 // Cursor y cuadro de valores de los gráficos de capital: al mover el mouse sobre el SVG marca la fecha más cercana y lista el valor
-// de cada serie visible. Usa los datos incrustados en data-chart (escalas y puntos), sin dependencias.
+// de cada serie visible. Usa los datos incrustados en data-chart (escalas y puntos), sin dependencias. window.initCharts(raíz) activa
+// los gráficos que haya dentro de raíz; las páginas pintadas con Alpine lo llaman cada vez que cambian el HTML.
 //
-// Fecha: 2026-11-19
+// Fecha: 2026-11-20
 
 (() => {
   const W = 800, H = 280;
@@ -9,7 +10,9 @@
   const usd = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const day = (d) => Date.parse(`${d}T00:00:00Z`) / 864e5;
 
-  document.querySelectorAll('.chart[data-chart]').forEach((chart) => {
+  function initChart(chart) {
+    if (chart.dataset.ready) return;
+    chart.dataset.ready = '1';
     const c = JSON.parse(chart.dataset.chart);
     const svg = chart.querySelector('svg');
     const tip = chart.querySelector('.tip');
@@ -58,5 +61,11 @@
       tip.style.left = `${(Math.min(x(date) + 12, W - 190) / W) * 100}%`;
       tip.hidden = false;
     });
-  });
+  }
+
+  window.initCharts = (root = document) => {
+    // Alpine reemplaza el HTML en su propio ciclo: se espera a que termine antes de buscar los gráficos.
+    queueMicrotask(() => (root.matches?.('.chart[data-chart]') ? [root] : root.querySelectorAll('.chart[data-chart]')).forEach(initChart));
+  };
+  window.initCharts();
 })();

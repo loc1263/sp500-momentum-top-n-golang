@@ -1,70 +1,78 @@
 <!-- Lab · Plazos y sensibilidad: mediana por plazo, comparación con el arranque base y dispersión según el mes de arranque.
-     Fecha: 2026-11-19 -->
+     Alpine lo pinta con la página del universo y período elegidos en lab-datos.js (lab.js).
+     Fecha: 2026-11-20 -->
 {{define "content"}}
-{{- with .Body}}
-  {{template "labbar" .Bar}}
-  {{- if .HasBest}}
-  <div class="best">
-    <p class="line">
-      <strong>Plazo más consistente: {{.Steady.Months}} meses.</strong>
-      Su resultado típico es <strong class="{{.Steady.MedianClass}}">{{.Steady.Median}} anual</strong>
-      (mediana de {{.Steady.Calendars}} arranques posibles). US$ {{.Capital}} terminaron entre US$ {{.Steady.CapMin}} y US$ {{.Steady.CapMax}}.
-    </p>
-    {{- if .SameWinner}}
-    <p class="line muted">También es el que más dinero dejó con el arranque base (US$ {{.TopBase.BaseCapital}}).</p>
-    {{- else}}
-    <p class="line">
-      <strong>Mayor resultado con un solo arranque: {{.TopBase.Months}} meses</strong>
-      (US$ {{.TopBase.BaseCapital}} con el arranque base), pero con otros arranques terminó entre US$ {{.TopBase.CapMin}} y US$ {{.TopBase.CapMax}}: es su mejor caso, no lo esperable.
-    </p>
-    {{- end}}
-  </div>
+<div x-data="lab('sweep')" x-cloak>
+  <template x-if="!p"><p class="muted" x-text="loaded ? 'No hay datos del Lab. Ejecute topwx backtest (en backend/).' : 'Cargando…'"></p></template>
+  <template x-if="p">
+    <div>
+      {{template "labbar"}}
+      <template x-if="p.HasBest">
+        <div>
+          <div class="best">
+            <p class="line">
+              <strong x-text="'Plazo más consistente: ' + p.Steady.Months + ' meses.'"></strong>
+              Su resultado típico es <strong :class="p.Steady.MedianClass" x-text="p.Steady.Median + ' anual'"></strong>
+              (mediana de <span x-text="p.Steady.Calendars"></span> arranques posibles). US$ <span x-text="p.Capital"></span> terminaron entre US$ <span x-text="p.Steady.CapMin"></span> y US$ <span x-text="p.Steady.CapMax"></span>.
+            </p>
+            <template x-if="p.SameWinner">
+              <p class="line muted" x-text="'También es el que más dinero dejó con el arranque base (US$ ' + p.TopBase.BaseCapital + ').'"></p>
+            </template>
+            <template x-if="!p.SameWinner">
+              <p class="line">
+                <strong x-text="'Mayor resultado con un solo arranque: ' + p.TopBase.Months + ' meses'"></strong>
+                (US$ <span x-text="p.TopBase.BaseCapital"></span> con el arranque base), pero con otros arranques terminó entre US$ <span x-text="p.TopBase.CapMin"></span> y US$ <span x-text="p.TopBase.CapMax"></span>: es su mejor caso, no lo esperable.
+              </p>
+            </template>
+          </div>
 
-  <h2>Comparación de plazos</h2>
-  {{template "range" .Range1}}
-  <p class="sub">De más a menos consistente. Típico, peor y mejor usan todos los arranques posibles; «un solo arranque» es el primer mes.</p>
-  <div class="wrap">
-    <table>
-      <thead>
-        <tr class="groups">
-          <th></th><th colspan="2" class="typical">Resultado típico</th><th colspan="2">Peor arranque</th><th colspan="2">Mejor arranque</th><th colspan="2">Un solo arranque (base)</th>
-        </tr>
-        <tr>
-          <th>Plazo</th><th class="r typical">Anual</th><th class="r typical">Capital final</th><th class="r">Anual</th><th class="r">Capital final</th>
-          <th class="r">Anual</th><th class="r">Capital final</th><th class="r">Anual</th><th class="r">Capital final</th>
-        </tr>
-      </thead>
-      <tbody>{{template "rows" .Rows}}</tbody>
-    </table>
-  </div>
-  <p class="sub note">{{.Note}}</p>
+          <h2>Comparación de plazos</h2>
+          {{template "labrange" "p.Range1"}}
+          <p class="sub">De más a menos consistente. Típico, peor y mejor usan todos los arranques posibles; «un solo arranque» es el primer mes.</p>
+          <div class="wrap">
+            <table>
+              <thead>
+                <tr class="groups">
+                  <th></th><th colspan="2" class="typical">Resultado típico</th><th colspan="2">Peor arranque</th><th colspan="2">Mejor arranque</th><th colspan="2">Un solo arranque (base)</th>
+                </tr>
+                <tr>
+                  <th>Plazo</th><th class="r typical">Anual</th><th class="r typical">Capital final</th><th class="r">Anual</th><th class="r">Capital final</th>
+                  <th class="r">Anual</th><th class="r">Capital final</th><th class="r">Anual</th><th class="r">Capital final</th>
+                </tr>
+              </thead>
+              <tbody>{{template "labrows" "p.Rows"}}</tbody>
+            </table>
+          </div>
+          <p class="sub note" x-text="p.Note"></p>
 
-  <h2>¿Cuánto depende del mes de arranque?</h2>
-  {{template "range" .Range1}}
-  <p class="sub">Cada barra va del peor al mejor rendimiento anual; la marca es el resultado típico y el círculo, el arranque base. Barra corta = más estable.</p>
-  <div class="ranges">
-    {{- range .Bars}}
-    <div class="rrow">
-      <span class="lbl">{{.Months}} meses</span>
-      <div class="track2">
-        <div class="bar" style="{{.Style}}"></div>
-        <div class="median" style="{{.MedianLeft}}" title="{{.MedianTitle}}"></div>
-        <div class="basedot" style="{{.Dot}}" title="{{.DotTitle}}"></div>
-      </div>
-      <span class="val">{{.Label}}</span>
+          <h2>¿Cuánto depende del mes de arranque?</h2>
+          {{template "labrange" "p.Range1"}}
+          <p class="sub">Cada barra va del peor al mejor rendimiento anual; la marca es el resultado típico y el círculo, el arranque base. Barra corta = más estable.</p>
+          <div class="ranges">
+            <template x-for="b in p.Bars">
+              <div class="rrow">
+                <span class="lbl" x-text="b.Months + ' meses'"></span>
+                <div class="track2">
+                  <div class="bar" :style="b.Style"></div>
+                  <div class="median" :style="b.MedianLeft" :title="b.MedianTitle"></div>
+                  <div class="basedot" :style="b.Dot" :title="b.DotTitle"></div>
+                </div>
+                <span class="val" x-text="b.Label"></span>
+              </div>
+            </template>
+            <div class="axis"><span x-text="p.AxisLo"></span><span>rendimiento anual</span><span x-text="p.AxisHi"></span></div>
+          </div>
+
+          <h2>Evolución del capital por plazo</h2>
+          {{template "labrange" "p.Range1"}}
+          <p class="sub">Cada línea es el arranque base de un plazo (un solo caso por plazo), no el promedio.</p>
+          {{template "labchart" "p.Chart"}}
+        </div>
+      </template>
+      <template x-if="!p.HasBest"><p class="muted">Sin resultados de plazos para este universo y período.</p></template>
     </div>
-    {{- end}}
-    <div class="axis"><span>{{.AxisLo}}</span><span>rendimiento anual</span><span>{{.AxisHi}}</span></div>
-  </div>
-
-  <h2>Evolución del capital por plazo</h2>
-  {{template "range" .Range1}}
-  <p class="sub">Cada línea es el arranque base de un plazo (un solo caso por plazo), no el promedio.</p>
-  {{.Chart}}
-  {{- else}}
-  <p class="muted">Sin resultados de plazos para este universo y período.</p>
-  {{- end}}
-{{end}}
+  </template>
+</div>
 {{end}}
 
-{{define "scripts"}}<script src="{{.Root}}pager.js" defer></script><script src="{{.Root}}table.js" defer></script><script src="{{.Root}}chart.js" defer></script>{{end}}
+{{define "scripts"}}<script src="{{.Root}}lab-datos.js" defer></script><script src="{{.Root}}chart.js" defer></script><script src="{{.Root}}lab.js" defer></script><script src="{{.Root}}alpine.min.js" defer></script>{{end}}

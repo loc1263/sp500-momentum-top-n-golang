@@ -1,7 +1,8 @@
 // Package site genera el sitio estático sin Node ni bundler: Go arma el HTML de cada página (tablas ya formateadas, gráficos SVG) con
-// html/template y copia un CSS y unos JS planos que solo filtran, ordenan y paginan lo que ya está en la página.
+// html/template y copia un CSS y unos JS planos que filtran, ordenan y paginan lo que ya está en la página. El evaluador y el Lab son
+// una página por vista que Alpine pinta con datos ya formateados por Go (empresas.js, lab-datos.js).
 //
-// Fecha: 2026-11-19
+// Fecha: 2026-11-20
 package site
 
 import (

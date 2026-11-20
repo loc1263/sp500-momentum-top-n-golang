@@ -1,14 +1,14 @@
-// Páginas del Lab (backtest): una por vista, universo y período (lab/<vista>-<universo>-<años>.html). Cada una trae sus plazos
-// ya armados; los selectores de período y universo navegan a la página correspondiente (table.js, data-nav).
+// Páginas del Lab (backtest): una por vista (lab-<vista>.html) que Alpine pinta con los datos de lab-datos.js, ya armados por Go
+// para cada universo y período. El universo y el período elegidos van en el hash (lab-backtest.html#200-10); los selectores solo
+// lo cambian.
 //
-// Fecha: 2026-11-19
+// Fecha: 2026-11-20
 
 package site
 
 import (
 	"fmt"
 	"html/template"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,9 +24,10 @@ var labViews = []struct{ ID, Label, Title string }{
 
 var seriesColors = []string{"var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"}
 
-func labFile(view, cap string, years float64) string {
-	return fmt.Sprintf("lab/%s-%s-%s.html", view, cap, fnum(years))
-}
+// labKey identifica un universo y período dentro de lab-datos.js y en el hash de las páginas del Lab.
+func labKey(cap string, years float64) string { return cap + "-" + fnum(years) }
+
+func labPage(view string) string { return "lab-" + view + ".html" }
 
 // labCtx es el universo y período de una página del Lab.
 type labCtx struct {
@@ -86,17 +87,17 @@ type labBar struct {
 	Periods, Universes []option
 }
 
-func newLabBar(view string, r *report.Report, ctx labCtx) labBar {
+func newLabBar(r *report.Report, ctx labCtx) labBar {
 	var bar labBar
 	for _, p := range ctx.Universe.Periods {
 		bar.Periods = append(bar.Periods, option{
-			Value: path.Base(labFile(view, ctx.Key, p.Years)), Selected: p.Years == ctx.Period.Years,
+			Value: labKey(ctx.Key, p.Years), Selected: p.Years == ctx.Period.Years,
 			Label: fmt.Sprintf("%s años (%s–%s)", fnum(p.Years), p.StartDate[:4], p.EndDate[:4]),
 		})
 	}
 	for _, u := range r.Backtest {
 		years := defaultYears(u, ctx.Period.Years, r.Settings)
-		bar.Universes = append(bar.Universes, option{Value: path.Base(labFile(view, capKeyOf(u.MinCapBillions), years)), Label: u.Label, Selected: capKeyOf(u.MinCapBillions) == ctx.Key})
+		bar.Universes = append(bar.Universes, option{Value: labKey(capKeyOf(u.MinCapBillions), years), Label: u.Label, Selected: capKeyOf(u.MinCapBillions) == ctx.Key})
 	}
 	return bar
 }
@@ -135,7 +136,7 @@ type btTerm struct {
 }
 
 func newBacktestPage(r *report.Report, ctx labCtx) btPage {
-	pg := btPage{Bar: newLabBar("backtest", r, ctx)}
+	pg := btPage{Bar: newLabBar(r, ctx)}
 	wanted := ctx.Settings.Months
 	chosen := ctx.Period.Terms[0].Months
 	for _, t := range ctx.Period.Terms {
@@ -258,7 +259,7 @@ type swRow struct {
 }
 
 func newSweepPage(r *report.Report, ctx labCtx) swPage {
-	pg := swPage{Bar: newLabBar("sweep", r, ctx), Capital: nf(ctx.Settings.InitialCapital)}
+	pg := swPage{Bar: newLabBar(r, ctx), Capital: nf(ctx.Settings.InitialCapital)}
 	var rows []swRow
 	for _, t := range ctx.Period.Terms {
 		rows = append(rows, swRow{months: t.Months, base: baseCalendar(t), s: t.Summary})
@@ -395,7 +396,7 @@ func pairTerms(ctx labCtx) []termPair {
 }
 
 func newComparePage(r *report.Report, ctx labCtx) cmpPage {
-	pg := cmpPage{Bar: newLabBar("compare", r, ctx), Capital: nf(ctx.Settings.InitialCapital)}
+	pg := cmpPage{Bar: newLabBar(r, ctx), Capital: nf(ctx.Settings.InitialCapital)}
 	pairs := pairTerms(ctx)
 	if len(pairs) == 0 {
 		pg.Empty = true
@@ -536,4 +537,13 @@ func (pg *cmpPage) fillCharts(pairs []termPair, wanted int) {
 		}
 		pg.Charts = append(pg.Charts, cmpChart{Months: x.months, Selected: x.months == chosen, Chart: chartHTML(series, "Capital (US$)")})
 	}
+}
+
+// labPages son los nombres de las páginas del Lab.
+func labPages() []string {
+	files := make([]string, len(labViews))
+	for i, v := range labViews {
+		files[i] = labPage(v.ID)
+	}
+	return files
 }

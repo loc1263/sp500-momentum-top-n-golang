@@ -312,3 +312,5 @@ details.more p { margin: var(--space-1) 0 0; color: var(--muted); max-width: 90c
 }
 .chart .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 4px 16px 0; font-size: .8rem; color: var(--muted); }
 .chart .dot { position: static; display: inline-block; width: 8px; height: 8px; margin: 0 6px 0 0; border-radius: 50%; border: 0; }
+
+[x-cloak] { display: none !important; }

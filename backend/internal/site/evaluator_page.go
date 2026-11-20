@@ -1,5 +1,5 @@
-// Páginas del evaluador de empresas: el listado (filtros, orden y veredicto por categoría) y una página por empresa
-// (evaluador/<TICKER>.html) con sus métricas, minigráficos y comparación con pares.
+// Páginas del evaluador de empresas: el listado (filtros, orden y veredicto por categoría) y los datos de la ficha de cada empresa
+// (empresas.js), que empresa.html muestra con Alpine: métricas, minigráficos y comparación con pares.
 //
 // Fecha: 2026-11-19
 
@@ -94,12 +94,12 @@ func shortTitle(t string) string {
 
 func companyRow(c evaluator.Company, p evaluator.Payload) trow {
 	row := trow{
-		Href:   "evaluador/" + companyFile(c.Ticker),
+		Href:   companyHref(c.Ticker),
 		Search: strings.ToLower(c.Ticker + " " + c.Name),
 		Attrs:  map[string]string{"universe": c.Universe, "sector": c.Sector, "verdict": string(c.Verdict)},
 	}
 	row.Cells = []cellView{
-		{Text: c.Ticker, Href: "evaluador/" + companyFile(c.Ticker), Strong: true},
+		{Text: c.Ticker, Href: companyHref(c.Ticker), Strong: true},
 		{Text: c.Name},
 		{Class: "muted", Text: c.Sector},
 		{Class: "r", Text: money(c.MarketCap, c.Currency), V: vOf(c.MarketCap)},
@@ -119,10 +119,13 @@ func companyRow(c evaluator.Company, p evaluator.Payload) trow {
 
 var unsafeFile = regexp.MustCompile(`[^A-Za-z0-9._-]`)
 
-// companyFile es el nombre del archivo de una empresa: el ticker en mayúsculas, con lo raro reemplazado por «_».
-func companyFile(ticker string) string {
-	return unsafeFile.ReplaceAllString(strings.ToUpper(ticker), "_") + ".html"
+// companyKey es la clave de una empresa en empresas.js y en el hash de empresa.html: el ticker en mayúsculas, con lo raro
+// reemplazado por «_» (empresa.js aplica la misma regla).
+func companyKey(ticker string) string {
+	return unsafeFile.ReplaceAllString(strings.ToUpper(ticker), "_")
 }
+
+func companyHref(ticker string) string { return "empresa.html#" + companyKey(ticker) }
 
 // ---- Página de una empresa ----
 

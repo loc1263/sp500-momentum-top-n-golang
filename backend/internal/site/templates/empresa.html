@@ -1,78 +1,101 @@
-<!-- Detalle de una empresa del evaluador: métricas por categoría, minigráficos y comparación con pares.
-     Fecha: 2026-11-19 -->
+<!-- Detalle de una empresa del evaluador: una sola página para todas. empresa.js lee el ticker del hash (empresa.html#AAPL) y
+     Alpine pinta las métricas, minigráficos y pares a partir de empresas.js (datos ya formateados por Go).
+     Fecha: 2026-11-20 -->
 {{define "content"}}
-{{- with .Body}}
-  <div class="head">
-    <a class="btn back" href="../evaluador.html">← Volver al listado</a>
-    <h3>
-      <a href="{{.TickerHref}}" target="_blank" rel="noopener noreferrer" title="Ver {{.Ticker}} en stockanalysis.com"><strong>{{.Ticker}}</strong></a>
-      <span class="name">{{.Name}}</span>
-      <span class="pill {{.Verdict.Level}}">{{.Verdict.Text}}</span>
-    </h3>
-    <p class="muted facts">{{.Facts}}</p>
-    {{- if .Bank}}
-    <p class="muted">Banco o aseguradora: su deuda y su caja son materia prima del negocio, así que caja, deuda y liquidez no se evalúan.</p>
-    {{- end}}
-  </div>
+<div x-data="empresa" x-cloak>
+  <template x-if="!c">
+    <div class="head">
+      <a class="btn back" href="evaluador.html">← Volver al listado</a>
+      <p class="muted" x-text="loaded ? 'No hay datos de esa empresa en el evaluador.' : 'Cargando…'"></p>
+    </div>
+  </template>
 
-  <div class="grid">
-    {{- range .Sections}}
-    <section class="sec{{if .Wide}} wide{{end}}" aria-labelledby="sec-{{.ID}}">
-      <div class="sec-h">
-        <h4 id="sec-{{.ID}}">{{.Title}}{{template "hint" .Why}}</h4>
-        <span class="pill {{.Pill.Level}}">{{.Pill.Text}}</span>
+  <template x-if="c">
+    <div>
+      <div class="head">
+        <a class="btn back" href="evaluador.html">← Volver al listado</a>
+        <h3>
+          <a :href="c.TickerHref" target="_blank" rel="noopener noreferrer" :title="'Ver ' + c.Ticker + ' en stockanalysis.com'"><strong x-text="c.Ticker"></strong></a>
+          <span class="name" x-text="c.Name"></span>
+          <span class="pill" :class="c.Verdict.Level" x-text="c.Verdict.Text"></span>
+        </h3>
+        <p class="muted facts" x-text="c.Facts"></p>
+        <template x-if="c.Bank">
+          <p class="muted">Banco o aseguradora: su deuda y su caja son materia prima del negocio, así que caja, deuda y liquidez no se evalúan.</p>
+        </template>
       </div>
-      {{- if eq .Kind "peers"}}
-      <p class="muted intro">{{.Intro}}</p>
-      <div class="wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Métrica</th><th class="r">{{.Peers.Ticker}}</th>
-              {{- range .Peers.Heads}}<th class="r" title="{{.Name}}">{{.Ticker}}</th>{{end}}
-              <th class="r">Mediana</th><th>Vs.</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{- range .Peers.Rows}}
-            <tr>
-              <td>{{.Name}}{{template "hint" .Why}}</td>
-              <td class="r me{{if .MineBest}} best{{end}}">{{.Mine}}</td>
-              {{- range .Values}}<td class="r{{if .Best}} best{{end}}">{{.Text}}</td>{{end}}
-              <td class="r">{{.Median}}</td>
-              <td><span class="pill {{.Pill.Level}}">{{.Pill.Text}}</span></td>
-            </tr>
-            {{- end}}
-          </tbody>
-        </table>
+
+      <div class="grid">
+        <template x-for="s in c.Sections" :key="s.ID">
+          <section class="sec" :class="{ wide: s.Wide }" :aria-labelledby="'sec-' + s.ID">
+            <div class="sec-h">
+              <h4 :id="'sec-' + s.ID"><span x-text="s.Title"></span> <span class="hint" tabindex="0" role="img" :aria-label="s.Why" :title="s.Why">?</span></h4>
+              <span class="pill" :class="s.Pill.Level" x-text="s.Pill.Text"></span>
+            </div>
+
+            <template x-if="s.Kind === 'peers'">
+              <div>
+                <p class="muted intro" x-text="s.Intro"></p>
+                <div class="wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Métrica</th><th class="r" x-text="s.Peers.Ticker"></th>
+                        <template x-for="h in s.Peers.Heads"><th class="r" :title="h.Name" x-text="h.Ticker"></th></template>
+                        <th class="r">Mediana</th><th>Vs.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template x-for="r in s.Peers.Rows">
+                        <tr>
+                          <td><span x-text="r.Name"></span> <span class="hint" tabindex="0" role="img" :aria-label="r.Why" :title="r.Why">?</span></td>
+                          <td class="r me" :class="{ best: r.MineBest }" x-text="r.Mine"></td>
+                          <template x-for="v in r.Values"><td class="r" :class="{ best: v.Best }" x-text="v.Text"></td></template>
+                          <td class="r" x-text="r.Median"></td>
+                          <td><span class="pill" :class="r.Pill.Level" x-text="r.Pill.Text"></span></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </template>
+
+            <template x-if="s.Kind === 'peers-none'">
+              <p class="muted">No hay otras empresas de la misma industria o sector en este mercado para comparar.</p>
+            </template>
+
+            <template x-if="s.Kind === 'empty'">
+              <p class="muted">Sin datos suficientes de Yahoo Finance.</p>
+            </template>
+
+            <template x-if="s.Kind === 'metrics'">
+              <ul class="rows">
+                <template x-for="m in s.Metrics">
+                  <li>
+                    <div class="row">
+                      <span class="mname"><span x-text="m.Name"></span> <span class="hint" tabindex="0" role="img" :aria-label="m.Why" :title="m.Why">?</span></span>
+                      <span class="mval" x-text="m.Value"></span>
+                      <span class="pill" :class="m.Pill.Level" x-text="m.Pill.Text"></span>
+                    </div>
+                    <template x-if="m.Spark"><div x-html="m.Spark"></div></template>
+                    <template x-if="m.HasRange">
+                      <div class="rng" role="img" :aria-label="'De ' + m.Lo + ' a ' + m.Hi">
+                        <div class="track"><span class="dot" :style="'left:' + m.Left + '%'"></span></div>
+                        <div class="lbls"><span x-text="m.Lo"></span><span x-text="m.Hi"></span></div>
+                      </div>
+                    </template>
+                    <template x-if="m.Note"><p class="note muted" x-text="m.Note"></p></template>
+                  </li>
+                </template>
+              </ul>
+            </template>
+          </section>
+        </template>
       </div>
-      {{- else if eq .Kind "peers-none"}}
-      <p class="muted">No hay otras empresas de la misma industria o sector en este mercado para comparar.</p>
-      {{- else if eq .Kind "empty"}}
-      <p class="muted">Sin datos suficientes de Yahoo Finance.</p>
-      {{- else}}
-      <ul class="rows">
-        {{- range .Metrics}}
-        <li>
-          <div class="row">
-            <span class="mname">{{.Name}}{{template "hint" .Why}}</span>
-            <span class="mval">{{.Value}}</span>
-            <span class="pill {{.Pill.Level}}">{{.Pill.Text}}</span>
-          </div>
-          {{- if .Spark}}{{.Spark}}{{end}}
-          {{- if .HasRange}}
-          <div class="rng" role="img" aria-label="De {{.Lo}} a {{.Hi}}">
-            <div class="track"><span class="dot" style="left:{{.Left}}%"></span></div>
-            <div class="lbls"><span>{{.Lo}}</span><span>{{.Hi}}</span></div>
-          </div>
-          {{- end}}
-          {{- if .Note}}<p class="note muted">{{.Note}}</p>{{end}}
-        </li>
-        {{- end}}
-      </ul>
-      {{- end}}
-    </section>
-    {{- end}}
-  </div>
+    </div>
+  </template>
+</div>
 {{end}}
-{{end}}
+
+{{define "scripts"}}<script src="{{.Root}}empresas.js" defer></script><script src="{{.Root}}empresa.js" defer></script><script src="{{.Root}}alpine.min.js" defer></script>{{end}}

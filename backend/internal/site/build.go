@@ -33,7 +33,7 @@ type Inputs struct {
 // Paths son las rutas de los JSON que lee LoadInputs.
 type Paths struct{ Visor, Report, Evaluator string }
 
-var staticFiles = []string{"site.css", "site.js", "pager.js", "table.js", "chart.js", "visor.js"}
+var staticFiles = []string{"site.css", "site.js", "pager.js", "table.js", "chart.js", "visor.js", "alpine.min.js", "empresa.js", "lab.js"}
 
 func readJSON[T any](path string) (*T, error) {
 	raw, err := os.ReadFile(path)
@@ -157,12 +157,7 @@ func (b *builder) evaluator(p *evaluator.Payload) error {
 	if err := b.write("evaluador.html", "evaluador", "evaluador", newEvaluatorList(*p)); err != nil {
 		return err
 	}
-	for _, c := range p.Companies {
-		if err := b.write("evaluador/"+companyFile(c.Ticker), "empresa", "evaluador", newCompanyPage(c, *p)); err != nil {
-			return err
-		}
-	}
-	return nil
+	return b.companies(p)
 }
 
 func (b *builder) about(r *report.Report) error {
@@ -213,19 +208,35 @@ func (b *builder) quant(q *quantData) error {
 	return b.write("quant.html", "quant", "quant", newQuantPage(*q))
 }
 
-// lab genera las páginas del Lab (backtest, plazos y N-0 vs N-1) por universo y período, más lab.html, que lleva al backtest
-// por defecto. El Lab no figura en las pestañas: se llega por la dirección.
+// labData es lo que lee lab.js: la página ya armada de cada vista por universo y período (clave labKey) y la clave por defecto.
+type labData struct {
+	Default string                    `json:"default"`
+	Pages   map[string]map[string]any `json:"pages"`
+}
+
+// lab genera las tres páginas del Lab (backtest, plazos y N-0 vs N-1), lab-datos.js con los datos de cada universo y período, y
+// lab.html, que lleva al backtest. El Lab no figura en las pestañas: se llega por la dirección.
 func (b *builder) lab(r *report.Report) error {
-	if r == nil || len(r.Backtest) == 0 {
-		return nil
-	}
+	// Quita lo que dejó el esquema anterior (una página por universo y período) y las páginas de una corrida previa.
 	if err := os.RemoveAll(filepath.Join(b.out, "lab")); err != nil {
 		return err
+	}
+	for _, f := range append([]string{"lab.html", "lab-datos.js"}, labPages()...) {
+		if err := os.Remove(filepath.Join(b.out, f)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+	if r == nil || len(r.Backtest) == 0 {
+		return nil
 	}
 	pages := map[string]func(*report.Report, labCtx) any{
 		"backtest": func(r *report.Report, c labCtx) any { return newBacktestPage(r, c) },
 		"sweep":    func(r *report.Report, c labCtx) any { return newSweepPage(r, c) },
 		"compare":  func(r *report.Report, c labCtx) any { return newComparePage(r, c) },
+	}
+	data := labData{Pages: map[string]map[string]any{}}
+	for _, v := range labViews {
+		data.Pages[v.ID] = map[string]any{}
 	}
 	for _, u := range r.Backtest {
 		if len(u.Periods) == 0 {
@@ -248,10 +259,7 @@ func (b *builder) lab(r *report.Report) error {
 				}
 			}
 			for _, v := range labViews {
-				sh := newLabShell(v.ID, ctx, b.meta, b.fallback, pages[v.ID](r, ctx))
-				if err := b.writeShell(labFile(v.ID, key, p.Years), "lab_"+v.ID, sh); err != nil {
-					return err
-				}
+				data.Pages[v.ID][labKey(key, p.Years)] = pages[v.ID](r, ctx)
 			}
 		}
 	}
@@ -264,7 +272,36 @@ func (b *builder) lab(r *report.Report) error {
 	if len(best.Periods) == 0 {
 		return nil
 	}
-	target := labFile("backtest", capKeyOf(best.MinCapBillions), defaultYears(best, r.Settings.BacktestYears, r.Settings))
-	redirect := `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=` + target + `"><a href="` + target + `">Lab</a>`
+	data.Default = labKey(capKeyOf(best.MinCapBillions), defaultYears(best, r.Settings.BacktestYears, r.Settings))
+	for _, v := range labViews {
+		if err := b.writeShell(labPage(v.ID), "lab_"+v.ID, newLabShell(v.ID, b.meta, b.fallback, nil)); err != nil {
+			return err
+		}
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(b.out, "lab-datos.js"), append([]byte("window.LAB="), append(raw, ';', '\n')...), 0o644); err != nil {
+		return err
+	}
+	redirect := `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=` + labPage("backtest") + `"><a href="` + labPage("backtest") + `">Lab</a>`
 	return os.WriteFile(filepath.Join(b.out, "lab.html"), []byte(redirect), 0o644)
+}
+
+// companies escribe empresa.html, la única página de detalle, y empresas.js con la ficha ya formateada de cada empresa. Es un .js
+// y no un .json para que también abra desde el disco (file://), donde el navegador no deja hacer fetch.
+func (b *builder) companies(p *evaluator.Payload) error {
+	if err := b.write("empresa.html", "empresa", "evaluador", nil); err != nil {
+		return err
+	}
+	pages := make(map[string]companyPage, len(p.Companies))
+	for _, c := range p.Companies {
+		pages[companyKey(c.Ticker)] = newCompanyPage(c, *p)
+	}
+	raw, err := json.Marshal(pages)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(b.out, "empresas.js"), append([]byte("window.EMPRESAS="), append(raw, ';', '\n')...), 0o644)
 }

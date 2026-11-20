@@ -151,15 +151,15 @@ func footer(generated, note string, m Meta) string {
 }
 
 // newLabShell arma la cáscara de una página del Lab: pestañas propias (por vista), un solo botón «Volver a la app» y sin About.
-// file es el nombre de la página (lab/<vista>-<universo>-<años>.html); las pestañas apuntan a las otras vistas del mismo universo y período.
-func newLabShell(view string, ctx labCtx, m Meta, generatedFallback string, body any) shell {
+// Las pestañas apuntan a las otras vistas (lab-<vista>.html); lab.js les agrega el hash para conservar el universo y el período.
+func newLabShell(view string, m Meta, generatedFallback string, body any) shell {
 	group := navGroup{On: true}
 	title := ""
 	for _, v := range labViews {
 		if v.ID == view {
 			title = "Lab: " + v.Title
 		}
-		group.Links = append(group.Links, navLink{Label: v.Label, Href: labFile(v.ID, ctx.Key, ctx.Period.Years), Active: v.ID == view})
+		group.Links = append(group.Links, navLink{Label: v.Label, Href: labPage(v.ID), Active: v.ID == view})
 	}
 	sub := "Laboratorio de backtest. Momentum: cada N meses se compran, con ponderación igual, las acciones que más subieron en los últimos N meses."
 	if m.RunDate != "" {
@@ -170,7 +170,7 @@ func newLabShell(view string, ctx labCtx, m Meta, generatedFallback string, body
 		generated = generatedFallback
 	}
 	return shell{
-		SiteName: siteName, DocTitle: siteName + " · " + title, Title: title, Sub: sub, Footer: footer(generated, "", m), Root: "../",
+		SiteName: siteName, DocTitle: siteName + " · " + title, Title: title, Sub: sub, Footer: footer(generated, "", m), Root: "",
 		Groups: []navGroup{group}, Home: navLink{Label: "Volver a la app", Href: tabs[0].href()}, Body: body,
 	}
 }

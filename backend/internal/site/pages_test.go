@@ -101,7 +101,7 @@ func buildAll(t *testing.T) string {
 
 func TestBuildPaginas(t *testing.T) {
 	out := buildAll(t)
-	for _, f := range []string{"index.html", "visor.html", "etfq.html", "evaluador.html", "evaluador/BRK-B.html", "evaluador/ZZZ.html", "about.html", "site.css", "site.js", "table.js", "visor.js"} {
+	for _, f := range []string{"index.html", "visor.html", "etfq.html", "evaluador.html", "empresa.html", "empresas.js", "about.html", "site.css", "site.js", "table.js", "visor.js", "alpine.min.js", "empresa.js"} {
 		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(f))); err != nil {
 			t.Errorf("falta %s: %v", f, err)
 		}
@@ -130,17 +130,19 @@ func TestBuildPaginas(t *testing.T) {
 	}
 
 	wantAll(t, "evaluador.html", read(t, out, "evaluador.html"),
-		`data-href="evaluador/BRK-B.html"`, `data-q="brk-b berkshire &lt;hathaway&gt;"`, `<span class="dotv good"`, `<span class="pill good">Bien</span>`, "1,0 B"[:0]+"1.000 B USD",
+		`data-href="empresa.html#BRK-B"`, `data-q="brk-b berkshire &lt;hathaway&gt;"`, `<span class="dotv good"`, `<span class="pill good">Bien</span>`, "1,0 B"[:0]+"1.000 B USD",
 		"Pares", "2 de S&amp;P 500"[:0]+"2 de S&amp;P 500", `<option value="good">Bien</option>`)
 
-	empresa := read(t, out, "evaluador/BRK-B.html")
-	wantAll(t, "evaluador/BRK-B.html", empresa,
-		`href="../site.css"`, `href="../index.html"`, `href="../evaluador.html"`, `src="../site.js"`, "<svg viewBox", "18,2 %", "No hay otras empresas de la misma industria",
-		"&lt;Hathaway&gt;", `class="dot" style="left:18.2%"`, "Nota", "Precio 450,50 USD", "Capitalización 1.000 B USD")
-	if strings.Contains(empresa, "Berkshire <Hathaway>") {
-		t.Error("el nombre de la empresa no quedó escapado")
+	pagina := read(t, out, "empresa.html")
+	wantAll(t, "empresa.html", pagina, `href="site.css"`, `href="evaluador.html"`, `src="empresas.js"`, `src="alpine.min.js"`, `x-data="empresa"`)
+
+	datos := read(t, out, "empresas.js")
+	wantAll(t, "empresas.js", datos,
+		"window.EMPRESAS=", `"BRK-B":{`, `"ZZZ":{`, `\u003csvg viewBox`, "18,2 %", "peers-none", `Berkshire \u003cHathaway\u003e`,
+		`"Left":"18.2"`, "Nota", "Precio 450,50 USD", "Capitalización 1.000 B USD", "Sin sector", "Precio n/d")
+	if strings.Contains(datos, "Berkshire <Hathaway>") {
+		t.Error("el nombre de la empresa no quedó escapado en empresas.js")
 	}
-	wantAll(t, "evaluador/ZZZ.html", read(t, out, "evaluador/ZZZ.html"), "Sin sector", "Precio n/d")
 
 	wantAll(t, "about.html", read(t, out, "about.html"), "capital inicial: US$ 15.000", "Comisión de 0,05% por lado", "Límites a tener presentes", `<a class="btn active" href="about.html">About</a>`)
 }
@@ -262,9 +264,9 @@ func TestOrdenYArchivos(t *testing.T) {
 	if collateEs("Árbol", "Zebra") >= 0 || collateEs("ñu", "nz") <= 0 || collateEs("a", "B") >= 0 {
 		t.Error("collateEs no ordena como localeCompare('es')")
 	}
-	for in, want := range map[string]string{"BRK-B": "BRK-B.html", "a/b c": "A_B_C.html", "BF.B": "BF.B.html"} {
-		if got := companyFile(in); got != want {
-			t.Errorf("companyFile(%q) = %q, quiero %q", in, got, want)
+	for in, want := range map[string]string{"BRK-B": "BRK-B", "a/b c": "A_B_C", "BF.B": "BF.B"} {
+		if got := companyKey(in); got != want {
+			t.Errorf("companyKey(%q) = %q, quiero %q", in, got, want)
 		}
 	}
 }

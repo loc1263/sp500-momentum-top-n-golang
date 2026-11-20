@@ -9,7 +9,6 @@
 //   [data-filter=clave]     select; [data-filter-bool=clave] casilla (exige data-f-<clave>="1"); [data-search] texto libre
 //   [data-count]            «N de M»; nav.pager = paginador
 //   select[data-view]      muestra solo las columnas (th / td [data-views]) que incluyen la vista elegida
-//   select[data-nav]       navega a la URL de la opción elegida
 //   select[data-switch=k]   muestra el [data-case-of=k][data-case=valor] elegido y oculta los demás
 //
 // Fecha: 2026-11-19
@@ -125,9 +124,6 @@
   }
 
   document.querySelectorAll('[data-table]').forEach(initTable);
-
-  // Selectores que navegan a otra página (el valor de cada opción es la URL).
-  document.querySelectorAll('select[data-nav]').forEach((sel) => sel.addEventListener('change', () => (location.href = sel.value)));
 
   document.querySelectorAll('select[data-switch]').forEach((sel) => {
     const key = sel.dataset.switch;
