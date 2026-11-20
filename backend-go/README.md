@@ -1,7 +1,7 @@
 # Backend en Go
 
 Backend en Go. Usa un `config.toml`,
-una base SQLite y el `report.json` que lee el frontend; los datos de Yahoo Finance salen de [gohoo](https://github.com/loc1263/gohoo).
+una base SQLite y los JSON de datos (`output/`) con los que genera el sitio estático; los datos de Yahoo Finance salen de [gohoo](https://github.com/loc1263/gohoo).
 
 ## Requisitos
 
@@ -14,7 +14,7 @@ Desde esta carpeta (las rutas del `config.toml` son relativas a ella):
 
 ```
 go build -o bin/top3 ./cmd/top3    # bin/top3.exe en Windows (bin/ está ignorada por git)
-./bin/top3 pipeline                # todo: backtest, Top actual, ETFs, modelo por score, evaluador, JSON del frontend y limpieza
+./bin/top3 pipeline                # todo: backtest, Top actual, ETFs, modelo por score, evaluador, JSON, sitio estático y limpieza
 ```
 
 o sin compilar: `go run ./cmd/top3 pipeline`.
@@ -55,7 +55,8 @@ internal/etfq       ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum 
 internal/quant      scores de momentum, salud y técnico, Markowitz (puntos interiores) y el JSON del modelo
 internal/evaluator  evaluador de empresas: análisis fundamental del S&P 500 (propio, solo usa gohoo y la lista de tickers)
 internal/visor      visor: rendimientos, riesgo y comparación contra SPY de acciones grandes y ETFs (propio, solo usa gohoo)
-internal/report     el JSON del frontend
+internal/report     el JSON de datos (Top actual, ETFs, modelo por score y backtest)
+internal/site       el sitio estático (html/template + CSS y JS planos, sin Node): Visor, Top actual, ETFs, Quant, Evaluador, Lab y About
 internal/history    historial del Top actual y de ETFs en JSON versionado (la base SQLite es solo caché)
 internal/cleanup    limpieza de reportes, corridas y caché vencida
 internal/pipeline   el pipeline completo
@@ -63,7 +64,7 @@ internal/pipeline   el pipeline completo
 
 ## Detalles de diseño
 
-- **Sin reportes HTML.** La web los reemplaza; `output/` no se llena. El Top actual imprime por consola las notas de rotación.
+- **Sin reportes HTML.** El sitio los reemplaza; `output/` solo guarda los JSON de datos. El Top actual imprime por consola las notas de rotación.
 - **Descargas.** gohoo pide cada ticker por separado: precios con `ChartRange` ajustado por splits y dividendos, acciones en
   circulación por cotizaciones en lote (con `Info` de respaldo) y datos financieros por `Info` + `fundamentals-timeseries`.
   Las requests salen a ≈25 por segundo como máximo y, ante rate limit, gohoo reintenta 3 veces esperando 10, 20 y 40 s

@@ -73,26 +73,24 @@ cuando no se filtra.
 Los comandos del backend se corren desde `backend-go/` (las rutas del config son relativas a esa carpeta). Abajo `top3` es
 `go run ./cmd/top3` o el binario que deja `go build -o bin/top3 ./cmd/top3`.
 
-### Levantar todo
+### Generar y abrir el sitio
 
 ```
-python start.py                  # valida el entorno y levanta el frontend en http://localhost:5173
-python start.py --port 3000      # otro puerto (o FRONTEND_PORT=3000)
-python start.py --refresh        # antes corre el pipeline del backend (go run ./cmd/top3 pipeline)
-python start.py --check          # solo valida: Python, Node 20.19+, npm, dependencias, puerto y report.json
-python start_with_pipeline.py    # pipeline completo del backend y luego el frontend (acepta las opciones de start.py)
+top3 pipeline                          # datos + JSON + sitio estático en ../site
+top3 site                              # regenera ../site desde los JSON de output/ (sin descargar nada)
+top3 site --serve localhost:8080       # además lo sirve por HTTP (Ctrl+C lo detiene)
+top3 site --out ../site --report output/report.json --visor output/visor.json --evaluator output/evaluator.json
 ```
 
-La página no pide nada al backend: lee `data/report.json`, el archivo estático que dejan al terminar
-`top3 pipeline`, `top3 backtest`, `top3 actual`, `top3 etfq`, y `top3 quant` (también `top3 export` a mano). El Evaluador de empresas tiene su propio archivo, `data/evaluator.json`, que escribe `top3 evaluator`, y el Visor el suyo, `data/visor.json`, que escribe `top3 visor`. Primero
-hay que haber corrido el pipeline al menos una vez. `npm run build` en `frontend/` genera la versión estática en
-`frontend/dist/`, que se puede publicar en cualquier hosting estático con el JSON de ese momento.
-
+El sitio es HTML, CSS y JS plano, sin Node ni build: `top3 site` arma las páginas con `html/template` (paquete `internal/site`) a partir de
+`output/report.json` (Top actual, ETFs, modelo por score, backtest y About), `output/evaluator.json` (Evaluador) y `output/visor.json` (Visor),
+que dejan `top3 pipeline`, `top3 export`, `top3 evaluator` y `top3 visor`. Si falta uno, esa página dice qué comando correr y el resto se
+genera igual. Primero hay que haber corrido el pipeline al menos una vez. La carpeta `site/` se puede publicar en cualquier hosting estático.
 ### Pipeline completo
 
 ```
 cd backend-go
-top3 pipeline                           # todo: actualiza datos, backtest, Top actual y JSON del frontend
+top3 pipeline                           # todo: actualiza datos, backtest, Top actual, JSON y sitio estático
 top3 pipeline --tests          # corre antes los tests
 top3 pipeline --no-cache       # descarga todo de nuevo (solo el primer paso que descarga; los demás leen lo que acaba de guardar)
 top3 pipeline --years 7        # backtest de un único período
@@ -102,6 +100,7 @@ top3 pipeline --skip-etfq      # omite los ETFs por gestora
 top3 pipeline --skip-quant     # omite el modelo por score
 top3 pipeline --skip-evaluator # omite el evaluador de empresas
 top3 pipeline --skip-visor     # omite el visor de acciones grandes y ETFs
+top3 pipeline --skip-site      # no genera el sitio estático al final
 ```
 
 Cada paso corre en su propio proceso y, si uno falla, se corta. Al final imprime el tiempo de cada paso.
@@ -193,7 +192,7 @@ cada corrida los baja de nuevo y reemplaza el JSON.
 top3 evaluator             # ~45 segundos
 ```
 
-El resultado es `[evaluator] output` (`frontend/public/data/evaluator.json`, ignorado por git como `report.json`), que la pestaña
+El resultado es `[evaluator] output` (`output/evaluator.json`, ignorado por git como `report.json`), que la página
 carga solo al abrirse. Trae un diccionario de métricas (nombre, unidad y explicación, una sola vez) y, por empresa, las categorías con
 sus métricas, nivel (`good`, `warn`, `bad`, `info`, `na`) y veredicto. Los umbrales están en `internal/evaluator/analyze.go`.
 
@@ -228,8 +227,8 @@ historial de 6 años (con dividendos) de cada instrumento y reemplaza el JSON (~
 top3 visor
 ```
 
-El resultado es `[visor] output` (`frontend/public/data/visor.json`, ignorado por git), con una tabla por tipo (`acciones` y `etf`):
-columnas, filas (`null` = sin dato) y cómo se formatea y se colorea cada columna; el frontend solo la dibuja.
+El resultado es `[visor] output` (`output/visor.json`, ignorado por git), con una tabla por tipo (`acciones` y `etf`):
+columnas, filas (`null` = sin dato) y cómo se formatea y se colorea cada columna; el sitio solo la dibuja.
 
 | Columna | Cálculo |
 |---|---|
@@ -316,7 +315,7 @@ multi-factor de [`docs/modelo-multifactor-etfs.md`](docs/modelo-multifactor-etfs
 
 ```
 top3 etfq                # corre todo y guarda el resultado (la web lo muestra en «ETFs por gestora»)
-top3 etfq --top-n 30     # más filas en la consola (el JSON del frontend trae todos)
+top3 etfq --top-n 30     # más filas en la consola (el JSON del sitio trae todos)
 top3 pipeline --skip-etfq
 ```
 
@@ -365,7 +364,7 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 | | `runs_keep_days` | `7` | Días con corridas del backtest que se conservan en SQLite (mínimo 1); ver [Limpieza de la base](#limpieza-de-la-base) |
 | `[backtest]` | `start_date`, `end_date` | `""` | Período a evaluar (`"YYYY-MM-DD"`); vacío = automático |
 | | `backtest_years` | `5` | Años hacia atrás desde `end_date` si `start_date` está vacío |
-| | `periods_years` | `[3, 5, 10]` | Períodos (años) que se simulan; el frontend deja elegir entre ellos. `--years N` corre uno solo |
+| | `periods_years` | `[3, 5, 10]` | Períodos (años) que se simulan; el sitio deja elegir entre ellos. `--years N` corre uno solo |
 | | `months` | `4` | Plazo del backtest normal: ranking de N meses y rebalanceo cada N meses |
 | | `initial_capital` | `1000` | Capital inicial (US$) |
 | | `top_n` | `4` | Cantidad de acciones por rebalanceo |
@@ -376,7 +375,7 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 | `[universe]` | `min_cap_billions` | `10` | Umbral de `--large-cap` (miles de millones de US$) |
 | | `sweep_min_cap_billions` | `[0, 10, 200]` | Universos que corre `--sweep` por defecto (0 = índice completo) |
 | `[output]` | `dir`, `keep_days`, `*_subdir`, `*_prefix` | | Reservadas; no se generan reportes HTML. `dir` y `keep_days` solo sirven para limpiar archivos viejos |
-| | `frontend_data` | `"../frontend/public/data/report.json"` | JSON estático para el frontend |
+| | `frontend_data` | `"output/report.json"` | JSON de datos (Top actual, ETFs, modelo por score y backtest) que lee `top3 site` |
 | | `history_file` | `"history/history.json"` | Historial del Top actual, suplentes y ETFs, versionado en git (ver [Historial en JSON](#historial-en-json)); `""` = desactivado |
 | | `log_dir` | `"log"` | Carpeta de los logs |
 | | `backtest_log`, `actual_log`, `etfq_log`, `quant_log` | `top3_*.log` | Nombres de los archivos de log |
@@ -384,7 +383,7 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 | | `min_vol` | `0.01` | Volatilidad anual mínima para entrar al ranking (1%): los ETFs por debajo son de tipo efectivo (letras del Tesoro, bonos ultracortos) y quedan fuera; `0` = rankear todos |
 | | `risk_free_ticker` | `"VUSB"` | ETF cuyo retorno se resta al de cada ETF (referencia libre de riesgo); `""` = no restar |
 | | `families` | iShares, Vanguard, State Street Investment Management (SPDR), Invesco y Schwab ETFs | Gestoras a incluir, como `[[etfq.families]]` con `name` (el `fundFamily` de Yahoo) y `label` (el nombre que se muestra) |
-| | `top_n` | `20` | Cuántos ETFs se muestran en la consola (el JSON del frontend trae todos) |
+| | `top_n` | `20` | Cuántos ETFs se muestran en la consola (el JSON del sitio trae todos) |
 | | `max_ter` | `0.50` | TER máximo en % anual para ser elegible; `0` = sin tope |
 | | `min_aum_millions` | `100` | AUM mínimo en millones de US$ para ser elegible; `0` = sin mínimo |
 | | `quality_weight` | `0.25` | Peso de la calidad en el score final (0-1); el resto es momentum |
@@ -552,14 +551,13 @@ Para buscar en el log: `grep TOP-BKT backend-go/log/top3_backtest.log`.
 ## Estructura y desarrollo
 
 ```
-start.py              # valida el entorno y levanta el frontend (Windows, macOS y Linux)
-start_with_pipeline.py  # igual, pero corre antes el pipeline completo del backend
-backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, evaluador de empresas, visor y base SQLite
+backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, evaluador de empresas, visor, sitio estático y base SQLite
   config.toml         # configuración
   history/            # datos que se versionan en git: el historial
-  cmd/top3/           # línea de comandos: backtest, actual, etf, etfq, quant, evaluator, visor, export, prune y pipeline
-  internal/           # la lógica, un paquete por responsabilidad
-frontend/             # Aplicación web en Svelte 5 + Vite
+  cmd/top3/           # línea de comandos: backtest, actual, etfq, quant, evaluator, visor, export, site, prune y pipeline
+  internal/           # la lógica, un paquete por responsabilidad (internal/site genera el sitio)
+  output/             # JSON de datos que lee top3 site (report.json, evaluator.json, visor.json); se crea solo
+site/                 # sitio estático generado por top3 site (no se versiona)
 ```
 
 | Comando | Para qué sirve |
@@ -568,43 +566,41 @@ frontend/             # Aplicación web en Svelte 5 + Vite
 | `top3 actual` | Top N de hoy: las acciones del S&P 500 con mejor retorno en el plazo configurado |
 | `top3 etfq` | ETFs de iShares, Vanguard, SPDR, Invesco y Schwab: momentum y calidad (TER y AUM) dentro de su categoría (sin backtest) |
 | `top3 quant` | Modelo por score: scores de momentum, de salud financiera y técnico del S&P 500 y Markowitz sobre las mejores (sin backtest) |
-| `top3 evaluator` | Evaluador de empresas: análisis fundamental del S&P 500; escribe `frontend/public/data/evaluator.json` |
-| `top3 visor` | Visor: rendimientos, riesgo y comparación contra SPY de las acciones grandes y los ETFs de mayor AUM; escribe `frontend/public/data/visor.json` |
-| `top3 pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + evaluador + visor + JSON del frontend + limpieza |
+| `top3 evaluator` | Evaluador de empresas: análisis fundamental del S&P 500; escribe `output/evaluator.json` |
+| `top3 visor` | Visor: rendimientos, riesgo y comparación contra SPY de las acciones grandes y los ETFs de mayor AUM; escribe `output/visor.json` |
+| `top3 pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + evaluador + visor + JSON + sitio estático + limpieza |
 | `top3 prune` | Limpieza de lo viejo: corridas del backtest y caché vencida (el pipeline la corre al final) |
-| `top3 export` | Escribe el JSON en `frontend/public/data/report.json` (lo hacen solos los comandos al terminar) |
+| `top3 site` | Genera el sitio estático en `site/` (con `--serve` también lo sirve) |
+| `top3 export` | Escribe el JSON en `output/report.json` (lo hacen solos los comandos al terminar) |
 | `backend-go/data/`, `backend-go/log/` | Base SQLite y logs; se crean solos |
 
 El detalle de los paquetes de `backend-go/internal/` (config, db, repo, yahoo, market, engine, backtest, actual, etf, etfq, quant,
 report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/README.md).
 
-**Frontend (`frontend/src/`)**
+**Sitio (`backend-go/internal/site/`)**
 
 | Archivo | Responsabilidad |
 |---|---|
-| `App.svelte` | Carga del JSON estático, encabezado (nombre fijo del sitio y título de la sección), pestañas en cinco grupos (Momentum, ETFs, Acciones por score, Análisis fundamental y Visor), filtro de universo, tema |
-| `Lab.svelte` (`lab.html`, `lab.js`) | Página aparte del laboratorio: pestañas Backtest, Plazos y sensibilidad y N-0 vs N-1, filtros de universo y período, tema. Sin enlace desde la app; los enlaces viejos `#backtest`, `#sweep` y `#compare` redirigen aquí |
-| `lib/report.js` | Carga de `data/report.json` y clave de universo, compartidas por ambas páginas |
-| `lib/ActualView.svelte` | Top actual, suplentes y seguimiento de selecciones anteriores |
-| `lib/BacktestView.svelte` | Línea de resumen, curva de capital, historial de selecciones y calendarios |
-| `lib/SweepView.svelte` | Comparación de plazos y sensibilidad al arranque |
-| `lib/CompareView.svelte` | Modelo de siempre (N-0) frente al skip-month (N-1), plazo por plazo y por mitades del período |
-| `lib/EtfqView.svelte` | ETFs por gestora: ranking con momentum, calidad (TER y AUM), filtros por gestora y categoría |
-| `lib/QuantView.svelte` | Modelo por score: top 10 con Markowitz y ranking completo con filtros |
-| `lib/EvaluatorView.svelte`, `EvaluatorDetail.svelte` | Evaluador de empresas: listado filtrable (mercado, sector, veredicto, texto) y detalle por categoría; cargan `data/evaluator.json` al abrir la pestaña |
-| `lib/evaluator.js`, `Pill.svelte`, `Spark.svelte` | Formato de métricas y montos, ordenamiento y filtros del listado; distintivo de nivel; gráfico de la tendencia anual |
-| `lib/VisorView.svelte`, `lib/VisorFilterRow.svelte`, `visor.js` | Visor: tabla de acciones y de ETFs con búsqueda, filtros por columna, orden por columna, fila marcada con un clic, color por criterio, paginado y descarga CSV; cargan `data/visor.json` al abrir la pestaña. `VisorFilterRow` es la fila de filtros bajo los encabezados; `visor.js` tiene el formato, el color, los filtros, el orden y el CSV |
-| `lib/AboutView.svelte` | Pestaña About: qué se muestra en la aplicación, tarjetas de conceptos clave, fuentes de datos y límites |
-| `lib/Chart.svelte`, `Range.svelte`, `TickerLink.svelte`, `Glossary.svelte` | Componentes compartidos |
-| `lib/Bunny.svelte` | Detalle decorativo: un conejo que pasea por el pie de la pantalla, se aleja del cursor y saluda al hacer clic (se desactiva con «reducir movimiento» del sistema) |
-| `lib/format.js` | Formato de porcentajes, dinero y signos |
+| `build.go` | Lee los JSON (`LoadInputs`), arma cada página y copia los archivos estáticos; si falta un JSON, la página lo avisa |
+| `shell.go`, `templates/layout.html` | Cáscara común: encabezado, pestañas en cinco grupos (Momentum, ETFs, Acciones por score, Análisis fundamental y Visor), Home / About / tema, subtítulo y pie. El Lab tiene su propia cáscara |
+| `site.go`, `templates/visor.html`, `static/visor.js` | Visor: filas ya formateadas por Go; el JS filtra por columna, ordena, pagina, marca filas y descarga CSV con los valores crudos incrustados |
+| `actual_page.go`, `templates/actual.html` | Top actual (Home): un bloque por universo con selector, cambios, suplentes y seguimiento |
+| `etfq_page.go`, `templates/etfq.html` | ETFs por gestora: resumen, filtros y tabla de todos los ETFs |
+| `quant_page.go`, `templates/quant.html` | Modelo por score: cómo se calcula, Markowitz y ranking con tres vistas de columnas |
+| `evaluator_page.go`, `evalfmt.go`, `templates/evaluador.html`, `empresa.html` | Evaluador: listado y una página por empresa (`evaluador/<TICKER>.html`) con minigráficos SVG y pares |
+| `lab_page.go`, `chart.go`, `templates/lab_*.html`, `static/chart.js` | Lab: una página por vista, universo y período (`lab/<vista>-<universo>-<años>.html`); gráficos SVG con cursor y valores |
+| `about_page.go`, `templates/about.html` | About: qué se muestra, conceptos, fuentes y límites |
+| `format.go`, `cells.go` | Formato es-AR (porcentajes, dinero, miles) y color de celdas |
+| `static/table.js` | JS común de las tablas: filtros, búsqueda, orden, paginación, vistas de columnas y selectores. Sin dependencias ni build |
+| `static/site.css`, `static/site.js` | Estilos y tema claro / oscuro |
+
+Los tests están junto al código (`site_test.go`, `pages_test.go`, `lab_test.go`) y generan el sitio con JSON de ejemplo.
 
 **Tests.** Backend: un archivo de tests por paquete; no usan red (Yahoo se simula con un servidor local) y los datos son
 sintéticos. Los indicadores técnicos, Ledoit-Wolf y Markowitz se comparan contra valores de referencia calculados con herramientas externas.
 
 ```
 cd backend-go && go test ./...
-cd frontend && npm test
 ```
 
 **Mantenimiento de los códigos de error.** El catálogo está en `backend-go/internal/errs`. Los IDs no se reutilizan ni se
@@ -619,7 +615,7 @@ push a `main`:
 1. Restaura la base SQLite desde el caché de Actions (`backend-go/data`), corre los tests y el pipeline.
 2. Hace commit de `backend-go/history/history.json` si cambió (el commit del bot no
    dispara otra ejecución).
-3. Prueba y compila el frontend y lo publica en GitHub Pages.
+3. Publica en GitHub Pages la carpeta `site/`, que el pipeline genera con `top3 site`.
 
 Requiere activar Settings > Pages > Source = **GitHub Actions**. Si el caché se pierde (GitHub lo borra tras 7 días sin
 uso), la siguiente ejecución vuelve a bajar los precios (varios minutos) y restaura el historial desde el JSON. Si el
