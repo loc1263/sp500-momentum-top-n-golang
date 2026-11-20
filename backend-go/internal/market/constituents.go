@@ -1,5 +1,7 @@
 // Package market baja y guarda los datos de mercado que necesitan el backtest, el Top actual y el modelo por score:
 // composición Point-in-Time del S&P 500, precios ajustados, acciones en circulación y universos por capitalización.
+//
+// Fecha: 2026-11-19
 package market
 
 import (
@@ -20,7 +22,6 @@ import (
 	"top3/internal/repo"
 )
 
-// ParseTickers lee la lista de tickers del texto del CSV ("['A', 'BRK.B']"); los puntos pasan a guión (formato Yahoo).
 func ParseTickers(s string) []string {
 	r := strings.NewReplacer("[", "", "]", "", "'", "")
 	var out []string
@@ -32,7 +33,6 @@ func ParseTickers(s string) []string {
 	return out
 }
 
-// GetText baja una URL como texto, con el user agent y el timeout de la configuración.
 func GetText(url, userAgent string, timeout time.Duration) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -69,7 +69,6 @@ func parseAnyDate(s string) (string, bool) {
 	return "", false
 }
 
-// DownloadHistorical baja el CSV con la composición histórica del índice y lo guarda.
 func DownloadHistorical(d *sql.DB, s config.Data) error {
 	logx.Infof("Descargando listas históricas del S&P 500...")
 	text, err := GetText(s.HistoricalURL, s.UserAgent, seconds(s.HistoricalTimeout))
@@ -132,7 +131,6 @@ func DownloadHistorical(d *sql.DB, s config.Data) error {
 	return nil
 }
 
-// DownloadCurrent baja la lista actual del índice (Wikipedia) y la guarda.
 func DownloadCurrent(d *sql.DB, s config.Data) error {
 	logx.Infof("Obteniendo lista actual del S&P 500 (Wikipedia)...")
 	text, err := GetText(s.WikipediaURL, s.UserAgent, seconds(s.HTTPTimeout))
@@ -179,7 +177,6 @@ func parseCurrent(page string) ([]string, error) {
 	return nil, fmt.Errorf("no se encontró la tabla con la columna Symbol en Wikipedia")
 }
 
-// DownloadIndexChanges baja las altas/bajas del índice según Wikipedia; completan lo que el CSV histórico no alcanza.
 func DownloadIndexChanges(d *sql.DB, s config.Data) error {
 	logx.Infof("Descargando cambios del índice (Wikipedia)...")
 	text, err := GetText(s.WikipediaChangesURL, s.UserAgent, seconds(s.HTTPTimeout))
@@ -247,8 +244,6 @@ func parseChanges(page string) (rows []repo.IndexChange, bad int, err error) {
 	return nil, 0, errs.NetWikiFormat.Errorf("No se encontró la tabla de cambios en Wikipedia (¿cambió el formato de la página?)")
 }
 
-// EnsureConstituents descarga (o reutiliza del mismo día) el histórico (CSV), los cambios posteriores y la lista actual
-// (Wikipedia). Si una descarga falla, queda lo que haya en SQLite.
 func EnsureConstituents(d *sql.DB, s config.Data, useCache bool) {
 	steps := []struct {
 		key      string
@@ -271,7 +266,6 @@ func EnsureConstituents(d *sql.DB, s config.Data, useCache bool) {
 	}
 }
 
-// Constituents es la composición Point-in-Time del S&P 500 leída desde SQLite.
 type Constituents struct {
 	aliases map[string]string
 	dates   []string
@@ -286,7 +280,6 @@ func (c *Constituents) alias(t string) string {
 	return t
 }
 
-// canon aplica los alias y elimina duplicados (manteniendo el orden).
 func (c *Constituents) canon(tickers []string) []string {
 	seen := make(map[string]bool, len(tickers))
 	out := make([]string, 0, len(tickers))
@@ -300,7 +293,6 @@ func (c *Constituents) canon(tickers []string) []string {
 	return out
 }
 
-// NewConstituents lee la composición de SQLite. aliases: símbolo viejo -> símbolo actual en Yahoo (renombres).
 func NewConstituents(d *sql.DB, aliases map[string]string) (*Constituents, error) {
 	c := &Constituents{aliases: aliases}
 	rows, err := repo.History(d)
@@ -331,12 +323,10 @@ func NewConstituents(d *sql.DB, aliases map[string]string) (*Constituents, error
 	return c, nil
 }
 
-// NewConstituentsFrom arma la composición con listas ya cargadas (para tests): dates ordenadas y sus listas.
 func NewConstituentsFrom(dates []string, lists [][]string, current []string) *Constituents {
 	return &Constituents{dates: dates, lists: lists, Current: current}
 }
 
-// applyChanges extiende el CSV con las altas/bajas de Wikipedia posteriores a su última fecha.
 func (c *Constituents) applyChanges(d *sql.DB) error {
 	if len(c.dates) == 0 {
 		return nil
@@ -415,7 +405,6 @@ func sortedMembers(m map[string]bool) []string {
 	return out
 }
 
-// OnDate son los tickers vigentes en target (YYYY-MM-DD). Más allá del último dato histórico usa la lista actual.
 func (c *Constituents) OnDate(target string) []string {
 	if len(c.dates) == 0 {
 		logx.Debugf("%s: sin histórico, uso lista actual", target)
@@ -426,7 +415,7 @@ func (c *Constituents) OnDate(target string) []string {
 		logx.Debugf("%s: posterior al último histórico (%s), uso lista actual", target, last)
 		return c.Current
 	}
-	i := sort.SearchStrings(c.dates, target+"\x00") - 1 // bisect_right
+	i := sort.SearchStrings(c.dates, target+"\x00") - 1
 	if i < 0 {
 		logx.Warnf(errs.DatNoHistory.Msg("Sin datos históricos <= %s"), target)
 		return nil
@@ -435,11 +424,10 @@ func (c *Constituents) OnDate(target string) []string {
 	return c.lists[i]
 }
 
-// AllBetween es la unión de todos los tickers que estuvieron en el índice entre start y end.
 func (c *Constituents) AllBetween(start, end string) []string {
 	set := map[string]bool{}
 	if len(c.dates) > 0 {
-		i0 := max(sort.SearchStrings(c.dates, start+"\x00")-1, 0) // fila vigente al inicio
+		i0 := max(sort.SearchStrings(c.dates, start+"\x00")-1, 0)
 		i1 := sort.SearchStrings(c.dates, end+"\x00")
 		for _, lst := range c.lists[i0:i1] {
 			for _, t := range lst {

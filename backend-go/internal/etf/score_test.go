@@ -1,3 +1,8 @@
+// Pruebas del score de ETFs: retorno por unidad de riesgo, referencia libre de riesgo, exclusiones y
+// columnas de tendencia.
+//
+// Fecha: 2026-11-19
+
 package etf
 
 import (
@@ -12,7 +17,6 @@ import (
 
 type drift struct{ drift, vol float64 }
 
-// prices son series con retornos diarios alternados ±vol alrededor de drift: precio, deriva y volatilidad conocidos.
 func prices(days int, order []string, d map[string]drift) *model.Prices {
 	all := testutil.BDays("2020-01-01", "2024-12-31")
 	idx := all[len(all)-days:]
@@ -54,7 +58,6 @@ func byTicker(s Scores, t string) Score {
 }
 
 func TestScoreRewardsReturnPerUnitOfRisk(t *testing.T) {
-	// misma deriva, distinta volatilidad: el de menos riesgo rankea primero
 	p := prices(300, []string{"CALM", "WILD", "DOWN"}, map[string]drift{"CALM": {0.001, 0.002}, "WILD": {0.001, 0.02}, "DOWN": {-0.001, 0.002}})
 	s, excluded := score(t, p, []int{3, 6, 12}, "", 0)
 	if len(excluded) != 0 || !reflect.DeepEqual(tickers(s), []string{"CALM", "WILD", "DOWN"}) {
@@ -86,7 +89,7 @@ func TestScoreMatchesTheDefinition(t *testing.T) {
 func TestRiskFreeReferenceIsSubtractedSoCashLikeEtfsDoNotWin(t *testing.T) {
 	p := prices(300, []string{"CASH", "STOCK"}, map[string]drift{"CASH": {0.0002, 0.0001}, "STOCK": {0.0008, 0.01}})
 	plain, _ := score(t, p, []int{3, 6, 12}, "", 0)
-	if plain.Rows[0].Ticker != "CASH" { // sin referencia, lo casi sin riesgo gana
+	if plain.Rows[0].Ticker != "CASH" {
 		t.Fatalf("sin referencia: %v", tickers(plain))
 	}
 	ranked, _ := score(t, p, []int{3, 6, 12}, "CASH", 0)
@@ -106,8 +109,8 @@ func TestEtfsWithGapsOrShortHistoryAreExcluded(t *testing.T) {
 	p := prices(300, []string{"A", "B", "C"}, map[string]drift{"A": {0.001, 0.01}, "B": {0.002, 0.01}, "C": {0.003, 0.01}})
 	jB, _ := p.Col("B")
 	jC, _ := p.Col("C")
-	p.Px[(p.Rows()-30)*3+jB] = math.NaN() // hueco dentro de la ventana
-	for i := 0; i < 100; i++ {            // empezó a cotizar hace poco (no cubre 12 meses)
+	p.Px[(p.Rows()-30)*3+jB] = math.NaN()
+	for i := 0; i < 100; i++ {
 		p.Px[i*3+jC] = math.NaN()
 	}
 	s, excluded := score(t, p, []int{3, 12}, "", 0)
@@ -148,7 +151,7 @@ func TestCashLikeEtfsStayOutOfTheRankingButTheReferenceStillApplies(t *testing.T
 	if len(excluded) != 0 || !reflect.DeepEqual(ranked.CashLike, []string{"BILL", "CASH"}) || len(ranked.Rows) != 2 || ranked.RiskFree != "CASH" {
 		t.Fatalf("ranked=%v excluded=%v cash=%v", tickers(ranked), excluded, ranked.CashLike)
 	}
-	plain, _ := score(t, p, []int{3, 6, 12}, "CASH", 0) // sin umbral, BILL competiría con un score enorme
+	plain, _ := score(t, p, []int{3, 6, 12}, "CASH", 0)
 	if len(plain.CashLike) != 0 || byTicker(plain, "BILL").Ticker != "BILL" {
 		t.Fatalf("plain: %v", tickers(plain))
 	}

@@ -1,3 +1,7 @@
+// Pruebas del repositorio: caché por fecha de corte, constituyentes, selecciones, precios y OHLCV.
+//
+// Fecha: 2026-11-19
+
 package repo
 
 import (
@@ -21,7 +25,7 @@ func str(s string) *string { return &s }
 func TestSharesAndFundamentalsCacheRespectTheCutoff(t *testing.T) {
 	d := openTemp(t)
 	must(t, SaveShares(d, map[string]float64{"OLD": 10, "NEW": 20}, "2026-01-01"))
-	must(t, SaveShares(d, map[string]float64{"NEW": 25}, "2026-06-01")) // REPLACE: NEW queda con la fecha nueva
+	must(t, SaveShares(d, map[string]float64{"NEW": 25}, "2026-06-01"))
 	got, err := FreshShares(d, "2026-03-01")
 	must(t, err)
 	if !reflect.DeepEqual(got, map[string]float64{"NEW": 25}) {
@@ -50,14 +54,14 @@ func TestSharesAndFundamentalsCacheRespectTheCutoff(t *testing.T) {
 func TestConstituentsReplaceAndRead(t *testing.T) {
 	d := openTemp(t)
 	must(t, ReplaceHistory(d, []HistoryRow{{"2020-02-01", "B,C"}, {"2020-01-01", "A,B"}}))
-	must(t, ReplaceHistory(d, []HistoryRow{{"2021-02-01", "B,C"}, {"2021-01-01", "A,B"}})) // reemplaza, no suma
+	must(t, ReplaceHistory(d, []HistoryRow{{"2021-02-01", "B,C"}, {"2021-01-01", "A,B"}}))
 	h, err := History(d)
 	must(t, err)
-	if len(h) != 2 || h[0].Date != "2021-01-01" || h[1].Tickers != "B,C" { // ordenada por fecha
+	if len(h) != 2 || h[0].Date != "2021-01-01" || h[1].Tickers != "B,C" {
 		t.Fatalf("History: %+v", h)
 	}
 
-	must(t, ReplaceCurrent(d, []string{"A", "B", "A"})) // un duplicado no rompe
+	must(t, ReplaceCurrent(d, []string{"A", "B", "A"}))
 	cur, err := Current(d)
 	must(t, err)
 	if len(cur) != 2 {
@@ -66,12 +70,12 @@ func TestConstituentsReplaceAndRead(t *testing.T) {
 
 	must(t, ReplaceChanges(d, []IndexChange{
 		{Date: "2026-03-01", Added: str("X"), Removed: str("Y")},
-		{Date: "2026-02-01", Added: str("Z")}, // sin baja ni motivo: NULL
+		{Date: "2026-02-01", Added: str("Z")},
 		{Date: "2025-12-01", Removed: str("W")},
 	}))
 	ch, err := ChangesAfter(d, "2026-01-01")
 	must(t, err)
-	want := []ChangeAfter{{"2026-02-01", "Z", ""}, {"2026-03-01", "X", "Y"}} // posteriores al día y ordenadas; NULL = ""
+	want := []ChangeAfter{{"2026-02-01", "Z", ""}, {"2026-03-01", "X", "Y"}}
 	if !reflect.DeepEqual(ch, want) {
 		t.Fatalf("ChangesAfter: %+v", ch)
 	}
@@ -83,11 +87,10 @@ func TestPicksAreKeyedByMonthsAndCap(t *testing.T) {
 	pk := func(rank int, tk string) Pick {
 		return Pick{Rank: rank, Ticker: tk, ReturnLookback: 0.1, Price: 10, MarketCap: &mc}
 	}
-	// índice completo (cap 0 = NULL) y universo de cap >= 10 conviven con el mismo plazo
 	must(t, ReplacePicks(d, "2026-09-01T10:00:00", "2026-09-01", 4, 0, []Pick{pk(1, "A"), pk(2, "B")}, []Pick{pk(3, "C")}))
 	must(t, ReplacePicks(d, "2026-09-01T10:00:00", "2026-09-01", 4, 10, []Pick{pk(1, "X")}, nil))
 	must(t, ReplacePicks(d, "2026-10-01T10:00:00", "2026-10-01", 4, 0, []Pick{{Rank: 1, Ticker: "D", Price: 7}}, []Pick{pk(2, "E")}))
-	must(t, ReplacePicks(d, "2026-10-01T11:00:00", "2026-10-01", 4, 0, []Pick{{Rank: 1, Ticker: "F", Price: 8}}, nil)) // misma fecha: reemplaza
+	must(t, ReplacePicks(d, "2026-10-01T11:00:00", "2026-10-01", 4, 0, []Pick{{Rank: 1, Ticker: "F", Price: 8}}, nil))
 
 	day, prev, err := PreviousPicks(d, "2026-10-01", 4, 0)
 	must(t, err)
@@ -131,7 +134,7 @@ func TestPicksAreKeyedByMonthsAndCap(t *testing.T) {
 	by, err := LatestPicksByDate(d, 0, 4)
 	must(t, err)
 	if len(by) != 2 || by[0].AsOf != "2026-09-01" || len(by[0].Picks) != 2 ||
-		by[1].AsOf != "2026-10-01" || len(by[1].Picks) != 1 || by[1].Picks[0].Ticker != "F" { // de la misma fecha, la última corrida
+		by[1].AsOf != "2026-10-01" || len(by[1].Picks) != 1 || by[1].Picks[0].Ticker != "F" {
 		t.Errorf("LatestPicksByDate: %+v", by)
 	}
 }
@@ -145,7 +148,7 @@ func TestPricesRoundTrip(t *testing.T) {
 		{Ticker: "A", Date: "2026-01-02", Close: 10}, {Ticker: "A", Date: "2026-01-05", Close: 11},
 		{Ticker: "B", Date: "2026-01-02", Close: 20}, {Ticker: "C", Date: "2025-12-01", Close: 30},
 	}))
-	must(t, SavePrices(d, []model.PriceRow{{Ticker: "A", Date: "2026-01-05", Close: 12}})) // REPLACE
+	must(t, SavePrices(d, []model.PriceRow{{Ticker: "A", Date: "2026-01-05", Close: 12}}))
 	if last, err := LatestPriceDate(d); !HasPrices(d) || err != nil || last != "2026-01-05" {
 		t.Error("HasPrices o LatestPriceDate")
 	}
@@ -155,7 +158,6 @@ func TestPricesRoundTrip(t *testing.T) {
 		t.Errorf("LastDates: %v", last)
 	}
 
-	// el cierre en el día o el último anterior; un ticker sin precios no figura
 	cl, err := ClosesOnOrBefore(d, []string{"A", "B", "ZZZ"}, "2026-01-04")
 	must(t, err)
 	if !reflect.DeepEqual(cl, map[string]float64{"A": 10, "B": 20}) {
@@ -196,13 +198,13 @@ func TestPricesRoundTrip(t *testing.T) {
 func TestNoDataTickersExpire(t *testing.T) {
 	d := openTemp(t)
 	must(t, RememberNoData(d, []string{"GONE", "BACK"}, nil))
-	must(t, RememberNoData(d, nil, []string{"BACK"})) // BACK ahora sí tiene datos: se olvida
+	must(t, RememberNoData(d, nil, []string{"BACK"}))
 	known, err := KnownNoData(d, 30)
 	must(t, err)
 	if !reflect.DeepEqual(known, map[string]bool{"GONE": true}) {
 		t.Errorf("KnownNoData: %v", known)
 	}
-	if k, _ := KnownNoData(d, 0); len(k) != 0 { // sin TTL no se recuerda nada
+	if k, _ := KnownNoData(d, 0); len(k) != 0 {
 		t.Errorf("TTL 0: %v", k)
 	}
 	n, err := ForgetNoDataBefore(d, db.Today())
@@ -219,7 +221,7 @@ func TestOHLCVStoresNaNAsNull(t *testing.T) {
 		{Ticker: "A", Date: "2026-01-02", Open: 1, High: 3, Low: 0.5, Close: 2, Volume: 100},
 		{Ticker: "A", Date: "2026-01-03", Open: nan, High: nan, Low: nan, Close: 4, Volume: nan},
 	}))
-	must(t, ReplaceOHLCV(d, []OHLCVRow{ // reemplaza todo lo anterior
+	must(t, ReplaceOHLCV(d, []OHLCVRow{
 		{Ticker: "A", Date: "2026-01-02", Open: 1, High: 3, Low: 0.5, Close: 2, Volume: 100},
 		{Ticker: "A", Date: "2026-01-03", Open: nan, High: nan, Low: nan, Close: 4, Volume: nan},
 	}))

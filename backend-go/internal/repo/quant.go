@@ -1,3 +1,7 @@
+// Repositorio del último resultado cuantitativo.
+//
+// Fecha: 2026-11-19
+
 package repo
 
 import (
@@ -7,7 +11,6 @@ import (
 	"top3/internal/db"
 )
 
-// SaveLatestQuant guarda el resultado del modelo por score; solo se conserva el último.
 func SaveLatestQuant(d *sql.DB, runAt, asOf string, payload json.RawMessage) error {
 	return db.Tx(d, func(tx *sql.Tx) error {
 		if _, err := tx.Exec("DELETE FROM quant_runs"); err != nil {
@@ -18,7 +21,6 @@ func SaveLatestQuant(d *sql.DB, runAt, asOf string, payload json.RawMessage) err
 	})
 }
 
-// LatestQuant es el último resultado guardado del modelo por score (nil si no hay).
 func LatestQuant(d *sql.DB) (json.RawMessage, error) {
 	var payload string
 	err := d.QueryRow("SELECT payload FROM quant_runs ORDER BY run_at DESC LIMIT 1").Scan(&payload)

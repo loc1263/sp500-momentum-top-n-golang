@@ -1,5 +1,7 @@
 // Package model tiene los tipos de datos compartidos (precios en matriz, resultados del backtest) sin depender de
 // ningún otro paquete del proyecto, para que los usen tanto los repositorios SQLite como el motor.
+//
+// Fecha: 2026-11-19
 package model
 
 import (
@@ -8,25 +10,21 @@ import (
 	"time"
 )
 
-// NaN marca un precio faltante.
 var NaN = math.NaN()
 
-// PriceRow es un cierre ajustado en formato largo.
 type PriceRow struct {
 	Ticker string
-	Date   string // YYYY-MM-DD
+	Date   string
 	Close  float64
 }
 
-// Prices es la matriz de cierres fecha x ticker. Las fechas van de menor a mayor y los huecos son NaN.
 type Prices struct {
 	Dates   []time.Time
 	Tickers []string
-	Px      []float64 // fila a fila: Px[i*len(Tickers)+j]
+	Px      []float64
 	col     map[string]int
 }
 
-// NewPrices arma una matriz vacía (todo NaN) de las fechas y tickers dados.
 func NewPrices(dates []time.Time, tickers []string) *Prices {
 	p := &Prices{Dates: dates, Tickers: tickers, Px: make([]float64, len(dates)*len(tickers))}
 	for i := range p.Px {
@@ -43,9 +41,6 @@ func (p *Prices) index() {
 	}
 }
 
-// FromRows arma la matriz desde filas largas: fechas y tickers ordenados. Las filas con una fecha que no es YYYY-MM-DD se descartan
-// (con la fecha en blanco entrarían como el año 1 y desordenarían la matriz); las fechas salen de Yahoo y de la base ya formateadas, así que
-// no debería haber ninguna.
 func FromRows(rows []PriceRow) *Prices {
 	parsed := map[string]time.Time{}
 	tickerSet := map[string]struct{}{}
@@ -90,23 +85,18 @@ func sortedKeys(m map[string]struct{}) []string {
 	return out
 }
 
-// Rows y Cols son las dimensiones de la matriz.
 func (p *Prices) Rows() int { return len(p.Dates) }
 func (p *Prices) Cols() int { return len(p.Tickers) }
 
-// At es el precio de la fila i y la columna j.
 func (p *Prices) At(i, j int) float64 { return p.Px[i*len(p.Tickers)+j] }
 
-// Col devuelve la columna del ticker y si existe.
 func (p *Prices) Col(ticker string) (int, bool) {
 	j, ok := p.col[ticker]
 	return j, ok
 }
 
-// Has dice si el ticker es una columna.
 func (p *Prices) Has(ticker string) bool { _, ok := p.col[ticker]; return ok }
 
-// Series copia la columna del ticker.
 func (p *Prices) Series(ticker string) []float64 {
 	j, ok := p.col[ticker]
 	if !ok {
@@ -119,7 +109,6 @@ func (p *Prices) Series(ticker string) []float64 {
 	return out
 }
 
-// Select devuelve una matriz nueva con solo los tickers pedidos que existen, en el orden pedido.
 func (p *Prices) Select(tickers []string) *Prices {
 	keep := make([]string, 0, len(tickers))
 	idx := make([]int, 0, len(tickers))
@@ -138,7 +127,6 @@ func (p *Prices) Select(tickers []string) *Prices {
 	return out
 }
 
-// Reindex es Select pero con una columna (toda NaN) por cada ticker pedido, existan o no.
 func (p *Prices) Reindex(tickers []string) *Prices {
 	out := NewPrices(p.Dates, append([]string(nil), tickers...))
 	for k, t := range tickers {
@@ -151,26 +139,21 @@ func (p *Prices) Reindex(tickers []string) *Prices {
 	return out
 }
 
-// Tail devuelve las últimas n filas (o todas si hay menos).
 func (p *Prices) Tail(n int) *Prices {
 	start := max(p.Rows()-n, 0)
 	return p.Slice(start, p.Rows())
 }
 
-// Slice devuelve las filas [from, to) como matriz nueva (comparte el índice de tickers).
 func (p *Prices) Slice(from, to int) *Prices {
 	out := &Prices{Dates: p.Dates[from:to], Tickers: p.Tickers, Px: p.Px[from*len(p.Tickers) : to*len(p.Tickers)], col: p.col}
 	return out
 }
 
-// Since devuelve las filas con fecha >= day.
 func (p *Prices) Since(day time.Time) *Prices {
 	i := sort.Search(len(p.Dates), func(i int) bool { return !p.Dates[i].Before(day) })
 	return p.Slice(i, p.Rows())
 }
 
-// TrimEmptyTail quita las últimas filas con precio para menos de la mitad de los tickers: la rueda de hoy que Yahoo todavía
-// no publicó, que a veces trae el cierre de unos pocos tickers sueltos.
 func (p *Prices) TrimEmptyTail() *Prices {
 	end := p.Rows()
 	for end > 0 {
@@ -188,7 +171,6 @@ func (p *Prices) TrimEmptyTail() *Prices {
 	return p.Slice(0, end)
 }
 
-// DropAllNaN quita las columnas sin ningún precio.
 func (p *Prices) DropAllNaN() *Prices {
 	var keep []string
 	for j, t := range p.Tickers {
@@ -202,7 +184,6 @@ func (p *Prices) DropAllNaN() *Prices {
 	return p.Select(keep)
 }
 
-// CompleteCols son los tickers sin ningún hueco (NaN) en toda la matriz.
 func (p *Prices) CompleteCols() []string {
 	var out []string
 	for j, t := range p.Tickers {
@@ -220,7 +201,6 @@ func (p *Prices) CompleteCols() []string {
 	return out
 }
 
-// LastValid es el último precio no NaN del ticker hasta la fila row inclusive (NaN si no hay).
 func (p *Prices) LastValid(j, row int) float64 {
 	for i := min(row, p.Rows()-1); i >= 0; i-- {
 		if v := p.At(i, j); !math.IsNaN(v) {
@@ -230,7 +210,6 @@ func (p *Prices) LastValid(j, row int) float64 {
 	return math.NaN()
 }
 
-// MergeColumns junta matrices por columnas (unión de fechas, ordenadas); si un ticker está en varias, gana la primera.
 func MergeColumns(parts ...*Prices) *Prices {
 	dateSet := map[int64]time.Time{}
 	var tickers []string

@@ -1,3 +1,8 @@
+// Pruebas del modelo de datos: construcción desde filas, orden de fechas y tickers, y descarte de
+// fechas inválidas.
+//
+// Fecha: 2026-11-19
+
 package model
 
 import (
@@ -22,7 +27,7 @@ func TestFromRowsOrdersDatesAndTickers(t *testing.T) {
 	if p.At(0, ja) != 1 || p.At(0, jb) != 2 || p.At(1, jb) != 5 {
 		t.Error("valores mal ubicados")
 	}
-	if v := p.At(1, ja); !math.IsNaN(v) { // A no tiene precio el 5: NaN
+	if v := p.At(1, ja); !math.IsNaN(v) {
 		t.Errorf("A el 5 de enero debería ser NaN, es %v", v)
 	}
 }
@@ -30,8 +35,8 @@ func TestFromRowsOrdersDatesAndTickers(t *testing.T) {
 func TestFromRowsDropsRowsWithInvalidDates(t *testing.T) {
 	p := FromRows([]PriceRow{
 		{Ticker: "A", Date: "2026-01-02", Close: 1},
-		{Ticker: "A", Date: "", Close: 99},            // sin fecha: entraría como el año 1 y quedaría primera
-		{Ticker: "BAD", Date: "02/01/2026", Close: 7}, // formato equivocado: su ticker tampoco debe aparecer
+		{Ticker: "A", Date: "", Close: 99},
+		{Ticker: "BAD", Date: "02/01/2026", Close: 7},
 	})
 	if p.Rows() != 1 || p.Cols() != 1 || p.Tickers[0] != "A" {
 		t.Fatalf("forma: %dx%d, tickers %v", p.Rows(), p.Cols(), p.Tickers)

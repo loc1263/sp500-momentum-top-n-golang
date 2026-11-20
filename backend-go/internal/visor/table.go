@@ -1,3 +1,7 @@
+// Arma la tabla del Visor: perfiles de columnas, reglas de color, formato y secciones de instrumentos.
+//
+// Fecha: 2026-11-19
+
 package visor
 
 import (
@@ -8,50 +12,41 @@ import (
 	"top3/internal/config"
 )
 
-// Tipos de instrumento (id de cada tabla en el JSON).
 const (
 	Stocks = "acciones"
 	ETFs   = "etf"
 )
 
-// Profile es un tipo de instrumento: su id y el nombre que se muestra en la pestaña.
 type Profile struct {
 	ID, Label string
 }
 
-// IsETF dice si el perfil es el de los ETFs.
 func (p Profile) IsETF() bool { return p.ID == ETFs }
 
-// Profiles son los tipos de instrumento, en el orden de las pestañas.
 var Profiles = []Profile{{Stocks, "Acciones"}, {ETFs, "ETF"}}
 
-// Rule es el criterio de color verde de una columna: la celda es verde si `valor <Op> Limit`.
 type Rule struct {
 	Op    string
 	Limit float64
 }
 
-// GreenRules son los criterios de las columnas con umbral (el color por signo y vs_spy se tratan aparte).
 var GreenRules = map[string]Rule{
 	"sharpe":         {">", 1},
 	"max_drawdown":   {">=", -25},
 	"dist_max52":     {">=", -10},
 	"dividend_yield": {">=", 2},
-	"expense_ratio":  {"<=", 0.20}, // solo ETFs
+	"expense_ratio":  {"<=", 0.20},
 }
 
-// Para ETFs y acciones, SUPERA / NO SUPERA compara el YTD contra el de SPY.
 const (
 	Beats    = "SUPERA"
 	NotBeats = "NO SUPERA"
 )
 
-// IsSignCol dice si la columna es verde cuando es > 0 y roja cuando es < 0.
 func IsSignCol(col string) bool {
 	return (strings.HasPrefix(col, "ret_") || strings.HasPrefix(col, "ytd") || strings.HasPrefix(col, "rel_spy")) && col != "ytd_spy" || col == "vs_ma200"
 }
 
-// Format es el tipo de formato de una columna: "pct" (con %), "dec" (2 decimales), "int" (miles) o "" (texto).
 func Format(col string) string {
 	switch {
 	case strings.HasPrefix(col, "ret_"), strings.HasPrefix(col, "ytd"), strings.HasPrefix(col, "rel_spy"),
@@ -71,28 +66,25 @@ func (r Rule) ok(v float64) bool {
 		return v > r.Limit
 	case ">=":
 		return v >= r.Limit
-	default: // "<="
+	default:
 		return v <= r.Limit
 	}
 }
 
-// Instrument es un instrumento con todo lo que hace falta para armar su fila.
 type Instrument struct {
 	Ticker   string
-	Sector   string // acciones
-	Category string // ETFs
+	Sector   string
+	Category string
 	Static
 	Leveraged bool
 	Metrics
 }
 
-// Ref es la referencia de mercado (SPY): su YTD y sus rendimientos a 1 y 3 años.
 type Ref struct {
 	YTD  float64
 	Rets map[int]*float64
 }
 
-// Section es una tabla del JSON: columnas, filas (null = sin dato) y cómo se formatea y se colorea cada columna.
 type Section struct {
 	ID     string            `json:"id"`
 	Label  string            `json:"label"`
@@ -101,12 +93,11 @@ type Section struct {
 	Fmt    map[string]string `json:"fmt"`
 	Sign   []string          `json:"sign"`
 	Thr    map[string][2]any `json:"thr"`
-	Search []int             `json:"search"` // columnas de texto donde busca el buscador
+	Search []int             `json:"search"`
 }
 
 var textCols = map[string]bool{"ticker": true, "nombre": true, "sector": true, "categoria": true, "vs_spy": true}
 
-// columns son las columnas de una tabla, en orden.
 func columns(p Profile) []string {
 	cols := []string{"ticker", "nombre"}
 	if p.IsETF() {
@@ -127,8 +118,6 @@ func columns(p Profile) []string {
 	return append(cols, "dividend_yield", "ytd", "ytd_spy", "ytd_vs_spy", "vs_spy", "verdes")
 }
 
-// Build arma la tabla de un tipo de instrumento: filtra, calcula Sharpe y relativos contra SPY, cuenta los verdes y ordena por
-// tamaño (AUM o capitalización). explicit son los ETFs pedidos a mano, que se muestran aunque sean apalancados.
 func Build(p Profile, ins []Instrument, ref Ref, cfg config.Visor, explicit map[string]bool) Section {
 	cols := columns(p)
 	sec := Section{ID: p.ID, Label: p.Label, Cols: cols, Rows: [][]any{}, Fmt: map[string]string{}, Sign: []string{}, Thr: map[string][2]any{}}
@@ -155,12 +144,12 @@ func Build(p Profile, ins []Instrument, ref Ref, cfg config.Visor, explicit map[
 		var size *float64
 		if p.IsETF() {
 			if in.Leveraged && !explicit[in.Ticker] && !cfg.IncludeLeveraged {
-				continue // del universo se descartan; los pedidos a mano se muestran
+				continue
 			}
 			size = in.AUM
 		} else {
 			if in.MarketCap == nil || *in.MarketCap < cfg.CapMinBillions*1e9 {
-				continue // acciones preferentes (sin capitalización propia) o bajo el umbral
+				continue
 			}
 			size = in.MarketCap
 		}
@@ -176,14 +165,13 @@ func Build(p Profile, ins []Instrument, ref Ref, cfg config.Visor, explicit map[
 		}
 		rows = append(rows, sized{s, row})
 	}
-	sort.SliceStable(rows, func(i, j int) bool { return rows[i].size > rows[j].size }) // sin tamaño al final
+	sort.SliceStable(rows, func(i, j int) bool { return rows[i].size > rows[j].size })
 	for _, r := range rows {
 		sec.Rows = append(sec.Rows, r.row)
 	}
 	return sec
 }
 
-// values son los valores de cada columna de una fila (nil = sin dato; los porcentajes ya están en %).
 func values(p Profile, in Instrument, ref Ref, cfg config.Visor) map[string]any {
 	v := map[string]any{"ticker": in.Ticker, "nombre": truncate(in.Name, 40)}
 	if p.IsETF() {
@@ -227,7 +215,6 @@ func values(p Profile, in Instrument, ref Ref, cfg config.Visor) map[string]any 
 	return v
 }
 
-// greens cuenta las celdas verdes de una fila, con las mismas reglas que usa el frontend para pintar.
 func greens(v map[string]any) int {
 	n := 0
 	for c, x := range v {
@@ -272,7 +259,6 @@ func nilIfEmpty(s string) any {
 	return s
 }
 
-// truncate corta s a n caracteres.
 func truncate(s string, n int) string {
 	if r := []rune(s); len(r) > n {
 		return string(r[:n])

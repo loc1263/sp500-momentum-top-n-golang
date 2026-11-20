@@ -1,14 +1,15 @@
+// Catálogo del evaluador: definición de secciones, métricas y glosario.
+//
+// Fecha: 2026-11-19
+
 package evaluator
 
-// MetricDef es lo que no cambia de una métrica entre empresas: nombre, unidad y qué mide. Va una sola vez en el JSON.
-// Unidades: pct (%), x (veces), money (monto en la moneda de la empresa), years (años), num (número simple), text.
 type MetricDef struct {
 	Name string `json:"name"`
 	Unit string `json:"unit"`
 	Why  string `json:"why"`
 }
 
-// SectionDef es una categoría del análisis. Labels son los textos del distintivo para bien, atención y alerta.
 type SectionDef struct {
 	Title  string    `json:"title"`
 	Intro  string    `json:"intro,omitempty"`
@@ -16,7 +17,6 @@ type SectionDef struct {
 	Labels [3]string `json:"labels"`
 }
 
-// Sections son las categorías, en el orden en que se muestran.
 var Sections = []struct {
 	ID string
 	SectionDef
@@ -31,7 +31,6 @@ var Sections = []struct {
 		"Compara las métricas de la empresa con las de otras parecidas. Solo tiene sentido entre empresas del mismo sector.", [3]string{"Mejor", "Similar", "Peor"}}},
 }
 
-// Metrics es el diccionario de métricas por ID.
 var Metrics = map[string]MetricDef{
 	"net_margin":       {"Margen neto", "pct", "Ganancia final por cada 100 de ventas. Puede incluir ganancias por inversiones que no se repiten."},
 	"op_margin":        {"Margen operativo (último trimestre)", "pct", "Ganancia del negocio en sí, antes de intereses e impuestos. Es una medida más limpia que la utilidad neta."},
@@ -62,7 +61,6 @@ var Metrics = map[string]MetricDef{
 	"tr_debt":          {"Deuda total", "money", "Deuda financiera al cierre de cada año fiscal. Según la fuente, puede incluir arrendamientos."},
 }
 
-// Glossary son las definiciones de los términos que se explican con el botón «?».
 var Glossary = map[string]string{
 	"Market cap": "Capitalización de mercado: lo que vale la empresa entera en bolsa (precio × acciones en circulación).",
 	"EPS":        "Ganancia por acción: utilidad neta ÷ acciones en circulación.",

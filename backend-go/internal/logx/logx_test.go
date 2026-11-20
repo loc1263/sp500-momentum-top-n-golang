@@ -1,3 +1,8 @@
+// Pruebas del registro: depuración solo a archivo, resúmenes por código, fusión de pasos, código de
+// salida y búfer del archivo de log.
+//
+// Fecha: 2026-11-19
+
 package logx
 
 import (
@@ -82,7 +87,6 @@ func TestRunCLIReturnsExitCode(t *testing.T) {
 	}
 }
 
-// El archivo de log va con búfer: los avisos se ven en disco al instante y el resto al cerrar.
 func TestLogFileIsBufferedButWarningsFlushAtOnce(t *testing.T) {
 	dir := t.TempDir()
 	if err := Setup("t.log", dir); err != nil {

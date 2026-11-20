@@ -1,3 +1,7 @@
+// Descarga y modela los fundamentales de las empresas y los agrupa en métricas de salud.
+//
+// Fecha: 2026-11-19
+
 package quant
 
 import (
@@ -20,44 +24,21 @@ import (
 	"top3/internal/yahoo"
 )
 
-// Datos financieros de cada acción (Yahoo) y score de salud financiera.
-//
-// El score es la posición (0-100) de cada empresa entre las demás en cuatro grupos de indicadores; cada grupo promedia su
-// ranking en los indicadores que tenga y el score de salud promedia los grupos disponibles:
-//
-//   - Rentabilidad: ROE, ROA, margen operativo y margen neto.
-//   - Solvencia: deuda/patrimonio, deuda neta/EBITDA y caja/deuda (menos deuda = mejor).
-//   - Liquidez: liquidez corriente y prueba ácida.
-//   - Generación de caja: flujo de caja libre y flujo operativo sobre ventas, rendimiento del flujo libre sobre la
-//     capitalización, conversión de la utilidad en caja (flujo libre / utilidad neta), flujo operativo sobre la deuda y
-//     consistencia (cuántos de los últimos 4 años el flujo libre fue positivo). Una empresa que genera caja de forma sostenida
-//     es más confiable, así que este grupo pesa el doble por defecto ([quant] health_weights).
-//
-// Las empresas financieras que no informan liquidez corriente (bancos, aseguradoras) no tienen deuda neta, liquidez ni flujo
-// de caja comparables, así que se miden solo con los indicadores que sí tienen sentido para ellas; las clasificadas como
-// financieras pero con un balance común (Visa, Mastercard) se miden con los cuatro grupos. Es una foto de los últimos datos
-// publicados, no una serie histórica.
-
-// Fields son los campos de Yahoo que se guardan de cada acción.
 var Fields = []string{"shortName", "sector", "marketCap", "returnOnEquity", "returnOnAssets", "profitMargins", "operatingMargins",
 	"debtToEquity", "currentRatio", "quickRatio", "freeCashflow", "operatingCashflow", "totalRevenue",
 	"totalDebt", "totalCash", "ebitda", "netIncomeToCommon"}
 
 const (
-	// Version de los datos guardados: los de una versión anterior se vuelven a bajar.
-	Version = 2
-	// FcfYears son los años de flujo libre anual que se miran para la consistencia.
-	FcfYears = 4
-	// FinancialSector es el sector de bancos, aseguradoras y similares.
+	Version         = 2
+	FcfYears        = 4
 	FinancialSector = "Financial Services"
 )
 
-// HealthGroups son los grupos del score de salud, en orden.
 var HealthGroups = []string{"rentabilidad", "solvencia", "liquidez", "caja"}
 
 type metric struct {
 	name     string
-	higherIs bool // true si "más alto es mejor"
+	higherIs bool
 }
 
 var groupMetrics = map[string][]metric{
@@ -71,7 +52,6 @@ var groupMetrics = map[string][]metric{
 var notForFinancials = []string{"debt_to_equity", "net_debt_ebitda", "cash_to_debt", "current_ratio", "quick_ratio", "fcf_margin",
 	"ocf_margin", "fcf_yield", "cash_conversion", "ocf_to_debt", "fcf_positive_years"}
 
-// Data son los datos financieros de una acción tal como se guardan (los números que Yahoo no informa son nil).
 type Data struct {
 	ShortName  string
 	Sector     string
@@ -79,7 +59,6 @@ type Data struct {
 	FcfHistory []*float64
 }
 
-// MarshalJSON usa el formato guardado en la base: los campos de Yahoo con null donde faltan, fcf_history y v.
 func (d Data) MarshalJSON() ([]byte, error) {
 	m := map[string]any{"fcf_history": d.FcfHistory, "v": Version, "shortName": nilIfEmpty(d.ShortName), "sector": nilIfEmpty(d.Sector)}
 	if d.FcfHistory == nil {
@@ -98,7 +77,6 @@ func nilIfEmpty(s string) any {
 	return s
 }
 
-// parseData lee los datos guardados (JSON); ok es false si son de otra versión.
 func parseData(js string) (Data, bool) {
 	var raw map[string]any
 	if json.Unmarshal([]byte(js), &raw) != nil {
@@ -135,7 +113,7 @@ func fcfHistory(ctx context.Context, y *yahoo.Client, ticker string) []*float64 
 		return nil
 	}
 	var out []*float64
-	for _, p := range gohoo.TimeseriesPoints(data, "annualFreeCashFlow") { // la más reciente primero
+	for _, p := range gohoo.TimeseriesPoints(data, "annualFreeCashFlow") {
 		if len(out) == FcfYears {
 			break
 		}
@@ -174,8 +152,6 @@ func fetchOne(ctx context.Context, y *yahoo.Client, ticker string) (Data, error)
 	return d, nil
 }
 
-// EnsureFundamentals son los datos financieros de los tickers. Los guardados hace menos de ttlDays días se reutilizan
-// (cambian por trimestre); con --no-cache se vuelven a pedir todos.
 func EnsureFundamentals(ctx context.Context, d *sql.DB, y *yahoo.Client, tickers []string, useCache bool, ttlDays, workers int) (map[string]Data, error) {
 	cutoff := dateutil.Day(time.Now().AddDate(0, 0, -ttlDays))
 	stored, err := repo.FreshFundamentals(d, cutoff)
@@ -220,11 +196,10 @@ func EnsureFundamentals(ctx context.Context, d *sql.DB, y *yahoo.Client, tickers
 	return data, nil
 }
 
-// Row son los indicadores de salud de una acción más nombre, sector y capitalización.
 type Row struct {
 	Name, Sector string
 	MarketCap    float64
-	V            map[string]float64 // los indicadores de los grupos, por nombre
+	V            map[string]float64
 }
 
 func num(d Data, k string) float64 {
@@ -234,7 +209,6 @@ func num(d Data, k string) float64 {
 	return nan
 }
 
-// HealthIndicators calcula los indicadores de salud de cada ticker de data, en el orden de tickers.
 func HealthIndicators(tickers []string, data map[string]Data) []Row {
 	rows := make([]Row, 0, len(tickers))
 	for _, t := range tickers {
@@ -263,15 +237,15 @@ func HealthIndicators(tickers []string, data map[string]Data) []Row {
 		case isNaN(netDebt) || isNaN(ebitda):
 			netDebtEbitda = nan
 		case netDebt <= 0:
-			netDebtEbitda = 0 // más caja que deuda: la mejor situación
+			netDebtEbitda = 0
 		case ebitda > 0:
 			netDebtEbitda = netDebt / ebitda
 		default:
-			netDebtEbitda = math.Inf(1) // sin EBITDA positivo: la peor
+			netDebtEbitda = math.Inf(1)
 		}
 		d2e := num(d, "debtToEquity")
 		if !isNaN(d2e) && !(d2e >= 0) {
-			d2e = math.Inf(1) // patrimonio negativo: la peor
+			d2e = math.Inf(1)
 		}
 		cashToDebt := nan
 		switch {
@@ -284,7 +258,7 @@ func HealthIndicators(tickers []string, data map[string]Data) []Row {
 		if marketCap > 0 {
 			fcfYield = fcf / marketCap
 		}
-		if income > 0 { // utilidad que se convierte en caja; sin utilidad positiva no hay base de comparación
+		if income > 0 {
 			cashConversion = fcf / income
 			if !isNaN(cashConversion) {
 				cashConversion = math.Min(math.Max(cashConversion, -1), 2)
@@ -320,8 +294,6 @@ func HealthIndicators(tickers []string, data map[string]Data) []Row {
 			"fcf_margin": fcf / revenue, "ocf_margin": ocf / revenue, "fcf_yield": fcfYield,
 			"cash_conversion": cashConversion, "ocf_to_debt": ocfToDebt, "fcf_positive_years": positive,
 		}}
-		// Bancos y aseguradoras: su deuda es materia prima del negocio y no informan liquidez corriente. Visa, Mastercard y otras
-		// clasificadas como financieras pero con un balance común sí la informan y se miden con los cuatro grupos
 		if d.Sector == FinancialSector && isNaN(r.V["current_ratio"]) {
 			for _, k := range notForFinancials {
 				r.V[k] = nan
@@ -332,19 +304,15 @@ func HealthIndicators(tickers []string, data map[string]Data) []Row {
 	return rows
 }
 
-// Health es el score de salud de una acción: el de cada grupo (0-100, NaN si no se pudo medir), cuántos grupos se midieron y
-// la salud (0-100).
 type Health struct {
 	Groups  [4]float64
 	Measure int
 	Health  float64
 }
 
-// HealthScore calcula el score de salud 0-100 y los de cada grupo de las filas. La salud es el promedio de los grupos medidos
-// con los pesos weights (por defecto, iguales; un grupo sin medir no cuenta). Sin ningún grupo, el score queda en NaN.
 func HealthScore(rows []Row, weights map[string]float64) []Health {
 	n := len(rows)
-	groups := make([][]float64, len(HealthGroups)) // groups[g][i]
+	groups := make([][]float64, len(HealthGroups))
 	for g, name := range HealthGroups {
 		ranks := make([][]float64, 0, len(groupMetrics[name]))
 		for _, m := range groupMetrics[name] {
@@ -352,7 +320,6 @@ func HealthScore(rows []Row, weights map[string]float64) []Health {
 			for i, r := range rows {
 				col[i] = r.V[m.name]
 			}
-			// rank ordena también los infinitos: deuda infinita (sin EBITDA o patrimonio negativo) es lo peor y caja sin deuda lo mejor
 			ranks = append(ranks, stats.RankPct(col, m.higherIs))
 		}
 		groups[g] = make([]float64, n)

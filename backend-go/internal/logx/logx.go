@@ -1,5 +1,7 @@
 // Package logx es el logging del proyecto: consola a nivel INFO (avisos en amarillo, errores en rojo), archivo a nivel
 // DEBUG que se sobrescribe en cada corrida, y un resumen de avisos y errores agrupados por código.
+//
+// Fecha: 2026-11-19
 package logx
 
 import (
@@ -20,7 +22,6 @@ import (
 	"top3/internal/termfmt"
 )
 
-// Niveles, de DEBUG (10) a CRITICAL (50).
 const (
 	Debug   = 10
 	Info    = 20
@@ -30,7 +31,6 @@ const (
 
 var levelNames = map[int]string{Debug: "DEBUG", Info: "INFO", Warning: "WARNING", Error: "ERROR"}
 
-// Variables de entorno con las que el pipeline junta los resúmenes de todos sus pasos.
 const (
 	SummaryFileEnv = "TOP3_SUMMARY_FILE"
 	StepEnv        = "TOP3_STEP"
@@ -38,7 +38,7 @@ const (
 
 var (
 	mu          sync.Mutex
-	colorMu     sync.Mutex // aparte de mu: el color se consulta con mu tomado, desde logf
+	colorMu     sync.Mutex
 	file        io.WriteCloser
 	logfile     string
 	consoleOut  io.Writer = os.Stderr
@@ -50,7 +50,6 @@ var (
 	prefix                = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) \[(\w+)\]`)
 )
 
-// SummaryItem es un código del resumen final: cuántas veces apareció y con qué gravedad.
 type SummaryItem struct {
 	Code   string   `json:"code"`
 	Count  int      `json:"count"`
@@ -60,8 +59,6 @@ type SummaryItem struct {
 	Steps  []string `json:"steps,omitempty"`
 }
 
-// ColorEnabled dice si stream es una terminal que admite color (y no hay NO_COLOR). Al redirigir a archivo o pipe no se
-// ensucia con secuencias ANSI.
 func ColorEnabled(stream *os.File) bool {
 	colorMu.Lock()
 	defer colorMu.Unlock()
@@ -81,7 +78,6 @@ func isTerminal(f *os.File) bool {
 	return err == nil && st.Mode()&os.ModeCharDevice != 0
 }
 
-// Heading es text en verde (títulos y marcos de los resúmenes) si la salida admite color.
 func Heading(text string, stream *os.File) string {
 	if stream == nil {
 		stream = os.Stderr
@@ -92,7 +88,6 @@ func Heading(text string, stream *os.File) string {
 	return text
 }
 
-// Paint es text en amarillo (WARNING) o rojo (ERROR o más) si la consola admite color.
 func Paint(text string, level int) string {
 	if !ColorEnabled(os.Stderr) || level < Warning {
 		return text
@@ -103,7 +98,6 @@ func Paint(text string, level int) string {
 	return termfmt.Yellow + text + termfmt.Reset
 }
 
-// Setup abre el archivo de log (se sobrescribe en cada corrida) y reinicia el resumen.
 func Setup(name, dir string) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -124,8 +118,6 @@ func Setup(name, dir string) error {
 	return nil
 }
 
-// bufferedFile agrupa las escrituras del log en bloques de 64 KB (un backtest escribe decenas de miles de líneas de DEBUG,
-// y una syscall por línea era lo más caro). Los avisos y errores se vuelcan al instante para que un corte no los pierda.
 type bufferedFile struct {
 	bw *bufio.Writer
 	f  *os.File
@@ -141,10 +133,8 @@ func (b *bufferedFile) Close() error {
 	return err
 }
 
-// flusher lo implementan los archivos con búfer.
 type flusher interface{ Flush() error }
 
-// Close cierra el archivo de log.
 func Close() {
 	mu.Lock()
 	defer mu.Unlock()
@@ -154,7 +144,6 @@ func Close() {
 	}
 }
 
-// SetConsole redirige la consola del logger (para los tests) y su nivel mínimo; con nil vuelve a la salida de error.
 func SetConsole(w io.Writer, min int) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -171,7 +160,7 @@ func stamp(t time.Time) string {
 func logf(level int, format string, args ...any) {
 	if level < Warning {
 		mu.Lock()
-		quiet := file == nil && level < consoleMin // nadie lo va a ver: no se arma el mensaje
+		quiet := file == nil && level < consoleMin
 		mu.Unlock()
 		if quiet {
 			return
@@ -209,8 +198,6 @@ func logf(level int, format string, args ...any) {
 	}
 }
 
-// formatConsole parte las líneas largas en el ancho máximo y las pinta según el nivel. Avisos en amarillo y errores en
-// rojo (toda la línea); en los demás la hora va atenuada, el nivel en cian y los códigos TOP-XXX-NNN resaltados.
 func formatConsole(line string, level int) string {
 	lines := termfmt.WrapDefault(line)
 	if consoleOut != io.Writer(os.Stderr) || !ColorEnabled(os.Stderr) {
@@ -235,8 +222,6 @@ func Infof(format string, args ...any)  { logf(Info, format, args...) }
 func Warnf(format string, args ...any)  { logf(Warning, format, args...) }
 func Errorf(format string, args ...any) { logf(Error, format, args...) }
 
-// FormatSummary son las líneas del resumen. Cada item trae code, count, level y sample (y steps, si vienen de varios
-// pasos del pipeline).
 func FormatSummary(items []SummaryItem, logPath string) []string {
 	var nErr, nWarn int
 	for _, i := range items {
@@ -250,7 +235,7 @@ func FormatSummary(items []SummaryItem, logPath string) []string {
 		Heading(fmt.Sprintf("RESUMEN DE AVISOS Y ERRORES: %d errores, %d avisos", nErr, nWarn), nil),
 		Heading(strings.Repeat("=", 78), nil)}
 	ordered := append([]SummaryItem(nil), items...)
-	sort.SliceStable(ordered, func(a, b int) bool { // errores primero
+	sort.SliceStable(ordered, func(a, b int) bool {
 		if ordered[a].Level != ordered[b].Level {
 			return ordered[a].Level > ordered[b].Level
 		}
@@ -303,8 +288,6 @@ func summaryItems() []SummaryItem {
 	return out
 }
 
-// PrintSummary imprime el resumen de la corrida (nada si no hubo avisos ni errores). Si corre dentro del pipeline, en
-// vez de imprimirlo lo deja en el archivo que junta el resumen de todos los pasos.
 func PrintSummary() {
 	items := summaryItems()
 	if len(items) == 0 {
@@ -326,7 +309,6 @@ func PrintSummary() {
 	fmt.Fprintln(os.Stderr, "\n"+strings.Join(FormatSummary(items, logfile), "\n"))
 }
 
-// MergeSummaries junta lo que dejaron los pasos del pipeline: un item por código, con los pasos donde apareció.
 func MergeSummaries(path string) []SummaryItem {
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -365,8 +347,6 @@ func MergeSummaries(path string) []SummaryItem {
 	return res
 }
 
-// RunCLI ejecuta el main de un comando. Un error se muestra como error (rojo) y queda en el log; al final se imprime el
-// resumen de avisos y errores, si los hubo. Devuelve el código de salida del proceso.
 func RunCLI(main func() error) (code int) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -383,7 +363,7 @@ func RunCLI(main func() error) (code int) {
 	}()
 	if err := main(); err != nil {
 		if file != nil {
-			Errorf("%s", err.Error()) // sin código propio: el mensaje del error ya trae su ID
+			Errorf("%s", err.Error())
 		} else {
 			fmt.Fprintln(os.Stderr, Paint(err.Error(), Error))
 		}

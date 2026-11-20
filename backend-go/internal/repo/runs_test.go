@@ -1,3 +1,8 @@
+// Pruebas de la poda de corridas y de ETFs: días conservados, duplicados, clave de reporte y vacío
+// diario.
+//
+// Fecha: 2026-11-19
+
 package repo
 
 import (
@@ -66,7 +71,7 @@ func TestPruneRunsDropsOldDaysAndSameDayDuplicates(t *testing.T) {
 	d := openTemp(t)
 	addRun(t, d, "2024-01-01T10:00:00", "p")
 	addRun(t, d, "2024-01-09T10:00:00", "p")
-	last := addRun(t, d, "2024-01-09T11:00:00", "p") // reemplaza a la anterior del mismo día
+	last := addRun(t, d, "2024-01-09T11:00:00", "p")
 	other := addRun(t, d, "2024-01-09T11:00:00", "q")
 	n, err := PruneRuns(d, 3)
 	if err != nil || n != 2 {
@@ -82,7 +87,7 @@ func TestPruneRunsDropsOldDaysAndSameDayDuplicates(t *testing.T) {
 
 func TestPruneRunsKeepsTheLastDaysCountedFromTheLatestRun(t *testing.T) {
 	d := openTemp(t)
-	addRun(t, d, "2024-01-06T10:00:00", "x") // 4.º día contando desde el último: fuera con keep_days=3
+	addRun(t, d, "2024-01-06T10:00:00", "x")
 	a := addRun(t, d, "2024-01-08T10:00:00", "a")
 	b := addRun(t, d, "2024-01-09T10:00:00", "b")
 	if n, _ := PruneRuns(d, 3); n != 1 {
@@ -118,7 +123,7 @@ func sweepParams(extra map[string]any) string {
 
 func TestPruneRunsDedupesByReportKeyNotByExactParams(t *testing.T) {
 	d := openTemp(t)
-	addRun(t, d, "2024-01-09T10:00:00", sweepParams(map[string]any{"data": map[string]any{"runs_keep_days": nil}})) // config vieja
+	addRun(t, d, "2024-01-09T10:00:00", sweepParams(map[string]any{"data": map[string]any{"runs_keep_days": nil}}))
 	n1 := addRun(t, d, "2024-01-09T11:00:00", sweepParams(map[string]any{"data": map[string]any{"runs_keep_days": 7}}))
 	n2 := addRun(t, d, "2024-01-09T11:00:00", sweepParams(map[string]any{"sweep_months": 6}))
 	n3 := addRun(t, d, "2024-01-09T11:00:00", sweepParams(map[string]any{"min_cap_billions": 200.0}))
@@ -161,7 +166,7 @@ func TestMaybePruneRunsPrunesEveryTimeButVacuumsOnceADay(t *testing.T) {
 	if v, _ := db.GetMeta(d, "runs_vacuumed"); v != time.Now().Format("2006-01-02") {
 		t.Fatalf("runs_vacuumed = %q", v)
 	}
-	addRun(t, d, "2020-01-01T10:00:00", "c") // otra corrida el mismo día: se limpia igual
+	addRun(t, d, "2020-01-01T10:00:00", "c")
 	if n, _ := MaybePruneRuns(d, 1, false); n != 1 {
 		t.Fatalf("n=%d", n)
 	}

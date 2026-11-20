@@ -1,3 +1,8 @@
+// Pruebas contra valores de referencia de los indicadores: EWM, momentum, indicadores técnicos y
+// salud.
+//
+// Fecha: 2026-11-19
+
 package quant
 
 import (
@@ -11,10 +16,6 @@ import (
 	"top3/internal/model"
 )
 
-// Los valores esperados salen de testdata/reference.json: se calcularon con herramientas estadísticas externas con las
-// mismas entradas. Estos tests comprueban que esta implementación da lo mismo.
-
-// F es un número que en el JSON puede venir como "NaN", "Inf" o "-Inf".
 type F float64
 
 func (f *F) UnmarshalJSON(b []byte) error {
@@ -204,9 +205,6 @@ func indOf(cols []string, row []F) TechInd {
 		Obv20d: g("obv_20d"), MFI: g("mfi"), High52: g("high52"), Low52: g("low52")}
 }
 
-// Nota: en T05 el volumen de una rueda de la ventana falta (NaN). La referencia original (pandas) devolvía MFI = 100 por
-// su convención «NaN = 100»; aquí se ignora esa rueda (gohoo.MFISkipNaN) y T05 queda con el MFI de las demás (48,96) y su
-// grupo volumen en 73,69 en vez de 75. El resto de los valores sigue igual que la referencia.
 func TestTechnicalIndicatorsAndScoreMatchReference(t *testing.T) {
 	ref, _ := loadReference(t)
 	scores := make([]TechnicalScore, len(ref.Tickers))
@@ -351,7 +349,6 @@ func TestMarkowitzMatchesReferenceFrontier(t *testing.T) {
 				if gp.Key != wp.Key {
 					t.Fatalf("cartera %d: %s, esperado %s", k, gp.Key, wp.Key)
 				}
-				// el optimizador de referencia termina con tolerancia ~1e-8; los pesos coinciden a unas milésimas y las métricas mucho mejor
 				if !near(gp.ExpReturn, float64(wp.ExpReturn), 2e-4) || !near(gp.Vol, float64(wp.Vol), 2e-4) || !near(gp.Sharpe, float64(wp.Sharpe), 5e-4) {
 					t.Errorf("%s: retorno %v/%v vol %v/%v sharpe %v/%v", gp.Key, gp.ExpReturn, float64(wp.ExpReturn), gp.Vol, float64(wp.Vol), gp.Sharpe, float64(wp.Sharpe))
 				}

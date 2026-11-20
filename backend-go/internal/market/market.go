@@ -1,3 +1,7 @@
+// Datos de mercado: actualiza constituyentes, precios y capitalización de forma completa o reciente.
+//
+// Fecha: 2026-11-19
+
 package market
 
 import (
@@ -11,22 +15,16 @@ import (
 	"top3/internal/model"
 )
 
-// Data son los datos de mercado que necesitan el backtest y el modelo por score: composición del índice y precios al día.
 type Data struct {
 	Constituents *Constituents
-	Prices       *model.Prices // fecha x ticker, todos los que pasaron por el índice en el histórico
+	Prices       *model.Prices
 	HistoryStart string
 }
 
-// Refresh deja en SQLite la composición del S&P 500 y los precios de todos sus miembros del histórico (descargando lo que
-// falte) y los carga.
 func (dl *Downloader) Refresh(ctx context.Context, d *sql.DB, cfg config.Config, useCache bool, today time.Time) (*Data, error) {
 	return dl.refresh(ctx, d, cfg, useCache, today, 0)
 }
 
-// RefreshRecent es Refresh para quien solo mira el final de la serie (por ejemplo, el último año): descarga y actualiza
-// igual, pero carga en memoria solo los últimos days días corridos y minRows ruedas como mínimo (si la ventana no las tiene,
-// carga todo). Leer el histórico de 12 años desde SQLite es lo más lento de un comando que no lo usa.
 func (dl *Downloader) RefreshRecent(ctx context.Context, d *sql.DB, cfg config.Config, useCache bool, today time.Time,
 	days, minRows int) (*Data, error) {
 	data, err := dl.refresh(ctx, d, cfg, useCache, today, days)
@@ -42,7 +40,6 @@ func (dl *Downloader) RefreshRecent(ctx context.Context, d *sql.DB, cfg config.C
 	return data, nil
 }
 
-// refresh hace el trabajo de Refresh; con loadDays > 0 solo carga esa cantidad de días corridos hasta hoy.
 func (dl *Downloader) refresh(ctx context.Context, d *sql.DB, cfg config.Config, useCache bool, today time.Time, loadDays int) (*Data, error) {
 	historyStart := cfg.Data.HistoryStart(today)
 	EnsureConstituents(d, cfg.Data, useCache)
@@ -52,7 +49,7 @@ func (dl *Downloader) refresh(ctx context.Context, d *sql.DB, cfg config.Config,
 	}
 	tickers := constituents.AllBetween(historyStart, dateutil.Day(today))
 	logx.Infof("Tickers únicos que pasaron por el S&P 500 en el histórico: %d", len(tickers))
-	priceEnd := dateutil.Day(today.AddDate(0, 0, 1)) // Yahoo: el fin es exclusivo
+	priceEnd := dateutil.Day(today.AddDate(0, 0, 1))
 	if err := dl.EnsurePrices(ctx, d, tickers, historyStart, priceEnd, useCache, cfg.Data); err != nil {
 		return nil, err
 	}

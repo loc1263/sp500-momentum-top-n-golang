@@ -1,3 +1,8 @@
+// Pruebas del Visor: retornos, YTD, drawdown máximo, beta, ETFs apalancados, formato y clasificación
+// de acciones.
+//
+// Fecha: 2026-11-19
+
 package visor
 
 import (
@@ -11,7 +16,6 @@ import (
 	"top3/internal/config"
 )
 
-// series arma una serie de días hábiles consecutivos desde start.
 func series(start string, values ...float64) Series {
 	d, _ := time.Parse(time.DateOnly, start)
 	var s Series
@@ -43,7 +47,7 @@ func TestPeriodReturn(t *testing.T) {
 }
 
 func TestYTDUsaElUltimoCierreDelAnioAnterior(t *testing.T) {
-	s := series("2025-12-29", 100, 100, 120, 150) // 29 y 30-dic-2025, 31-dic-2025, 1-ene-2026
+	s := series("2025-12-29", 100, 100, 120, 150)
 	if s.Dates[2][:4] != "2025" || s.Dates[3][:4] != "2026" {
 		t.Fatalf("fechas inesperadas: %v", s.Dates)
 	}
@@ -72,7 +76,6 @@ func TestBetaDeUnaSerieIgualADobleDeSpyEsDos(t *testing.T) {
 	if !ok {
 		t.Fatal("Compute falló")
 	}
-	// el retorno del doble no es exactamente el doble del de SPY (compuesto), pero la beta queda muy cerca de 2
 	if m.Beta == nil || math.Abs(*m.Beta-2) > 0.01 {
 		t.Errorf("beta = %v, quiero ≈ 2", m.Beta)
 	}
@@ -210,10 +213,10 @@ func TestBuildETFDescartaApalancadosSalvoLosPedidos(t *testing.T) {
 
 func TestVerdesCuentaConLasReglasDelFrontend(t *testing.T) {
 	v := map[string]any{
-		"ret_1m": 5.0, "ret_2m": -2.0, "ret_3m": nil, // 1 verde por signo
-		"sharpe":       1.0,                                                // el umbral es estricto: > 1
-		"max_drawdown": -20.0, "expense_ratio": 0.1, "dividend_yield": 1.0, // 2 verdes
-		"vs_spy": Beats, // 1 verde
+		"ret_1m": 5.0, "ret_2m": -2.0, "ret_3m": nil,
+		"sharpe":       1.0,
+		"max_drawdown": -20.0, "expense_ratio": 0.1, "dividend_yield": 1.0,
+		"vs_spy": Beats,
 	}
 	if got := greens(v); got != 4 {
 		t.Errorf("verdes = %d, quiero 4", got)

@@ -1,3 +1,7 @@
+// Corrida del Visor: descarga el historial, calcula métricas por instrumento y escribe el resultado.
+//
+// Fecha: 2026-11-19
+
 package visor
 
 import (
@@ -20,16 +24,12 @@ import (
 	"top3/internal/yahoo"
 )
 
-// RefTicker es la referencia de mercado para el beta y las comparaciones.
 const RefTicker = "SPY"
 
-// historyRange es el historial que se baja de cada instrumento (el plazo más largo es de 5 años, más el colchón de la ventana).
 const historyRange = "6y"
 
-// NoCategory es la categoría de los ETFs para los que Yahoo no informa ninguna.
 const NoCategory = "Sin categoría"
 
-// Payload es el JSON del visor.
 type Payload struct {
 	GeneratedAt string    `json:"generated_at"`
 	Date        string    `json:"date"`
@@ -39,7 +39,6 @@ type Payload struct {
 	Sections    []Section `json:"sections"`
 }
 
-// fetched es lo que se baja de un ticker: su historial y los datos de Info.
 type fetched struct {
 	series   Series
 	divs     map[string]float64
@@ -56,7 +55,6 @@ func fetch(ctx context.Context, y *yahoo.Client, ticker string) (fetched, error)
 	if len(f.series.Close) < 2 {
 		return fetched{}, fmt.Errorf("sin historial")
 	}
-	// Info solo da el sector y la categoría: si falla, el instrumento se muestra igual sin ellos.
 	if info, err := y.Info(ctx, ticker); err == nil {
 		f.sector = strings.TrimSpace(gohoo.AsString(info["sector"]))
 		f.category = strings.TrimSpace(gohoo.AsString(info["category"]))
@@ -66,8 +64,6 @@ func fetch(ctx context.Context, y *yahoo.Client, ticker string) (fetched, error)
 	return f, nil
 }
 
-// universe arma el universo de un tipo de instrumento: los datos estáticos de cada símbolo y su orden. Los ETFs pedidos a mano van
-// primero, aunque no estén en el top del screener.
 func universe(ctx context.Context, cfg config.Config, y *yahoo.Client, p Profile) (map[string]Static, []string, error) {
 	v := cfg.Visor
 	if !p.IsETF() {
@@ -107,7 +103,6 @@ func universe(ctx context.Context, cfg config.Config, y *yahoo.Client, p Profile
 	return statics, out, nil
 }
 
-// explicitTickers son los ETFs pedidos a mano en [visor] tickers, en mayúsculas y sin repetir.
 func explicitTickers(v config.Visor) []string {
 	var out []string
 	seen := map[string]bool{}
@@ -121,7 +116,6 @@ func explicitTickers(v config.Visor) []string {
 	return out
 }
 
-// section baja y calcula un tipo de instrumento.
 func section(ctx context.Context, cfg config.Config, y *yahoo.Client, p Profile, ref Ref, spy Returns) (Section, error) {
 	statics, tickers, err := universe(ctx, cfg, y, p)
 	if err != nil {
@@ -173,7 +167,6 @@ func section(ctx context.Context, cfg config.Config, y *yahoo.Client, p Profile,
 	return Build(p, ins, ref, cfg.Visor, explicit), nil
 }
 
-// Run arma las tablas de acciones y ETFs y escribe el JSON de [visor] output. Si algo falla no toca el JSON anterior.
 func Run(ctx context.Context, cfg config.Config, y *yahoo.Client) (*Payload, error) {
 	res, err := y.ChartRange(ctx, RefTicker, gohoo.ChartParams{Range: historyRange})
 	if err != nil {
@@ -206,7 +199,6 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client) (*Payload, err
 	return p, nil
 }
 
-// Summary es el recuento de filas por tabla, para el log y la consola.
 func (p *Payload) Summary() string {
 	parts := make([]string, len(p.Sections))
 	for i, s := range p.Sections {
@@ -215,8 +207,6 @@ func (p *Payload) Summary() string {
 	return strings.Join(parts, ", ")
 }
 
-// Write guarda el payload como JSON (sin escapar HTML) creando la carpeta si hace falta. Escribe a un archivo temporal de la misma
-// carpeta y lo renombra: si el proceso se corta a mitad, queda el JSON anterior y no uno a medias.
 func Write(path string, p *Payload) error {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -237,7 +227,7 @@ func Write(path string, p *Payload) error {
 		err = cerr
 	}
 	if err == nil {
-		err = os.Chmod(tmp.Name(), 0o644) // CreateTemp lo deja en 0600
+		err = os.Chmod(tmp.Name(), 0o644)
 	}
 	if err == nil {
 		err = os.Rename(tmp.Name(), path)

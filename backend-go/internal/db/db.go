@@ -1,5 +1,7 @@
 // Package db abre SQLite (un único archivo), aplica las migraciones y guarda los
 // metadatos de caché.
+//
+// Fecha: 2026-11-19
 package db
 
 import (
@@ -9,20 +11,17 @@ import (
 	"path/filepath"
 	"time"
 
-	_ "modernc.org/sqlite" // driver sin cgo
+	_ "modernc.org/sqlite"
 
 	"top3/internal/errs"
 	"top3/internal/logx"
 )
 
-// Migration es un script SQL con su versión. La versión aplicada queda en PRAGMA user_version; para cambiar el esquema se
-// agrega una migración al final (nunca se edita una ya publicada) y Open la aplica sola.
 type Migration struct {
 	Version int
 	Script  string
 }
 
-// Migrations son las migraciones del esquema. Se aplican en orden y cada una sube PRAGMA user_version.
 var Migrations = []Migration{
 	{1, `
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -86,17 +85,14 @@ DROP TABLE IF EXISTS ipsa_runs;
 `},
 }
 
-// LatestVersion es la versión del esquema que conoce este código.
 func LatestVersion() int { return Migrations[len(Migrations)-1].Version }
 
-// SchemaVersion es la versión del esquema de la base (PRAGMA user_version).
 func SchemaVersion(db *sql.DB) (int, error) {
 	var v int
 	err := db.QueryRow("PRAGMA user_version").Scan(&v)
 	return v, err
 }
 
-// Migrate lleva el esquema a la última versión aplicando, en orden, las migraciones que faltan.
 func Migrate(db *sql.DB) error {
 	current, err := SchemaVersion(db)
 	if err != nil {
@@ -112,7 +108,7 @@ func Migrate(db *sql.DB) error {
 		if _, err := db.Exec(m.Script); err != nil {
 			return fmt.Errorf("migración v%d: %w", m.Version, err)
 		}
-		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", m.Version)); err != nil { // PRAGMA no admite parámetros
+		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", m.Version)); err != nil {
 			return err
 		}
 		logx.Debugf("Esquema SQLite migrado a v%d", m.Version)
@@ -120,13 +116,9 @@ func Migrate(db *sql.DB) error {
 	return nil
 }
 
-// pragmas son los ajustes de cada conexión. WAL con synchronous=NORMAL evita un fsync por transacción (un barrido del
-// backtest guarda más de mil corridas): la base sigue consistente ante cualquier corte y solo un corte de luz puede
-// perder las últimas transacciones. El resto es memoria: caché de 64 MB, temporales en RAM y archivo mapeado.
 const pragmas = "_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)" +
 	"&_pragma=temp_store(MEMORY)&_pragma=cache_size(-65536)&_pragma=mmap_size(1073741824)&_pragma=wal_autocheckpoint(20000)"
 
-// Open abre la base (creando carpeta y tablas si faltan) con el esquema al día.
 func Open(path string) (*sql.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return nil, err
@@ -135,7 +127,7 @@ func Open(path string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(1) // una sola conexión: las escrituras no se pisan y las transacciones son explícitas
+	db.SetMaxOpenConns(1)
 	if err := Migrate(db); err != nil {
 		db.Close()
 		return nil, err
@@ -145,7 +137,6 @@ func Open(path string) (*sql.DB, error) {
 	return db, nil
 }
 
-// Tx corre fn dentro de una transacción: la confirma si devuelve nil y la deshace si no.
 func Tx(db *sql.DB, fn func(tx *sql.Tx) error) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -158,7 +149,6 @@ func Tx(db *sql.DB, fn func(tx *sql.Tx) error) error {
 	return tx.Commit()
 }
 
-// GetMeta lee un valor de la tabla meta ("" y false si no está).
 func GetMeta(db *sql.DB, key string) (string, bool) {
 	var v sql.NullString
 	if err := db.QueryRow("SELECT value FROM meta WHERE key = ?", key).Scan(&v); err != nil || !v.Valid {
@@ -167,17 +157,14 @@ func GetMeta(db *sql.DB, key string) (string, bool) {
 	return v.String, true
 }
 
-// SetMeta guarda un valor en la tabla meta.
 func SetMeta(db *sql.DB, key string, value any) error {
 	_, err := db.Exec("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", key, fmt.Sprint(value))
 	return err
 }
 
-// FetchedToday dice si el dato `key` se descargó hoy.
 func FetchedToday(db *sql.DB, key string) bool {
 	v, ok := GetMeta(db, key)
 	return ok && v == Today()
 }
 
-// Today es hoy como YYYY-MM-DD.
 func Today() string { return time.Now().Format("2006-01-02") }

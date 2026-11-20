@@ -1,5 +1,7 @@
 // Package history guarda en un JSON versionado el historial que no se puede regenerar (Top actual, suplentes y ranking de
 // ETFs), para que sobreviva aunque se pierda la base SQLite, que es solo caché (p. ej. en GitHub Actions).
+//
+// Fecha: 2026-11-19
 package history
 
 import (
@@ -95,7 +97,6 @@ func readEtf(d *sql.DB) ([]etfRow, error) {
 	return out, rows.Err()
 }
 
-// encode escribe una fila por línea, para que los cambios en git se lean fila a fila.
 func encode(f file) ([]byte, error) {
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "{\n\"version\": %d", f.Version)
@@ -131,7 +132,6 @@ func encode(f file) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Save escribe el historial de la base en [output] history_file. No toca el archivo si no cambió.
 func Save(cfg config.Config, d *sql.DB) error {
 	path := cfg.Output.HistoryFile
 	if path == "" {
@@ -171,8 +171,6 @@ func isEmpty(d *sql.DB) (bool, error) {
 	return n == 0, err
 }
 
-// Restore carga [output] history_file en la base si esta no tiene historial (base nueva o caché perdido). Si el archivo no
-// existe no hace nada.
 func Restore(cfg config.Config) error {
 	path := cfg.Output.HistoryFile
 	if path == "" {

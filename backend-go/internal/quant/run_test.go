@@ -1,3 +1,8 @@
+// Pruebas del cálculo cuantitativo: ranking final, indicadores, momentum y límites de Markowitz por
+// sector y riesgo.
+//
+// Fecha: 2026-11-19
+
 package quant
 
 import (
@@ -17,7 +22,6 @@ import (
 	"top3/internal/testutil"
 )
 
-// syntheticPrices son n tickers T00.. que suben a ritmos crecientes con ruido (el último es el que más sube).
 func syntheticPrices(n, days int, seed int64) *model.Prices {
 	rng := rand.New(rand.NewSource(seed))
 	dates := testutil.BDaysN("2025-01-01", days)
@@ -86,7 +90,7 @@ func TestComputeBuildsTheFinalRankingAndMarkowitz(t *testing.T) {
 		if i > 0 && float64(r.Score) > float64(out.Ranking[i-1].Score) {
 			t.Fatalf("el ranking no está ordenado por score en %d", i)
 		}
-		want := (float64(r.Momentum) + float64(r.Health) + 2*float64(r.Technical)) / 4 // promedio ponderado de los tres scores
+		want := (float64(r.Momentum) + float64(r.Health) + 2*float64(r.Technical)) / 4
 		if math.Abs(float64(r.Score)-want) > 1e-9 {
 			t.Fatalf("%s: score %v, esperado %v", r.Ticker, float64(r.Score), want)
 		}
@@ -124,7 +128,7 @@ func TestComputeBuildsTheFinalRankingAndMarkowitz(t *testing.T) {
 			t.Fatalf("%s pesa pero no está en el top", w.Ticker)
 		}
 	}
-	js, err := json.Marshal(out) // sin NaN ni infinitos: es JSON válido
+	js, err := json.Marshal(out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +141,7 @@ func TestComputeBuildsTheFinalRankingAndMarkowitz(t *testing.T) {
 
 func TestComputeNeedsEnoughStocksWithAllThreeScores(t *testing.T) {
 	prices := syntheticPrices(5, 400, 0)
-	cfg := config.Default() // top_n = 10 > 5 acciones
+	cfg := config.Default()
 	data := map[string]Data{}
 	for _, tk := range prices.Tickers {
 		data[tk] = info("Technology", 0.2, 50, 0.2)
@@ -190,7 +194,7 @@ func TestIndicatorBoundsAndSpecialCases(t *testing.T) {
 	for i := range rising {
 		rising[i] = float64(i + 1)
 	}
-	if got := last(rsi(rising, 14)); got != 100 { // sin pérdidas: RSI = 100
+	if got := last(rsi(rising, 14)); got != 100 {
 		t.Fatalf("rsi de una serie siempre al alza: %v", got)
 	}
 	got := obv([]float64{1, 2, 1.5, 1.5}, []float64{10, 10, 20, 30})
@@ -249,7 +253,7 @@ func TestMarkowitzRespectsTheLimitsAndOrdersRisk(t *testing.T) {
 			sum += w.Weight
 			maxW = math.Max(maxW, w.Weight)
 		}
-		if math.Abs(sum-1) > 1e-3 || maxW > 0.25+1e-6 { // los pesos < 1e-4 no se listan
+		if math.Abs(sum-1) > 1e-3 || maxW > 0.25+1e-6 {
 			t.Fatalf("%s: suma %v máximo %v", p.Key, sum, maxW)
 		}
 	}
@@ -264,7 +268,7 @@ func TestMarkowitzCapsTheWeightOfEachSector(t *testing.T) {
 	prices := syntheticPrices(10, 300, 0)
 	mu, sigma := Inputs(prices, 0.25, 0.09)
 	for i := 0; i < 5; i++ {
-		mu[i] += 0.5 // las cinco primeras (mismo sector) son las más atractivas
+		mu[i] += 0.5
 	}
 	sectors := []string{"A", "A", "A", "A", "A", "B", "B", "B", "C", "C"}
 	free, err := Optimize(prices.Tickers, mu, sigma, 0.40, 0.25, 0.04, nil, 1)
@@ -290,7 +294,7 @@ func TestMarkowitzCapsTheWeightOfEachSector(t *testing.T) {
 			t.Fatalf("%s: los sectores suman %v", p.Key, total)
 		}
 	}
-	if free.Portfolios[1].Sectors[0].Weight <= 0.40+1e-3 { // sin tope el sector A pesa más
+	if free.Portfolios[1].Sectors[0].Weight <= 0.40+1e-3 {
 		t.Fatalf("sin tope: %+v", free.Portfolios[1].Sectors)
 	}
 	if capped.Portfolios[0].ExpReturn > free.Portfolios[0].ExpReturn+1e-6 {
@@ -300,7 +304,7 @@ func TestMarkowitzCapsTheWeightOfEachSector(t *testing.T) {
 
 func TestFeasibleSectorCap(t *testing.T) {
 	two := append(repeat("A", 6), repeat("B", 4)...)
-	if got := FeasibleSectorCap(two, 0.25, 0.40); math.Abs(got-0.50) > 1e-9 { // con 40% solo se coloca 80%: sube a 50%
+	if got := FeasibleSectorCap(two, 0.25, 0.40); math.Abs(got-0.50) > 1e-9 {
 		t.Fatalf("got %v", got)
 	}
 	if got := FeasibleSectorCap(repeat("A", 10), 0.25, 0.40); math.Abs(got-1) > 1e-9 {

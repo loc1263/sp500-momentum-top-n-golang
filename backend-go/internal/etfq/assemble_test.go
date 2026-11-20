@@ -1,3 +1,8 @@
+// Pruebas del ensamblado de ETFs: lectura de TER y AUM, unión de momentum y calidad, y emisores sin
+// datos.
+//
+// Fecha: 2026-11-19
+
 package etfq
 
 import (
@@ -23,13 +28,12 @@ func TestFundOfReadsTerAumAndNames(t *testing.T) {
 	if !ok || f.Ticker != "IVV" || f.Name != "iShares Core S&P 500 ETF" || f.Issuer != "iShares" || *f.TER != 0.03 || *f.AUM != 8.8e11 {
 		t.Fatalf("%+v", f)
 	}
-	// Sin nombre largo se usa el corto; TER y AUM ausentes, negativos o en cero no cuentan
 	f, ok = fundOf(gohoo.ScreenQuote{Symbol: "XYZ", ShortName: "XYZ FUND", Raw: map[string]any{"netExpenseRatio": -1.0, "netAssets": 0.0}}, "SPDR")
 	if !ok || f.Name != "XYZ FUND" || f.TER != nil || f.AUM != nil {
 		t.Fatalf("%+v", f)
 	}
 	f, _ = fundOf(gohoo.ScreenQuote{Symbol: "ZERO", Raw: map[string]any{"netExpenseRatio": 0.0}}, "SPDR")
-	if f.TER == nil || *f.TER != 0 { // un TER de 0% es un dato válido
+	if f.TER == nil || *f.TER != 0 {
 		t.Fatalf("TER 0: %+v", f)
 	}
 	if _, ok := fundOf(gohoo.ScreenQuote{Symbol: "  "}, "x"); ok {
@@ -41,9 +45,9 @@ func TestAssembleJoinsMomentumQualityAndCategory(t *testing.T) {
 	n := func(v float64) *float64 { return &v }
 	funds := []Fund{
 		fund("AAA", "iShares", n(0.03), n(5e9)),
-		fund("BBB", "Vanguard", n(0.45), n(5e9)), // TER por encima del máximo
-		fund("CCC", "Schwab", n(0.05), n(2e7)),   // AUM por debajo del mínimo
-		fund("DDD", "SPDR", nil, nil),            // sin datos: no se excluye, tampoco puntúa
+		fund("BBB", "Vanguard", n(0.45), n(5e9)),
+		fund("CCC", "Schwab", n(0.05), n(2e7)),
+		fund("DDD", "SPDR", nil, nil),
 		fund("EEE", "Invesco", n(0.10), n(1e9)),
 	}
 	scores := etf.Scores{RiskFree: "VUSB", Rows: []etf.Score{
@@ -71,7 +75,6 @@ func TestAssembleJoinsMomentumQualityAndCategory(t *testing.T) {
 		order = append(order, r.Ticker)
 		by[r.Ticker] = r
 	}
-	// Con score final primero (AAA y EEE); el resto por puesto de momentum (BBB 1, CCC 3, DDD 4)
 	if !reflect.DeepEqual(order, []string{"AAA", "EEE", "BBB", "CCC", "DDD"}) {
 		t.Fatalf("orden: %v", order)
 	}
@@ -87,7 +90,6 @@ func TestAssembleJoinsMomentumQualityAndCategory(t *testing.T) {
 	if r := by["DDD"]; r.Rank != nil || r.Category != NoCategory || r.Final != nil || len(r.Excluded) != 0 || r.GroupSize != 1 {
 		t.Fatalf("DDD: %+v", r)
 	}
-	// Gestoras en el orden de [etfq] families, con ETFs listados, rankeados y con score final
 	want := []Issuer{{"iShares", 40, 1, 1}, {"Vanguard", 30, 1, 0}, {"SPDR", 20, 1, 0}, {"Invesco", 10, 1, 1}, {"Schwab", 5, 1, 0}}
 	if !reflect.DeepEqual(p.Issuers, want) {
 		t.Fatalf("gestoras: %+v", p.Issuers)

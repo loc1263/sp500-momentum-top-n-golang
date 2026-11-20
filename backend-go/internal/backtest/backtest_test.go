@@ -1,3 +1,8 @@
+// Pruebas del backtest: corridas por calendario y offset, meses con salto, avisos de rebalanceos
+// omitidos y resolución de períodos y niveles.
+//
+// Fecha: 2026-11-19
+
 package backtest
 
 import (
@@ -53,7 +58,7 @@ func TestRunCalendarsSavesOneRunPerOffset(t *testing.T) {
 		params, starts = append(params, p), append(starts, s)
 	}
 	rows.Close()
-	if len(params) != 3 || starts[1] != "2023-10-01" { // arranque desfasado un mes
+	if len(params) != 3 || starts[1] != "2023-10-01" {
 		t.Fatalf("filas: %v %v", params, starts)
 	}
 	var got map[string]any
@@ -77,7 +82,7 @@ func TestRunCalendarsSavesOneRunPerOffset(t *testing.T) {
 }
 
 func TestRunCalendarsSkipsFailedOffsets(t *testing.T) {
-	c, _ := newContext(t, "2024-12-20", "2024-12-31") // sin ruedas de ranking suficientes
+	c, _ := newContext(t, "2024-12-20", "2024-12-31")
 	term, err := c.RunCalendars(3, nil, nil, 0)
 	if err != nil || len(term.Calendars) != 0 {
 		t.Fatalf("calendarios %d, err %v", len(term.Calendars), err)
@@ -115,14 +120,13 @@ func TestSkippedRebalancesAreReportedInASingleWarning(t *testing.T) {
 	var buf strings.Builder
 	logx.SetConsole(&buf, logx.Info)
 	defer logx.SetConsole(nil, logx.Info)
-	// el índice tiene solo 5 tickers hasta fin de 2023 (menos de los 10 mínimos)
 	c.Cons = market.NewConstituentsFrom([]string{"2000-01-01", "2024-01-01"},
 		[][]string{c.Prices.Tickers[:5], c.Prices.Tickers}, c.Prices.Tickers)
 	if _, err := c.RunTerms(nil, []int{3, 4}, 0); err != nil {
 		t.Fatal(err)
 	}
 	out := buf.String()
-	if strings.Count(out, "TOP-BKT-003") != 1 { // y no uno por fecha, plazo y desfase
+	if strings.Count(out, "TOP-BKT-003") != 1 {
 		t.Fatalf("avisos:\n%s", out)
 	}
 	if !strings.Contains(out, "fechas de rebalanceo (de 2023-06-01 a 2023-12-01)") ||
@@ -137,7 +141,6 @@ func TestAttachMarketCapsReusesSharesAlreadyKnown(t *testing.T) {
 	for _, p := range term.Base().History[0].Picks {
 		c.KnownShares[p.Ticker] = 10
 	}
-	// todo lo elegido ya se conoce: no hace falta ir a Yahoo (el Downloader es nil y fallaría)
 	if err := c.AttachMarketCaps(t.Context(), []model.Term{term}, nil); err != nil {
 		t.Fatal(err)
 	}

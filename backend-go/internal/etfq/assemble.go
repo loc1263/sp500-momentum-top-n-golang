@@ -1,3 +1,7 @@
+// Ensambla el reporte de ETFs uniendo momentum, calidad y categoría en el payload final.
+//
+// Fecha: 2026-11-19
+
 package etfq
 
 import (
@@ -9,7 +13,6 @@ import (
 	"top3/internal/etf"
 )
 
-// Settings son los parámetros con los que se calculó la calidad (los que muestra la web).
 type Settings struct {
 	MaxTER         float64 `json:"max_ter"`
 	MinAumMillions float64 `json:"min_aum_millions"`
@@ -18,7 +21,6 @@ type Settings struct {
 	AUMWeight      float64 `json:"aum_weight"`
 }
 
-// Issuer es el resumen de una gestora: ETFs listados, rankeados por momentum y con score final.
 type Issuer struct {
 	Name   string `json:"name"`
 	Funds  int    `json:"funds"`
@@ -26,8 +28,6 @@ type Issuer struct {
 	Scored int    `json:"scored"`
 }
 
-// Row es un ETF rankeado por momentum con su calidad. Las posiciones (ter_pct, aum_pct, quality, momentum, final) van de 0 a
-// 100; rank es null si el ETF quedó fuera por el filtro de elegibilidad o no tiene TER ni AUM para puntuar.
 type Row struct {
 	Rank          *int               `json:"rank"`
 	Ticker        string             `json:"ticker"`
@@ -48,7 +48,6 @@ type Row struct {
 	Excluded      []string           `json:"excluded"`
 }
 
-// Payload es lo que se guarda en SQLite y lee el frontend.
 type Payload struct {
 	AsOf        string   `json:"as_of"`
 	GeneratedAt string   `json:"generated_at"`
@@ -60,18 +59,14 @@ type Payload struct {
 	Rows        []Row    `json:"rows"`
 }
 
-// JSON serializa el resultado.
 func (p Payload) JSON() (json.RawMessage, error) { return json.Marshal(p) }
 
-// Params son los datos de la corrida que no salen de los ETFs.
 type Params struct {
 	Config    config.Etfq
 	Horizons  []int
-	NotRanked int // ETFs sin historia suficiente, con huecos o de tipo efectivo
+	NotRanked int
 }
 
-// Assemble junta el ranking de momentum con TER, AUM y categoría de cada ETF y calcula la calidad. listed son los ETFs listados
-// por gestora. Las filas quedan con score final primero (de mayor a menor) y el resto por su puesto de momentum.
 func Assemble(funds []Fund, scores etf.Scores, categories map[string]string, listed map[string]int, p Params, asOf, generatedAt string) Payload {
 	byTicker := map[string]Fund{}
 	for _, f := range funds {
@@ -135,7 +130,6 @@ func Assemble(funds []Fund, scores etf.Scores, categories map[string]string, lis
 		}
 		return x.MomentumRank < y.MomentumRank
 	})
-	// Gestoras en el orden de [etfq] families (listed solo trae las que respondieron)
 	for _, fam := range c.Families {
 		name := fam.Label
 		if name == "" {

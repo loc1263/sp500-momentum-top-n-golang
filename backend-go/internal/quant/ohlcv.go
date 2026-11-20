@@ -1,3 +1,7 @@
+// Descarga y asegura los datos OHLCV de los tickers.
+//
+// Fecha: 2026-11-19
+
 package quant
 
 import (
@@ -18,15 +22,8 @@ import (
 	"top3/internal/yahoo"
 )
 
-// Precios de apertura, máximo, mínimo y cierre ajustados, y volumen, del último año y medio (para los indicadores técnicos).
-//
-// La base de precios del proyecto guarda solo el cierre; los indicadores que usan el rango del día (estocástico, ADX) o el
-// volumen (OBV, MFI) necesitan el resto. Se guardan en ohlcv y se bajan de nuevo una vez por día.
-
-// HistoryDays: ~315 ruedas, alcanza para la EMA de 200 y el máximo de 52 semanas.
 const HistoryDays = 460
 
-// EnsureOHLCV deja en SQLite el OHLCV de los tickers: reutiliza lo bajado hoy o lo descarga de nuevo (reemplaza lo anterior).
 func EnsureOHLCV(ctx context.Context, dl *market.Downloader, d *sql.DB, tickers []string, useCache bool, batchSize int) error {
 	if useCache && db.FetchedToday(d, "ohlcv_fetched") {
 		logx.Infof("OHLCV: usando caché SQLite (descargado hoy)")

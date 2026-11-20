@@ -1,3 +1,7 @@
+// Pruebas del formato de terminal: ajuste de líneas, truncado y largo visible sin colores.
+//
+// Fecha: 2026-11-19
+
 package termfmt
 
 import (
@@ -16,7 +20,7 @@ func TestWrapKeepsLinesWithinWidthAndIndentsContinuations(t *testing.T) {
 		if utf8.RuneCountInString(l) > 40 {
 			t.Errorf("línea %d de %d caracteres: %q", i, len(l), l)
 		}
-		if i > 0 && !strings.HasPrefix(l, "      ") { // sangría original (2) + 4
+		if i > 0 && !strings.HasPrefix(l, "      ") {
 			t.Errorf("la línea %d no está sangrada: %q", i, l)
 		}
 	}

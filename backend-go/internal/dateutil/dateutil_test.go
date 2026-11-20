@@ -1,3 +1,7 @@
+// Pruebas de las utilidades de fecha: suma de meses con ajuste de fin de mes e inicios de mes.
+//
+// Fecha: 2026-11-19
+
 package dateutil
 
 import "testing"
@@ -26,7 +30,6 @@ func TestMonthStarts(t *testing.T) {
 			t.Fatalf("got %v want %v", got, want)
 		}
 	}
-	// arranque justo en un inicio de mes: se incluye
 	got = MonthStarts(MustParse("2020-01-01"), MustParse("2020-05-01"), 4)
 	if len(got) != 2 || Day(got[1]) != "2020-05-01" {
 		t.Fatalf("got %v", got)

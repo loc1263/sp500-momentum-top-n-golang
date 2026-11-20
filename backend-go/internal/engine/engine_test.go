@@ -1,3 +1,8 @@
+// Pruebas del motor: mejores desempeños, filtro de capitalización, ranking con días de salto,
+// comisiones y avisos de omisiones.
+//
+// Fecha: 2026-11-19
+
 package engine
 
 import (
@@ -65,7 +70,6 @@ func TestRunMarketCapFilterLeavesTooFewTickers(t *testing.T) {
 			shares[tk] = 1e12
 		}
 	}
-	// solo 3 tickers superan el umbral -> menos de 10 candidatos -> no hay rebalanceos
 	_, err := run(t, tickersOf(prices), prices, "2023-09-01", "2024-12-31",
 		Params{Universe: &market.Universe{Shares: shares, MinCapBillions: 1}})
 	if err == nil || !strings.Contains(err.Error(), "TOP-BKT-001") {
@@ -137,7 +141,7 @@ func TestRankReturnsSkipDaysIgnoresTheMostRecentRows(t *testing.T) {
 	if got := order(10); !reflect.DeepEqual(got, []string{"UP_EARLY", "UP_LATE"}) {
 		t.Fatalf("con skip: %v", got)
 	}
-	if _, ok := RankReturns(m, p.Tickers, last, 25, nil, 10); ok { // 26 + 10 ruedas > 30
+	if _, ok := RankReturns(m, p.Tickers, last, 25, nil, 10); ok {
 		t.Fatal("falta historia con skip")
 	}
 }
@@ -167,7 +171,6 @@ func TestCommissionChargesEntryAndOnlyPositionsThatChange(t *testing.T) {
 	prices := testutil.DefaultPrices()
 	free, _ := run(t, tickersOf(prices), prices, "2023-09-01", "2024-12-31", Params{})
 	paid, _ := run(t, tickersOf(prices), prices, "2023-09-01", "2024-12-31", Params{Commission: 0.001})
-	// la selección no cambia nunca: solo se paga la compra inicial
 	if want := free.FinalCapital * (1 - 0.001); math.Abs(paid.FinalCapital-want) > 1e-9 {
 		t.Fatalf("pagado %v, esperado %v", paid.FinalCapital, want)
 	}
@@ -177,7 +180,6 @@ func TestCountNew(t *testing.T) {
 	if countNew([]string{"A", "B", "C"}, []string{"A", "X", "Y"}) != 2 || countNew([]string{"A"}, []string{"A"}) != 0 {
 		t.Fatal("countNew")
 	}
-	// rotación de 1 de 3 con comisión 1%: 2% / 3, como en el backtest original
 	changed := float64(countNew([]string{"T08", "T07", "T05"}, []string{"T08", "T07", "T06"})) / 3
 	if math.Abs(2*0.01*changed-0.02/3) > 1e-12 {
 		t.Fatal("fracción rotada")
@@ -195,21 +197,19 @@ func TestReportSkippedWarnsOncePerCode(t *testing.T) {
 	}
 }
 
-// Con memoria de rankings el resultado es el mismo, incluidos los rebalanceos omitidos, y las corridas con otro desfase o
-// otro período reutilizan lo que ya se calculó.
 func TestRunWithMemoGivesTheSameResultAndSkips(t *testing.T) {
 	prices := testutil.DefaultPrices()
 	cons := tickersOf(prices)
 	memo := NewMemo()
 	for _, tc := range []struct{ start, end string }{
-		{"2022-12-01", "2024-12-31"}, // las primeras fechas no tienen ruedas suficientes: se omiten
-		{"2023-06-01", "2024-12-31"}, // comparte fechas con la anterior
-		{"2023-07-01", "2024-12-31"}, // otro desfase
+		{"2022-12-01", "2024-12-31"},
+		{"2023-06-01", "2024-12-31"},
+		{"2023-07-01", "2024-12-31"},
 	} {
 		plainSkips, memoSkips := Skipped{}, Skipped{}
 		want, err1 := run(t, cons, prices, tc.start, tc.end, Params{Skipped: plainSkips})
 		got, err2 := run(t, cons, prices, tc.start, tc.end, Params{Skipped: memoSkips, Memo: memo})
-		again, err3 := run(t, cons, prices, tc.start, tc.end, Params{Memo: memo, Skipped: Skipped{}}) // todo desde la memoria
+		again, err3 := run(t, cons, prices, tc.start, tc.end, Params{Memo: memo, Skipped: Skipped{}})
 		if err1 != nil || err2 != nil || err3 != nil {
 			t.Fatal(err1, err2, err3)
 		}

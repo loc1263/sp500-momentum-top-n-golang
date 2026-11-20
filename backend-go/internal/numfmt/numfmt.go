@@ -1,4 +1,6 @@
 // Package numfmt formatea números como lo hacen las tablas y los textos del proyecto (miles con coma, signo explícito).
+//
+// Fecha: 2026-11-19
 package numfmt
 
 import (
@@ -7,7 +9,6 @@ import (
 	"strings"
 )
 
-// Comma es x con `decimals` decimales y comas de miles ("1,234.50"),.
 func Comma(x float64, decimals int) string {
 	if math.IsNaN(x) {
 		return "nan"
@@ -39,7 +40,6 @@ func Comma(x float64, decimals int) string {
 	return out
 }
 
-// Signed es x con `decimals` decimales y siempre con signo ("+1.5", "-2.0"), como f"{x:+.1f}".
 func Signed(x float64, decimals int) string {
 	s := strconv.FormatFloat(x, 'f', decimals, 64)
 	if !strings.HasPrefix(s, "-") {
@@ -48,10 +48,8 @@ func Signed(x float64, decimals int) string {
 	return s
 }
 
-// Pct es x (ya en porcentaje) con un decimal, signo y "%": "+12.3%".
 func Pct(x float64) string { return Signed(x, 1) + "%" }
 
-// Frac es la fracción x en porcentaje con signo ("0.123" -> "+12.3%"); "n/d" si es NaN.
 func Frac(x float64, signed bool) string {
 	if math.IsNaN(x) {
 		return "n/d"
@@ -62,5 +60,4 @@ func Frac(x float64, signed bool) string {
 	return strconv.FormatFloat(x*100, 'f', 1, 64) + "%"
 }
 
-// G es x como %g (sin ceros de más: 4 -> "4", 0.5 -> "0.5").
 func G(x float64) string { return strconv.FormatFloat(x, 'g', -1, 64) }

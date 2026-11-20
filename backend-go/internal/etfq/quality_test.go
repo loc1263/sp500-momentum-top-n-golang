@@ -1,3 +1,8 @@
+// Pruebas del score de calidad: percentiles por categoría, mezcla con momentum, exclusiones, datos
+// faltantes y pesos inválidos.
+//
+// Fecha: 2026-11-19
+
 package etfq
 
 import (
@@ -16,7 +21,7 @@ func TestMidRankPercentiles(t *testing.T) {
 			t.Fatalf("higherBetter: %v, quería %v", got, want)
 		}
 	}
-	got = midRankPercentiles([]float64{1, 2, 3, 4}, false) // el menor es el mejor
+	got = midRankPercentiles([]float64{1, 2, 3, 4}, false)
 	for i := range want {
 		if !near(got[i], want[len(want)-1-i]) {
 			t.Fatalf("lowerBetter: %v", got)
@@ -34,7 +39,7 @@ func TestQualityPercentilesAreWithinTheCategory(t *testing.T) {
 	in := []QualityInput{
 		{"A1", "Acciones", 3, new(0.03), new(1e11)},
 		{"A2", "Acciones", 2, new(0.10), new(1e9)},
-		{"B1", "Bonos", 1, new(0.10), new(1e9)}, // el mismo TER y AUM que A2, pero es el único de su categoría
+		{"B1", "Bonos", 1, new(0.10), new(1e9)},
 	}
 	rows := ScoreQuality(in, QualityParams{Weight: 0.5, TERWeight: 1, AUMWeight: 1})
 	if !near(*rows[0].TERPct, 75) || !near(*rows[1].TERPct, 25) {
@@ -47,22 +52,19 @@ func TestQualityPercentilesAreWithinTheCategory(t *testing.T) {
 
 func TestFinalScoreMixesMomentumAndQuality(t *testing.T) {
 	in := []QualityInput{
-		{"CARO", "X", 3, new(0.50), new(1e9)},   // mejor momentum, peor calidad
-		{"BARATO", "X", 2, new(0.03), new(1e9)}, // mismo AUM, mucho más barato
+		{"CARO", "X", 3, new(0.50), new(1e9)},
+		{"BARATO", "X", 2, new(0.03), new(1e9)},
 	}
-	// Sin peso de calidad manda el momentum
 	rows := ScoreQuality(in, QualityParams{Weight: 0, TERWeight: 1, AUMWeight: 1})
 	if rows[0].Rank != 1 || rows[1].Rank != 2 {
 		t.Fatalf("peso 0: %+v", rows)
 	}
-	// Con todo el peso en la calidad manda el costo
 	rows = ScoreQuality(in, QualityParams{Weight: 1, TERWeight: 1, AUMWeight: 0})
 	if rows[1].Rank != 1 || rows[0].Rank != 2 {
 		t.Fatalf("peso 1: %+v", rows)
 	}
-	// Mezcla: final = (1-w) x momentum + w x calidad
 	rows = ScoreQuality(in, QualityParams{Weight: 0.25, TERWeight: 4, AUMWeight: 1})
-	r := rows[0] // CARO: momentum 75, TER 25, AUM 50 (empate) -> calidad (4x25 + 1x50)/5 = 30
+	r := rows[0]
 	if !near(*r.Momentum, 75) || !near(*r.Quality, 30) || !near(*r.Final, 0.75*75+0.25*30) {
 		t.Fatalf("CARO: %+v", r)
 	}
@@ -89,11 +91,9 @@ func TestIneligibleEtfsAreExcludedWithTheirReason(t *testing.T) {
 			t.Fatalf("un excluido no puntúa: %+v", r)
 		}
 	}
-	// Los excluidos no distorsionan la posición de los demás: el único elegible queda en el medio
 	if !near(*rows[0].Momentum, 50) {
 		t.Fatalf("momentum de OK: %v", *rows[0].Momentum)
 	}
-	// 0 desactiva el filtro
 	for _, r := range ScoreQuality(in, QualityParams{Weight: 0.25, TERWeight: 1, AUMWeight: 1}) {
 		if r.Excluded != nil || r.Rank == 0 {
 			t.Fatalf("sin filtro: %+v", r)
@@ -131,11 +131,11 @@ func TestMissingDataNeverExcludesAndOnlyDropsThatFactor(t *testing.T) {
 
 func TestInvalidWeightsFallBackToSafeValues(t *testing.T) {
 	in := []QualityInput{{"A", "X", 2, new(0.03), new(1e9)}, {"B", "X", 1, new(0.10), new(1e8)}}
-	rows := ScoreQuality(in, QualityParams{Weight: 7, TERWeight: -1, AUMWeight: 0}) // peso > 1 y pesos inválidos
+	rows := ScoreQuality(in, QualityParams{Weight: 7, TERWeight: -1, AUMWeight: 0})
 	if rows[0].Final == nil || *rows[0].Final > 100 || *rows[0].Final < 0 {
 		t.Fatalf("final fuera de rango: %+v", rows[0])
 	}
-	if !near(*rows[0].Final, *rows[0].Quality) { // el peso se recorta a 1: solo cuenta la calidad
+	if !near(*rows[0].Final, *rows[0].Quality) {
 		t.Fatalf("final %v vs calidad %v", *rows[0].Final, *rows[0].Quality)
 	}
 }

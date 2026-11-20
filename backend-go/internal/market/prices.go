@@ -1,3 +1,7 @@
+// Descarga, actualiza y carga los precios históricos de los tickers.
+//
+// Fecha: 2026-11-19
+
 package market
 
 import (
@@ -20,14 +24,11 @@ import (
 	"top3/internal/yahoo"
 )
 
-// Downloader baja datos de Yahoo en paralelo.
 type Downloader struct {
 	Y       *yahoo.Client
 	Workers int
 }
 
-// FetchResult es lo que devolvió Fetch: filas largas, tickers sin datos y, de ellos, los que Yahoo dijo que no existen
-// o están dados de baja (a diferencia de los que fallaron por rate limit u otro motivo, que pueden tener datos más tarde).
 type FetchResult struct {
 	Rows   []model.PriceRow
 	NoData []string
@@ -43,7 +44,6 @@ func dayRange(start, end string) (time.Time, time.Time, error) {
 	return s, e, err
 }
 
-// Fetch baja precios ajustados de los tickers entre start y end (exclusivo) en lotes de batchSize.
 func (dl *Downloader) Fetch(ctx context.Context, tickers []string, start, end string, batchSize int) (FetchResult, error) {
 	from, to, err := dayRange(start, end)
 	if err != nil {
@@ -103,7 +103,6 @@ func (dl *Downloader) Fetch(ctx context.Context, tickers []string, start, end st
 	return res, nil
 }
 
-// DownloadRecent baja los precios ajustados de los tickers en lotes (no se guardan: solo la ventana reciente).
 func (dl *Downloader) DownloadRecent(ctx context.Context, tickers []string, start, end string, batchSize int) (*model.Prices, error) {
 	res, err := dl.Fetch(ctx, tickers, start, end, batchSize)
 	if err != nil {
@@ -133,7 +132,6 @@ func keys(m map[string]bool) []string {
 	return out
 }
 
-// DownloadPrices es la descarga completa: baja precios ajustados de todos los tickers y reemplaza lo guardado.
 func (dl *Downloader) DownloadPrices(ctx context.Context, d *sql.DB, tickers []string, start, end string, s config.Data) error {
 	known, err := repo.KnownNoData(d, s.NoDataTTLDays)
 	if err != nil {
@@ -157,7 +155,6 @@ func (dl *Downloader) DownloadPrices(ctx context.Context, d *sql.DB, tickers []s
 		return err
 	}
 	if len(res.Rows) == 0 && len(todo) > 0 && repo.HasPrices(d) {
-		// sin red o con Yahoo caído no se baja nada: se conserva lo guardado en vez de reemplazarlo por nada
 		return errs.NetYahoo.Errorf("No se descargó ningún precio; se conservan los guardados (revisa la conexión)")
 	}
 	if err := repo.ClearPrices(d); err != nil {
@@ -180,14 +177,6 @@ func (dl *Downloader) DownloadPrices(ctx context.Context, d *sql.DB, tickers []s
 	return nil
 }
 
-// UpdatePrices es la descarga incremental: solo lo que falta desde la última descarga.
-//
-//   - Tickers nuevos (sin precios guardados): rango completo.
-//   - Tickers con datos: desde su último día guardado, con unos días de solape (price_overlap_days).
-//   - Como los precios son ajustados por dividendos/splits, el solape se compara con lo guardado: si un ticker cambió su
-//     base de ajuste (pagó dividendo o hizo split desde la última descarga), el historial guardado ya no es comparable con
-//     el nuevo y solo ese ticker se vuelve a bajar completo.
-//   - Tickers que dejaron de cotizar (último dato de hace más de stale_days) no se vuelven a pedir.
 func (dl *Downloader) UpdatePrices(ctx context.Context, d *sql.DB, tickers []string, start, end string, s config.Data) error {
 	last, err := repo.LastDates(d)
 	if err != nil {
@@ -279,8 +268,6 @@ func (dl *Downloader) UpdatePrices(ctx context.Context, d *sql.DB, tickers []str
 		if err != nil {
 			return err
 		}
-		// un ticker que falló por un motivo pasajero (red, rate limit) conserva lo guardado; solo se reemplazan los que bajaron
-		// datos y los que Yahoo dice que no existen
 		transient := map[string]bool{}
 		for _, t := range res.NoData {
 			if !res.Gone[t] {
@@ -311,7 +298,6 @@ func (dl *Downloader) UpdatePrices(ctx context.Context, d *sql.DB, tickers []str
 	return db.SetMeta(d, "prices_end", end)
 }
 
-// EnsurePrices deja en SQLite los precios de los tickers desde start: caché del día, actualización o descarga completa.
 func (dl *Downloader) EnsurePrices(ctx context.Context, d *sql.DB, tickers []string, start, end string, useCache bool, s config.Data) error {
 	cachedStart, _ := db.GetMeta(d, "prices_start")
 	hasData := repo.HasPrices(d)
@@ -331,13 +317,11 @@ func (dl *Downloader) EnsurePrices(ctx context.Context, d *sql.DB, tickers []str
 	return dl.UpdatePrices(ctx, d, tickers, start, end, s)
 }
 
-// LoadPrices lee todos los precios guardados como matriz (fechas x tickers).
 func LoadPrices(d *sql.DB) (*model.Prices, error) {
 	p, err := repo.PriceMatrix(d)
 	return logLoaded(p, err)
 }
 
-// LoadPricesSince lee los precios guardados desde since (YYYY-MM-DD).
 func LoadPricesSince(d *sql.DB, since string) (*model.Prices, error) {
 	p, err := repo.PriceMatrixSince(d, since)
 	return logLoaded(p, err)

@@ -2,6 +2,8 @@
 //
 // Para cada ETF y cada plazo se calcula el retorno del plazo dividido por la volatilidad del plazo (anualizada y llevada a la
 // escala del plazo): cuánto subió por cada unidad de riesgo que corrió. El score es el promedio de esos cocientes.
+//
+// Fecha: 2026-11-19
 package etf
 
 import (
@@ -15,41 +17,25 @@ import (
 
 const (
 	TradingDaysYear = 252
-	SMADays         = 200 // la tendencia se mide contra la media simple de 200 ruedas
+	SMADays         = 200
 )
 
-// Score es la fila del ranking de un ETF.
 type Score struct {
 	Ticker  string
 	Rank    int
 	Score   float64
-	Returns map[int]float64 // retorno de cada plazo, por meses
-	Vol     float64         // volatilidad anualizada del plazo más largo
-	MaxDD   float64         // caída máxima del plazo más largo
-	SMADist float64         // distancia a la media de 200 ruedas
+	Returns map[int]float64
+	Vol     float64
+	MaxDD   float64
+	SMADist float64
 }
 
-// Scores es el ranking de mayor a menor score.
 type Scores struct {
-	Rows []Score
-	// RiskFree es la referencia libre de riesgo realmente usada ("" si no estaba disponible).
+	Rows     []Score
 	RiskFree string
-	// CashLike son los ETFs de tipo efectivo que quedaron fuera por su baja volatilidad.
 	CashLike []string
 }
 
-// ScoreEtfs arma el ranking por retorno ajustado por riesgo. prices son los precios ajustados (fecha x ticker).
-//
-// Con riskFree (un ticker de la propia tabla, p. ej. un ETF de bonos ultracortos) el retorno de cada plazo es el exceso sobre
-// el de esa referencia: sin eso, un ETF casi sin riesgo siempre ganaría. Si la referencia no está disponible se calcula sin
-// ella y Scores.RiskFree queda vacío.
-//
-// Con minVol (volatilidad anual) los ETFs de tipo efectivo (letras del Tesoro, bonos ultracortos) quedan fuera del ranking:
-// con tan poco riesgo cualquier exceso diminuto sobre la referencia da un score enorme. Se listan en Scores.CashLike (la
-// referencia libre de riesgo, aunque no rankee, sigue restándose).
-//
-// Devuelve también {ticker: motivo} de los excluidos: los ETFs con huecos de precios en la ventana o con menos historia que
-// el plazo más largo, y los de volatilidad nula.
 func ScoreEtfs(prices *model.Prices, horizons []int, tradingDaysPerMonth int, riskFree string, minVol float64) (Scores, map[string]string) {
 	hs := append([]int(nil), horizons...)
 	sort.Ints(hs)
@@ -119,7 +105,7 @@ func ScoreEtfs(prices *model.Prices, horizons []int, tradingDaysPerMonth int, ri
 		}
 		for j, t := range window.Tickers {
 			vol := stats.Std(stats.PctChange(w.Series(t))) * math.Sqrt(TradingDaysYear)
-			scaled := vol * math.Sqrt(float64(h)/12) // la volatilidad anual llevada a la escala del plazo
+			scaled := vol * math.Sqrt(float64(h)/12)
 			ratio := math.NaN()
 			if scaled > 0 {
 				ratio = (rets[j] - rf) / scaled
@@ -131,7 +117,7 @@ func ScoreEtfs(prices *model.Prices, horizons []int, tradingDaysPerMonth int, ri
 	var ranked []Score
 	var cashLike []string
 	for _, r := range rows {
-		score := stats.Mean(r.ratios) // NaN si algún plazo no tiene volatilidad
+		score := stats.Mean(r.ratios)
 		switch {
 		case math.IsNaN(score):
 			excluded[r.ticker] = "volatilidad nula"

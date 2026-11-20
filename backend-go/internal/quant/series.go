@@ -1,5 +1,7 @@
 // Package quant es el modelo por score: score de momentum, de salud financiera y técnico de las acciones del S&P 500, su
 // promedio como score final y Markowitz sobre las mejores. No hay backtest: es una foto de hoy.
+//
+// Fecha: 2026-11-19
 package quant
 
 import "math"
@@ -8,10 +10,6 @@ var nan = math.NaN()
 
 func isNaN(x float64) bool { return x != x }
 
-// Las funciones de este archivo calculan, sobre una serie de precios, diferencias, desfases, medias exponenciales y
-// ventanas móviles: los NaN se propagan igual y las ventanas exigen todas sus observaciones (min_periods = ventana).
-
-// diff es x[i] - x[i-1]; el primero es NaN.
 func diff(x []float64) []float64 {
 	out := make([]float64, len(x))
 	for i := range x {
@@ -24,7 +22,6 @@ func diff(x []float64) []float64 {
 	return out
 }
 
-// shift corre la serie n posiciones hacia adelante (los primeros n quedan en NaN).
 func shift(x []float64, n int) []float64 {
 	out := make([]float64, len(x))
 	for i := range x {
@@ -37,8 +34,6 @@ func shift(x []float64, n int) []float64 {
 	return out
 }
 
-// ewm es la media exponencial (alpha, sin ajuste, minp observaciones mínimas) con este manejo de los NaN: un NaN no
-// actualiza el promedio pero sí hace perder peso al anterior (ignore_na=False).
 func ewm(x []float64, alpha float64, minp int) []float64 {
 	out := make([]float64, len(x))
 	if len(x) == 0 {
@@ -64,7 +59,7 @@ func ewm(x []float64, alpha float64, minp int) []float64 {
 		if !isNaN(weighted) {
 			oldWt *= oldWtFactor
 			if isObs {
-				if weighted != cur { // evita errores numéricos en series constantes
+				if weighted != cur {
 					weighted = (oldWt*weighted + newWt*cur) / (oldWt + newWt)
 				}
 				oldWt = 1
@@ -81,13 +76,10 @@ func ewm(x []float64, alpha float64, minp int) []float64 {
 	return out
 }
 
-// emaSpan es ewm(span=span, adjust=False, min_periods=span).mean().
 func emaSpan(x []float64, span int) []float64 { return ewm(x, 2/float64(span+1), span) }
 
-// wilder es la media de Wilder (la que usan RSI, ADX y MFI): ewm con alpha = 1/n.
 func wilder(x []float64, n int) []float64 { return ewm(x, 1/float64(n), n) }
 
-// rolling aplica f a cada ventana de n valores; si la ventana tiene algún NaN (o es incompleta) el resultado es NaN.
 func rolling(x []float64, n int, f func(w []float64) float64) []float64 {
 	out := make([]float64, len(x))
 	for i := range x {
@@ -155,7 +147,6 @@ func rollingMax(x []float64, n int) []float64 {
 	})
 }
 
-// zip2 aplica f elemento a elemento a dos series del mismo largo.
 func zip2(a, b []float64, f func(a, b float64) float64) []float64 {
 	out := make([]float64, len(a))
 	for i := range a {
@@ -172,7 +163,6 @@ func mapf(a []float64, f func(float64) float64) []float64 {
 	return out
 }
 
-// clipLower y clipUpper son Series.clip con un solo extremo; el NaN queda en NaN.
 func clipLower(a []float64, lo float64) []float64 {
 	return mapf(a, func(v float64) float64 {
 		if v < lo {
@@ -189,7 +179,6 @@ func clipBoth(v, lo, hi float64) float64 {
 	return math.Min(math.Max(v, lo), hi)
 }
 
-// whereCond conserva a[i] donde cond[i] es verdadero y pone other en el resto (Series.where(cond, other)).
 func whereCond(a []float64, cond []bool, other float64) []float64 {
 	out := make([]float64, len(a))
 	for i := range a {
@@ -202,7 +191,6 @@ func whereCond(a []float64, cond []bool, other float64) []float64 {
 	return out
 }
 
-// cumsum es Series.cumsum(): los NaN siguen siendo NaN pero no cortan la suma.
 func cumsum(x []float64) []float64 {
 	out := make([]float64, len(x))
 	s := 0.0

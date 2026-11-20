@@ -1,3 +1,8 @@
+// Repositorio de caché: acciones en circulación y fundamentales con su frescura y borrado por
+// vencimiento.
+//
+// Fecha: 2026-11-19
+
 package repo
 
 import (
@@ -6,7 +11,6 @@ import (
 	"top3/internal/db"
 )
 
-// FreshShares son las acciones en circulación guardadas desde cutoff (YYYY-MM-DD) en adelante.
 func FreshShares(d *sql.DB, cutoff string) (map[string]float64, error) {
 	rows, err := d.Query("SELECT ticker, shares FROM shares WHERE fetched >= ?", cutoff)
 	if err != nil {
@@ -27,7 +31,6 @@ func FreshShares(d *sql.DB, cutoff string) (map[string]float64, error) {
 	return out, rows.Err()
 }
 
-// SaveShares guarda las acciones en circulación de varios tickers (con la fecha de descarga).
 func SaveShares(d *sql.DB, shares map[string]float64, fetched string) error {
 	return db.Tx(d, func(tx *sql.Tx) error {
 		for t, s := range shares {
@@ -39,17 +42,14 @@ func SaveShares(d *sql.DB, shares map[string]float64, fetched string) error {
 	})
 }
 
-// DeleteSharesBefore borra las acciones en circulación guardadas antes de day y devuelve cuántas filas.
 func DeleteSharesBefore(d *sql.DB, day string) (int64, error) {
 	return rowsAffected(d.Exec("DELETE FROM shares WHERE fetched < ?", day))
 }
 
-// DeleteFundamentalsBefore borra los datos financieros guardados antes de day y devuelve cuántas filas.
 func DeleteFundamentalsBefore(d *sql.DB, day string) (int64, error) {
 	return rowsAffected(d.Exec("DELETE FROM fundamentals WHERE fetched < ?", day))
 }
 
-// FreshFundamentals son (ticker -> JSON de datos financieros) guardados desde cutoff en adelante.
 func FreshFundamentals(d *sql.DB, cutoff string) (map[string]string, error) {
 	rows, err := d.Query("SELECT ticker, data FROM fundamentals WHERE fetched >= ?", cutoff)
 	if err != nil {
@@ -67,7 +67,6 @@ func FreshFundamentals(d *sql.DB, cutoff string) (map[string]string, error) {
 	return out, rows.Err()
 }
 
-// SaveFundamentals guarda los datos financieros (JSON) de varios tickers.
 func SaveFundamentals(d *sql.DB, data map[string]string, fetched string) error {
 	return db.Tx(d, func(tx *sql.Tx) error {
 		for t, js := range data {

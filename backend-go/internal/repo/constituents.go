@@ -1,3 +1,7 @@
+// Repositorio de constituyentes del índice: historial, lista actual y cambios.
+//
+// Fecha: 2026-11-19
+
 package repo
 
 import (
@@ -6,16 +10,13 @@ import (
 	"top3/internal/db"
 )
 
-// HistoryRow es una fila del CSV histórico: fecha y tickers separados por coma.
 type HistoryRow struct{ Date, Tickers string }
 
-// IndexChange es un alta/baja del índice según Wikipedia. Added, Removed y Reason son nulos si la celda venía vacía.
 type IndexChange struct {
 	Date                   string
 	Added, Removed, Reason *string
 }
 
-// ReplaceHistory reemplaza la composición histórica.
 func ReplaceHistory(d *sql.DB, rows []HistoryRow) error {
 	return db.Tx(d, func(tx *sql.Tx) error {
 		if _, err := tx.Exec("DELETE FROM constituents_history"); err != nil {
@@ -30,7 +31,6 @@ func ReplaceHistory(d *sql.DB, rows []HistoryRow) error {
 	})
 }
 
-// ReplaceCurrent reemplaza la lista actual del índice.
 func ReplaceCurrent(d *sql.DB, tickers []string) error {
 	return db.Tx(d, func(tx *sql.Tx) error {
 		if _, err := tx.Exec("DELETE FROM constituents_current"); err != nil {
@@ -45,7 +45,6 @@ func ReplaceCurrent(d *sql.DB, tickers []string) error {
 	})
 }
 
-// ReplaceChanges reemplaza las altas/bajas del índice.
 func ReplaceChanges(d *sql.DB, rows []IndexChange) error {
 	return db.Tx(d, func(tx *sql.Tx) error {
 		if _, err := tx.Exec("DELETE FROM index_changes"); err != nil {
@@ -61,7 +60,6 @@ func ReplaceChanges(d *sql.DB, rows []IndexChange) error {
 	})
 }
 
-// History es la composición histórica ordenada por fecha.
 func History(d *sql.DB) ([]HistoryRow, error) {
 	rows, err := d.Query("SELECT date, tickers FROM constituents_history ORDER BY date")
 	if err != nil {
@@ -79,7 +77,6 @@ func History(d *sql.DB) ([]HistoryRow, error) {
 	return out, rows.Err()
 }
 
-// Current es la lista actual del índice.
 func Current(d *sql.DB) ([]string, error) {
 	rows, err := d.Query("SELECT ticker FROM constituents_current")
 	if err != nil {
@@ -97,10 +94,8 @@ func Current(d *sql.DB) ([]string, error) {
 	return out, rows.Err()
 }
 
-// ChangeAfter es un alta/baja posterior a un día (las bajas y altas vacías son "").
 type ChangeAfter struct{ Date, Added, Removed string }
 
-// ChangesAfter son las altas/bajas posteriores a day, por fecha.
 func ChangesAfter(d *sql.DB, day string) ([]ChangeAfter, error) {
 	rows, err := d.Query("SELECT date, added, removed FROM index_changes WHERE date > ? ORDER BY date", day)
 	if err != nil {

@@ -1,3 +1,8 @@
+// Flujo de trabajo del backtest: trabajos simples, barridos y offsets, resolución de períodos y
+// niveles, y poda posterior.
+//
+// Fecha: 2026-11-19
+
 package backtest
 
 import (
@@ -20,18 +25,16 @@ import (
 	"top3/internal/yahoo"
 )
 
-// Job es lo que pidió el usuario para el backtest (los flags de la línea de comandos).
 type Job struct {
 	Sweep          bool
 	Offsets        bool
-	Months         int      // 0 = el de [backtest] months
-	Years          float64  // 0 = todos los períodos de [backtest] periods_years
-	MinCapBillions *float64 // nil = sin filtro explícito
+	Months         int
+	Years          float64
+	MinCapBillions *float64
 	LargeCap       bool
 	UseCache       bool
 }
 
-// RunSingle es el backtest normal de un plazo (con sus calendarios de arranque): imprime el resultado.
 func (c *Context) RunSingle(ctx context.Context, months int, u *market.Universe) error {
 	logx.Infof("Ejecutando backtest Point-in-Time (plazo %d meses)...", months)
 	term, err := c.RunCalendars(months, u, nil, 0)
@@ -48,7 +51,6 @@ func (c *Context) RunSingle(ctx context.Context, months int, u *market.Universe)
 	return nil
 }
 
-// RunSweep compara todos los plazos y su sensibilidad al arranque, y el modelo skip-month contra el de siempre.
 func (c *Context) RunSweep(ctx context.Context, u *market.Universe) error {
 	terms, err := c.RunTerms(u, nil, 0)
 	if err != nil {
@@ -60,7 +62,6 @@ func (c *Context) RunSweep(ctx context.Context, u *market.Universe) error {
 	r, cap := c.consoleRun(), minCap(u)
 	console.Sweep(r, terms, cap)
 	console.Offsets(r, terms, cap)
-	// El modelo skip-month (N-1) corre siempre junto al de siempre, con los mismos datos, para compararlos
 	skipTerms, err := c.RunTerms(u, nil, SkipMonths)
 	if err != nil {
 		return err
@@ -69,7 +70,6 @@ func (c *Context) RunSweep(ctx context.Context, u *market.Universe) error {
 	return nil
 }
 
-// RunOffsets es solo la sensibilidad al arranque de cada plazo.
 func (c *Context) RunOffsets(u *market.Universe) error {
 	terms, err := c.RunTerms(u, nil, 0)
 	if err != nil {
@@ -79,13 +79,11 @@ func (c *Context) RunOffsets(u *market.Universe) error {
 	return nil
 }
 
-// Period es un período del backtest: años y fecha de inicio.
 type Period struct {
 	Years float64
 	Start time.Time
 }
 
-// ResolvePeriods son los períodos a evaluar. Un start_date explícito en el config es un único período.
 func ResolvePeriods(bt config.Backtest, end time.Time, years float64) ([]Period, error) {
 	if bt.StartDate != "" {
 		start, err := dateutil.Parse(bt.StartDate)
@@ -108,18 +106,16 @@ func ResolvePeriods(bt config.Backtest, end time.Time, years float64) ([]Period,
 	return out, nil
 }
 
-// ResolveLevels son los umbrales de capitalización a correr (0 = índice completo).
 func ResolveLevels(job Job, cfg config.Config) []float64 {
 	if cap, ok := market.ExplicitMinCap(cfg, job.LargeCap, job.MinCapBillions); ok {
 		return []float64{cap}
 	}
-	if job.Sweep { // --sweep sin filtro explícito: todos los universos configurados
+	if job.Sweep {
 		return append([]float64(nil), cfg.Universe.SweepMinCapBillions...)
 	}
 	return []float64{0}
 }
 
-// RunJob actualiza los datos y corre el backtest de cada período.
 func RunJob(ctx context.Context, cfg config.Config, y *yahoo.Client, job Job) error {
 	if job.UseCache {
 		logx.Infof("Caché: activada (se reutiliza lo descargado hoy)")
@@ -165,7 +161,7 @@ func RunJob(ctx context.Context, cfg config.Config, y *yahoo.Client, job Job) er
 	}
 	matrix := engine.NewMatrix(md.Prices)
 
-	known := map[string]float64{} // acciones en circulación ya bajadas: se reutilizan en toda la corrida
+	known := map[string]float64{}
 	builder := &market.UniverseBuilder{D: d, DL: dl, Tickers: md.Prices.Tickers, UseCache: job.UseCache, Settings: cfg.Data, KnownShares: known}
 	levels := ResolveLevels(job, cfg)
 	months := job.Months
@@ -173,9 +169,8 @@ func RunJob(ctx context.Context, cfg config.Config, y *yahoo.Client, job Job) er
 		months = bt.Months
 	}
 
-	memo := engine.NewMemo() // los períodos comparten fechas de rebalanceo: el ranking de cada una se arma una sola vez
+	memo := engine.NewMemo()
 	for _, p := range periods {
-		// Cada período lleva su propia configuración (años)
 		pcfg := cfg
 		pcfg.Backtest.BacktestYears = p.Years
 		c := &Context{DB: d, DL: dl, Cfg: pcfg, Cons: md.Constituents, Prices: md.Prices, Matrix: matrix,
@@ -203,7 +198,6 @@ func RunJob(ctx context.Context, cfg config.Config, y *yahoo.Client, job Job) er
 	return nil
 }
 
-// PruneAfter borra las corridas viejas al terminar el backtest.
 func PruneAfter(cfg config.Config) error {
 	d, err := db.Open(cfg.Data.DBPath)
 	if err != nil {

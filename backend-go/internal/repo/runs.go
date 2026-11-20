@@ -1,3 +1,7 @@
+// Repositorio de corridas del backtest: guardado, claves, curvas de capital, selecciones y poda.
+//
+// Fecha: 2026-11-19
+
 package repo
 
 import (
@@ -12,7 +16,6 @@ import (
 	"top3/internal/model"
 )
 
-// RunRow es el resumen de una corrida del backtest.
 type RunRow struct {
 	ID             int64
 	Params         string
@@ -23,10 +26,8 @@ type RunRow struct {
 	CAGRPct        float64
 }
 
-// insertRows inserta las filas de a muchas por sentencia (INSERT ... VALUES (...), (...)): una corrida del barrido son
-// cientos de filas y una sentencia por fila era lo que más tardaba. cols es la cantidad de columnas de table.
 func insertRows(tx *sql.Tx, table string, cols int, rows [][]any) error {
-	const perStmt = 100 // 100 * 5 columnas = 500 parámetros, bajo el límite de SQLite
+	const perStmt = 100
 	marks := "(" + strings.TrimSuffix(strings.Repeat("?, ", cols), ", ") + ")"
 	for len(rows) > 0 {
 		n := min(perStmt, len(rows))
@@ -43,7 +44,6 @@ func insertRows(tx *sql.Tx, table string, cols int, rows [][]any) error {
 	return nil
 }
 
-// SaveRun guarda una corrida (resumen, selecciones y curva de capital) y devuelve su id.
 func SaveRun(d *sql.DB, params map[string]any, startDate, endDate string, r model.Result) (int64, error) {
 	js, err := json.Marshal(params)
 	if err != nil {
@@ -84,7 +84,6 @@ func SaveRun(d *sql.DB, params map[string]any, startDate, endDate string, r mode
 	return id, nil
 }
 
-// RunKey es qué corrida es para el informe: universo, años del período, plazo, desfase y meses saltados del modelo.
 type RunKey struct {
 	Cap    float64
 	Years  float64
@@ -93,7 +92,6 @@ type RunKey struct {
 	Skip   int
 }
 
-// Less ordena las claves por sus campos, en ese orden.
 func (a RunKey) Less(b RunKey) bool {
 	switch {
 	case a.Cap != b.Cap:
@@ -119,8 +117,6 @@ func num(v any) float64 {
 	return 0
 }
 
-// ParseRunKey extrae la clave de los parámetros de una corrida; ok es false si no es de un sweep. Las corridas anteriores
-// al modelo skip-month cuentan como skip 0.
 func ParseRunKey(params map[string]any) (RunKey, bool) {
 	sm, ok := params["sweep_months"]
 	if !ok {
@@ -136,14 +132,12 @@ func ParseRunKey(params map[string]any) (RunKey, bool) {
 		Offset: int(num(params["offset_months"])), Skip: int(num(params["skip_months"]))}, true
 }
 
-// LatestRunDay es la fecha (YYYY-MM-DD) de la corrida más reciente ("" si no hay ninguna).
 func LatestRunDay(d *sql.DB) (string, error) {
 	var v sql.NullString
 	err := d.QueryRow("SELECT MAX(substr(run_at, 1, 10)) FROM runs").Scan(&v)
 	return v.String, err
 }
 
-// RunsOfDay son las corridas de un día, de la más vieja a la más nueva.
 func RunsOfDay(d *sql.DB, day string) ([]RunRow, error) {
 	rows, err := d.Query("SELECT id, params, start_date, end_date, final_capital, total_return, cagr "+
 		"FROM runs WHERE substr(run_at, 1, 10) = ? ORDER BY id", day)
@@ -162,13 +156,11 @@ func RunsOfDay(d *sql.DB, day string) ([]RunRow, error) {
 	return out, rows.Err()
 }
 
-// EquityPointRow es (fecha, capital).
 type EquityPointRow struct {
 	Date    string
 	Capital float64
 }
 
-// EquityCurve es la curva de capital de una corrida.
 func EquityCurve(d *sql.DB, runID int64) ([]EquityPointRow, error) {
 	rows, err := d.Query("SELECT date, capital FROM equity WHERE run_id = ? ORDER BY date", runID)
 	if err != nil {
@@ -186,7 +178,6 @@ func EquityCurve(d *sql.DB, runID int64) ([]EquityPointRow, error) {
 	return out, rows.Err()
 }
 
-// SelectionRow es (fecha de rebalanceo, puesto, ticker, retorno del ranking).
 type SelectionRow struct {
 	Date   string
 	Rank   int
@@ -194,7 +185,6 @@ type SelectionRow struct {
 	Return float64
 }
 
-// Selections son las selecciones de una corrida.
 func Selections(d *sql.DB, runID int64) ([]SelectionRow, error) {
 	rows, err := d.Query("SELECT rebalance_date, rank, ticker, return_lookback FROM selections WHERE run_id = ? "+
 		"ORDER BY rebalance_date, rank", runID)
@@ -213,11 +203,6 @@ func Selections(d *sql.DB, runID int64) ([]SelectionRow, error) {
 	return out, rows.Err()
 }
 
-// PruneRuns borra las corridas viejas del backtest y devuelve cuántas.
-//
-// Se conservan los últimos keepDays días con corridas (contados desde el día más reciente, mínimo 1) y, dentro de ellos,
-// solo la última corrida de cada clave por día: es la única que usa el informe. Las corridas que no son de un sweep se
-// agrupan por sus parámetros exactos. actual_picks no se toca (historial del Top actual).
 func PruneRuns(d *sql.DB, keepDays int) (int, error) {
 	lastDay, err := LatestRunDay(d)
 	if err != nil || lastDay == "" {
@@ -246,7 +231,6 @@ func PruneRuns(d *sql.DB, keepDays int) (int, error) {
 		}
 		all = append(all, r)
 	}
-	// un error a mitad de la lectura dejaría una lista parcial: se podaría con datos incompletos
 	if err := rows.Err(); err != nil {
 		rows.Close()
 		return 0, err
@@ -268,7 +252,7 @@ func PruneRuns(d *sql.DB, keepDays int) (int, error) {
 			}
 		}
 		if prev, ok := latest[group]; ok {
-			doomed = append(doomed, prev) // la anterior del mismo día queda reemplazada
+			doomed = append(doomed, prev)
 		}
 		latest[group] = r.id
 	}
@@ -291,8 +275,6 @@ func PruneRuns(d *sql.DB, keepDays int) (int, error) {
 	return len(doomed), nil
 }
 
-// MaybePruneRuns borra las corridas viejas en cada llamada (es rápido). Compactar el archivo (VACUUM) es lo caro: se hace
-// como mucho una vez por día, salvo force.
 func MaybePruneRuns(d *sql.DB, keepDays int, force bool) (int, error) {
 	n, err := PruneRuns(d, keepDays)
 	if err != nil {
@@ -302,7 +284,7 @@ func MaybePruneRuns(d *sql.DB, keepDays int, force bool) (int, error) {
 		if err := db.SetMeta(d, "runs_vacuumed", db.Today()); err != nil {
 			return n, err
 		}
-		if _, err := d.Exec("VACUUM"); err != nil { // devuelve el espacio al disco
+		if _, err := d.Exec("VACUUM"); err != nil {
 			return n, err
 		}
 	}

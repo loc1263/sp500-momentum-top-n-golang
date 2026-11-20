@@ -1,3 +1,8 @@
+// Optimización de portafolio de Markowitz: covarianza de Ledoit-Wolf, frontera eficiente y límites por
+// sector.
+//
+// Fecha: 2026-11-19
+
 package quant
 
 import (
@@ -10,23 +15,6 @@ import (
 	"top3/internal/stats"
 )
 
-// Markowitz sobre unas pocas acciones: tres carteras de la frontera eficiente (sin posiciones cortas, con un máximo por acción
-// y por sector).
-//
-//   - Máximo retorno: el mayor retorno esperado con volatilidad anual de hasta vol_target.
-//   - Máximo Sharpe: la mejor relación entre el exceso de retorno sobre la tasa libre de riesgo y la volatilidad.
-//   - Mínima varianza: la de menor volatilidad posible.
-//
-// Entradas: el retorno esperado de cada acción es su retorno anual de los últimos 252 días (limitado a ±100%) encogido hacia
-// un retorno de largo plazo (prior = tasa libre de riesgo + prima de mercado), con mu_shrink como peso del dato propio: el
-// retorno pasado de una sola acción es muy ruidoso y el de las líderes de momentum, desmesurado. La covarianza es la de
-// Ledoit-Wolf sobre esos mismos 252 días. Los pesos salen sobre todo del riesgo y, en menor medida, del retorno pasado.
-//
-// Cada cartera es la solución exacta de un programa cuadrático convexo (puntos interiores): el mínimo de varianza directamente,
-// el máximo Sharpe con el cambio de variable de Charnes-Cooper y el máximo retorno acotado por riesgo con el multiplicador de
-// la restricción de volatilidad hallado por bisección.
-
-// ledoitWolf es la covarianza de Ledoit-Wolf de las filas de x (observaciones x variables), centrada en la media.
 func ledoitWolf(x [][]float64) [][]float64 {
 	nSamples, nFeatures := len(x), len(x[0])
 	mean := make([]float64, nFeatures)
@@ -55,14 +43,14 @@ func ledoitWolf(x [][]float64) [][]float64 {
 	}
 	shrinkage := 0.0
 	if nFeatures > 1 {
-		empTrace := make([]float64, nFeatures) // suma de X² por columna / n
+		empTrace := make([]float64, nFeatures)
 		for _, row := range xc {
 			for j, v := range row {
 				empTrace[j] += v * v / float64(nSamples)
 			}
 		}
 		mu := stats.Sum(empTrace) / float64(nFeatures)
-		beta, delta := 0.0, 0.0 // suma de <X²ᵀ, X²> y suma de los cuadrados de <Xᵀ, X>
+		beta, delta := 0.0, 0.0
 		for i := 0; i < nFeatures; i++ {
 			for j := 0; j < nFeatures; j++ {
 				var b, d float64
@@ -99,7 +87,6 @@ func ledoitWolf(x [][]float64) [][]float64 {
 	return out
 }
 
-// Inputs son (retorno esperado anual, covarianza anual) de las columnas de prices (últimas 252 ruedas, sin huecos).
 func Inputs(prices *model.Prices, muShrink, prior float64) (mu []float64, sigma [][]float64) {
 	w := prices.Tail(DayYear + 1)
 	n := prices.Cols()
@@ -129,8 +116,6 @@ func Inputs(prices *model.Prices, muShrink, prior float64) (mu []float64, sigma 
 	return mu, sigma
 }
 
-// FeasibleSectorCap es sectorMax, o el menor tope mayor que él con el que se puede invertir todo: con pocos sectores (o
-// sectores con pocas acciones y wMax) el tope pedido puede no dejar colocar el 100%.
 func FeasibleSectorCap(sectors []string, wMax, sectorMax float64) float64 {
 	count := map[string]int{}
 	for _, s := range sectors {
@@ -150,19 +135,16 @@ func FeasibleSectorCap(sectors []string, wMax, sectorMax float64) float64 {
 	return c
 }
 
-// Weight es el peso de una acción en una cartera.
 type Weight struct {
 	Ticker string  `json:"ticker"`
 	Weight float64 `json:"weight"`
 }
 
-// SectorWeight es el peso de un sector en una cartera.
 type SectorWeight struct {
 	Sector string  `json:"sector"`
 	Weight float64 `json:"weight"`
 }
 
-// Portfolio es una cartera de la frontera eficiente.
 type Portfolio struct {
 	Key       string         `json:"key"`
 	Label     string         `json:"label"`
@@ -173,7 +155,6 @@ type Portfolio struct {
 	Sectors   []SectorWeight `json:"sectors"`
 }
 
-// Frontier son las carteras y los límites con los que se armaron.
 type Frontier struct {
 	Portfolios    []Portfolio `json:"portfolios"`
 	MinVol        float64     `json:"min_vol"`
@@ -187,8 +168,6 @@ func quadForm(cov [][]float64, w []float64) float64 { return dot(w, matVec(cov, 
 
 func volOf(cov [][]float64, w []float64) float64 { return math.Sqrt(math.Max(quadForm(cov, w), 0)) }
 
-// limits arma las restricciones lineales de las carteras: pesos entre 0 y wMax y, si hay tope, suma por sector <= sectorMax.
-// Con homog = true son las del problema escalado de Charnes-Cooper (y_i <= wMax·Σy, y_sector <= sectorMax·Σy).
 func limits(n int, wMax, sectorMax float64, groups [][]int, homog bool) (G [][]float64, h []float64) {
 	row := func() []float64 { return make([]float64, n) }
 	for i := 0; i < n; i++ {
@@ -241,7 +220,6 @@ func ones(n int) [][]float64 {
 	return [][]float64{r}
 }
 
-// normalize deja los pesos no negativos y con suma 1.
 func normalize(w []float64) []float64 {
 	out := make([]float64, len(w))
 	sum := 0.0
@@ -255,22 +233,15 @@ func normalize(w []float64) []float64 {
 	return out
 }
 
-// Optimize arma las carteras (máximo retorno con vol <= volTarget, máximo Sharpe y mínima varianza) con sus pesos, retorno
-// esperado, volatilidad y Sharpe (y su peso por sector), más MinVol, la menor volatilidad posible. Si volTarget es menor que
-// MinVol, no hay cartera de máximo retorno y se omite. Con menos acciones que 1/wMax, o sectores que no alcanzan para colocar
-// todo con sectorMax, el tope se sube lo mínimo necesario (SectorMax en el resultado). tickers y sectors van alineados con mu.
 func Optimize(tickers []string, mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64, sectors []string, sectorMax float64) (Frontier, error) {
 	return OptimizeMin(tickers, mu, sigma, volTarget, wMax, riskFree, sectors, sectorMax, 0, 0)
 }
 
-// solved son los pesos (alineados con mu; nil si no hay cartera) de las tres carteras de un mismo conjunto de acciones, con
-// MinVol y el tope por sector efectivo.
 type solved struct {
 	minVar, maxSharpe, maxReturn []float64
 	minVol, sectorMax            float64
 }
 
-// sectorGroups devuelve los sectores en orden de aparición y los índices de cada uno.
 func sectorGroups(sectors []string) (order []string, groups [][]int) {
 	bySector := map[string][]int{}
 	for i, s := range sectors {
@@ -286,11 +257,6 @@ func sectorGroups(sectors []string) (order []string, groups [][]int) {
 	return order, groups
 }
 
-// OptimizeMin es Optimize con un peso mínimo por posición: una acción tiene 0 o al menos wMin (con wMin = 0 no hay mínimo).
-// Cada cartera se resuelve sola: se quita la acción de menor peso por debajo de wMin y se vuelve a optimizar con las restantes,
-// hasta que todas cumplan. Con wStep > 0 (por ejemplo 0.01) los pesos finales se redondean a múltiplos de wStep sumando 1
-// y se recalculan retorno, volatilidad y Sharpe con ellos. Es una heurística (el mínimo hace el problema no convexo), no el óptimo exacto. Si al quitar
-// acciones la cartera de máximo retorno ya no alcanza el riesgo objetivo, queda con las últimas que sí lo alcanzaban.
 func OptimizeMin(tickers []string, mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64, sectors []string, sectorMax, wMin, wStep float64) (Frontier, error) {
 	n := len(mu)
 	wMax = math.Max(wMax, 1/float64(n)+1e-9)
@@ -308,7 +274,6 @@ func OptimizeMin(tickers []string, mu []float64, sigma [][]float64, volTarget, w
 	capUsed := full.sectorMax
 	order, _ := sectorGroups(sectors)
 
-	// refine quita de a una las acciones con peso menor a wMin; pick elige la cartera dentro de cada solución
 	refine := func(w []float64, pick func(solved) []float64) []float64 {
 		if w == nil || wMin <= 0 {
 			return w
@@ -403,7 +368,6 @@ func OptimizeMin(tickers []string, mu []float64, sigma [][]float64, volTarget, w
 		SectorRelaxed: sectorMax > requested+1e-9}, nil
 }
 
-// solveSet resuelve las tres carteras para un conjunto de acciones (mu, sigma y sectors alineados).
 func solveSet(mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64, sectors []string, sectorMax float64) (solved, error) {
 	n := len(mu)
 	wMax = math.Max(wMax, 1/float64(n)+1e-9)
@@ -413,7 +377,6 @@ func solveSet(mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64
 	eq, one := ones(n), []float64{1}
 	start := uniform(n)
 
-	// mínima varianza
 	H := make([][]float64, n)
 	for i := range H {
 		H[i] = make([]float64, n)
@@ -428,7 +391,6 @@ func solveSet(mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64
 	minVar := normalize(minVarW)
 	minVol := volOf(sigma, minVar)
 
-	// máximo Sharpe: Charnes-Cooper. min yᵀΣy con aᵀy = 1 (a = mu - rf), y >= 0 y los topes escalados por Σy; w = y / Σy
 	var maxSharpe []float64
 	a := make([]float64, n)
 	for i := range a {
@@ -441,7 +403,6 @@ func solveSet(mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64
 		}
 	}
 
-	// máximo retorno con volatilidad <= volTarget: max μᵀw - λ wᵀΣw, con λ el menor que cumple el tope
 	var maxReturn []float64
 	if minVol <= volTarget {
 		atLambda := func(lambda float64) ([]float64, error) {
@@ -494,8 +455,6 @@ func solveSet(mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64
 	return solved{minVar: minVar, maxSharpe: maxSharpe, maxReturn: maxReturn, minVol: minVol, sectorMax: sectorMax}, nil
 }
 
-// roundWeights redondea los pesos a múltiplos de step con suma 1 (método del mayor resto). Respeta el mínimo wMin de las
-// posiciones que se compran y los topes por acción (wMax) y por sector (sectorMax); si no puede, deja el peso sin redondear.
 func roundWeights(w []float64, step, wMin, wMax float64, sectors []string, sectorMax float64) []float64 {
 	if w == nil {
 		return nil

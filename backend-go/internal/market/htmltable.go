@@ -1,3 +1,7 @@
+// Analizador de tablas HTML: extrae filas y celdas de una página.
+//
+// Fecha: 2026-11-19
+
 package market
 
 import (
@@ -9,13 +13,11 @@ import (
 	"golang.org/x/net/html"
 )
 
-// Row es una fila de una tabla HTML ya expandida (colspan y rowspan repetidos en cada celda que cubren).
 type Row struct {
 	Cells  []string
-	Header bool // todas sus celdas son <th>
+	Header bool
 }
 
-// Table es una tabla HTML como grilla de texto.
 type Table struct{ Rows []Row }
 
 var (
@@ -23,7 +25,6 @@ var (
 	spaces   = regexp.MustCompile(`\s+`)
 )
 
-// ParseTables lee todas las tablas de una página HTML, en orden de aparición (las anidadas se ignoran).
 func ParseTables(r io.Reader) ([]Table, error) {
 	doc, err := html.Parse(r)
 	if err != nil {
@@ -64,7 +65,7 @@ func parseTable(table *html.Node) Table {
 		left int
 		text string
 	}
-	pending := map[int]*span{} // columna -> celda con rowspan que sigue cubriéndola
+	pending := map[int]*span{}
 	var out Table
 	for _, tr := range trs {
 		var cells []string

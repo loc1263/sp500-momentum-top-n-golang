@@ -1,3 +1,8 @@
+// Pruebas de la base SQLite: creación del esquema, metadatos, versionado, migración de bases antiguas
+// y rollback de transacciones.
+//
+// Fecha: 2026-11-19
+
 package db
 
 import (
@@ -67,7 +72,7 @@ func TestALegacyDatabaseWithoutVersionIsMigratedInPlace(t *testing.T) {
 		t.Fatal(err)
 	}
 	legacy.SetMaxOpenConns(1)
-	if _, err := legacy.Exec(Migrations[0].Script); err != nil { // el esquema de antes de existir las versiones (user_version 0)
+	if _, err := legacy.Exec(Migrations[0].Script); err != nil {
 		t.Fatal(err)
 	}
 	legacy.Exec("INSERT INTO prices VALUES ('A', '2024-01-02', 1.5)")
@@ -83,7 +88,7 @@ func TestALegacyDatabaseWithoutVersionIsMigratedInPlace(t *testing.T) {
 	}
 	var c float64
 	d.QueryRow("SELECT close FROM prices").Scan(&c)
-	if c != 1.5 { // los datos se conservan
+	if c != 1.5 {
 		t.Fatalf("close = %v", c)
 	}
 	var n int

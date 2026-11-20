@@ -1,3 +1,8 @@
+// Pruebas del evaluador: empresa sana, datos faltantes, umbrales, calidad de ganancias, P/E, FCF,
+// deuda/capital y bancos.
+//
+// Fecha: 2026-11-19
+
 package evaluator
 
 import (
@@ -10,7 +15,6 @@ import (
 	"top3/internal/config"
 )
 
-// healthy es una empresa sana y barata, con todos los datos.
 func healthy() Raw {
 	r := emptyRaw()
 	r.Ticker, r.Name, r.Sector, r.Industry, r.Currency, r.FinCurrency = "OK", "Ok Corp", "Tech", "Software", "USD", "USD"
@@ -32,7 +36,6 @@ func healthy() Raw {
 	return r
 }
 
-// emptyRaw es una empresa sin ningún dato (todo NaN).
 func emptyRaw() Raw {
 	r := Raw{}
 	for _, p := range []*float64{&r.Price, &r.MarketCap, &r.Beta, &r.W52Low, &r.W52High, &r.PE, &r.FwdPE, &r.EPS, &r.Dividend,
@@ -83,7 +86,7 @@ func TestHealthyCompanyIsGood(t *testing.T) {
 	near(t, metric(c, "net_margin").Value, 20)
 	near(t, metric(c, "op_margin").Value, 28)
 	near(t, metric(c, "fcf_margin").Value, 25)
-	near(t, metric(c, "capex_cover").Value, 6) // capex = 30 − 25 = 5
+	near(t, metric(c, "capex_cover").Value, 6)
 	near(t, metric(c, "fcf_yield").Value, 2.5)
 	near(t, metric(c, "net_debt").Value, -30e9)
 	if metric(c, "net_debt").Label != "Caja neta" {
@@ -117,7 +120,7 @@ func TestMissingDataIsNA(t *testing.T) {
 func TestThresholds(t *testing.T) {
 	r := healthy()
 	r.RevGrowth, r.ROE, r.PE = 2, 70, 35
-	r.OCF, r.FCF = 10e9, -5e9 // capex 15 > OCF: cobertura 0,67 y caja libre negativa
+	r.OCF, r.FCF = 10e9, -5e9
 	r.Debt, r.Cash = 50e9, 10e9
 	c := Analyze(r, SP500)
 	if metric(c, "rev_growth").Level != Bad {
@@ -132,7 +135,6 @@ func TestThresholds(t *testing.T) {
 	if metric(c, "fcf").Level != Bad || metric(c, "capex_cover").Level != Bad {
 		t.Error("caja libre negativa y cobertura < 1 son alerta")
 	}
-	// deuda neta 40 con flujo operativo 10 → 4 años: pesada
 	near(t, metric(c, "net_debt_years").Value, 4)
 	if metric(c, "net_debt_years").Level != Bad {
 		t.Error("más de 3 años para pagar la deuda es alerta")
@@ -154,7 +156,7 @@ func TestEarningsQuality(t *testing.T) {
 func TestPEFromPriceWhenMissing(t *testing.T) {
 	r := healthy()
 	r.PE = nan
-	near(t, metric(Analyze(r, SP500), "pe").Value, 12.5) // 100 / 8
+	near(t, metric(Analyze(r, SP500), "pe").Value, 12.5)
 }
 
 func TestFcfYieldSkippedWhenCurrenciesDiffer(t *testing.T) {
@@ -191,7 +193,7 @@ func TestBankSkipsCashAndDebt(t *testing.T) {
 	if metric(c, "net_margin").Level != Good || metric(c, "roe").Level != Good {
 		t.Error("rentabilidad sí se evalúa en un banco")
 	}
-	r.CurrentRatio = 1.1 // Visa y Mastercard: informan liquidez, se miden con todo
+	r.CurrentRatio = 1.1
 	if Analyze(r, SP500).Bank {
 		t.Error("financiera con liquidez corriente no es banco")
 	}
@@ -214,9 +216,9 @@ func TestVerdict(t *testing.T) {
 		want Level
 	}{
 		{[]Level{Good, Good, Good}, Good},
-		{[]Level{Good, Good, Bad}, Warn}, // promedio 1,33
+		{[]Level{Good, Good, Bad}, Warn},
 		{[]Level{Good, Warn, Warn}, Warn},
-		{[]Level{Good, Good, Good, Bad}, Warn}, // un malo impide «good»
+		{[]Level{Good, Good, Good, Bad}, Warn},
 		{[]Level{Bad, Bad, Warn}, Bad},
 		{[]Level{Info, NA}, NA},
 		{nil, NA},
@@ -240,7 +242,7 @@ func TestTrend(t *testing.T) {
 		}
 	}
 	near(t, rev.Value, 100e9)
-	if rev.Level != Good || rev.Label != "+12,6 %/año" || len(rev.Series) != 4 { // (100/70)^(1/3) − 1
+	if rev.Level != Good || rev.Label != "+12,6 %/año" || len(rev.Series) != 4 {
 		t.Errorf("ingresos: %+v", rev)
 	}
 
@@ -277,7 +279,7 @@ func TestPeersPickSameIndustryByCap(t *testing.T) {
 		company("D", "Banks", 100, 20, 20),
 		company("E", "Software", 90, 20, 20),
 	}
-	cs[3].Sector = "Finance" // sin otra empresa de su industria ni de su sector
+	cs[3].Sector = "Finance"
 	AttachPeers(cs, 2)
 	p := cat(cs[0], "peers").Peers
 	if p == nil || len(p.Tickers) != 2 || p.Tickers[0] != "E" && p.Tickers[0] != "B" {
@@ -295,7 +297,7 @@ func TestPeersPickSameIndustryByCap(t *testing.T) {
 
 func TestPeersLevelsAndBest(t *testing.T) {
 	cs := []Company{
-		company("ME", "Software", 100, 10, 30), // P/E bajo (mejor), ROE alto (mejor)
+		company("ME", "Software", 100, 10, 30),
 		company("P1", "Software", 100, 20, 15),
 		company("P2", "Software", 100, 25, 10),
 	}
@@ -376,7 +378,7 @@ func TestEmptyUniverses(t *testing.T) {
 	if got := emptyUniverses(nil, cfg); len(got) != 1 || got[0] != "S&P 500" {
 		t.Errorf("sin nada: %v", got)
 	}
-	cfg.Evaluator.Sp500 = false // un universo desactivado no es un aviso
+	cfg.Evaluator.Sp500 = false
 	if got := emptyUniverses(nil, cfg); len(got) != 0 {
 		t.Errorf("S&P 500 desactivado: %v", got)
 	}
@@ -400,7 +402,6 @@ func TestWriteReplacesAtomicallyAndLeavesNoTempFiles(t *testing.T) {
 	if len(left) != 0 {
 		t.Errorf("quedaron temporales: %v", left)
 	}
-	// si no se puede escribir (en lugar de la carpeta hay un archivo), el JSON anterior sigue
 	if err := Write(filepath.Join(path, "sub", "x.json"), p); err == nil {
 		t.Error("debería fallar")
 	}
@@ -439,7 +440,6 @@ func TestWriteProducesValidJSON(t *testing.T) {
 	if n := len(back.Companies[0].Categories); n != 7 {
 		t.Errorf("categorías: %d, quiero 7", n)
 	}
-	// toda métrica que sale en una empresa debe estar en el diccionario
 	for _, c := range p.Companies {
 		for _, k := range c.Categories {
 			for _, m := range k.Metrics {

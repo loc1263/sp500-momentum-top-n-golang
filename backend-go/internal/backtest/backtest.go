@@ -1,5 +1,7 @@
 // Package backtest arma las corridas del backtest (por plazo y por calendario de arranque), las guarda en SQLite y las
 // muestra por consola.
+//
+// Fecha: 2026-11-19
 package backtest
 
 import (
@@ -21,10 +23,8 @@ import (
 	"top3/internal/repo"
 )
 
-// SkipMonths: el modelo skip-month (N-1) ignora el último mes al armar el ranking.
 const SkipMonths = 1
 
-// Context es todo lo que comparten las corridas de un período: datos, fechas y configuración.
 type Context struct {
 	DB          *sql.DB
 	DL          *market.Downloader
@@ -34,11 +34,10 @@ type Context struct {
 	Matrix      *engine.Matrix
 	Start, End  time.Time
 	UseCache    bool
-	KnownShares map[string]float64 // acciones ya bajadas en esta corrida
-	memo        *engine.Memo       // rankings por fecha; quien reparte un mismo Cons y Matrix entre contextos comparte uno
+	KnownShares map[string]float64
+	memo        *engine.Memo
 }
 
-// rankMemo crea la memoria de rankings si no se la dieron: vale mientras Cons y Matrix no cambien.
 func (c *Context) rankMemo() *engine.Memo {
 	if c.memo == nil {
 		c.memo = engine.NewMemo()
@@ -48,7 +47,6 @@ func (c *Context) rankMemo() *engine.Memo {
 
 func (c *Context) lookbackDays(months int) int { return months * c.Cfg.Backtest.TradingDaysPerMonth }
 
-// consoleRun son los datos de la corrida que muestra la consola.
 func (c *Context) consoleRun() console.Run {
 	return console.Run{Start: c.Start, End: c.End, Years: c.Cfg.Backtest.BacktestYears,
 		InitialCapital: c.Cfg.Backtest.InitialCapital, TopN: c.Cfg.Backtest.TopN}
@@ -65,8 +63,6 @@ func (c *Context) where(u *market.Universe) string {
 	return fmt.Sprintf("%s, backtest %s a %s", market.Label(minCap(u)), dateutil.Day(c.Start), dateutil.Day(c.End))
 }
 
-// runParams son los parámetros que se guardan con cada corrida: la configuración completa más lo que identifica la
-// corrida. El informe los lee de ahí (ver repo.ParseRunKey).
 func (c *Context) runParams(months, offset int, u *market.Universe, skipMonths int) (map[string]any, error) {
 	raw, err := json.Marshal(c.Cfg)
 	if err != nil {
@@ -86,9 +82,6 @@ func (c *Context) runParams(months, offset int, u *market.Universe, skipMonths i
 	return params, nil
 }
 
-// RunCalendars corre un plazo de N meses con sus N calendarios posibles (arranque desfasado 0..N-1 meses). Guarda cada
-// corrida en SQLite; los calendarios que fallan se omiten. Los rebalanceos omitidos se avisan juntos al final (o, si quien
-// llama pasa skipped, cuando él lo decida). Con skipMonths es el modelo skip-month.
 func (c *Context) RunCalendars(months int, u *market.Universe, skipped engine.Skipped, skipMonths int) (model.Term, error) {
 	own := skipped == nil
 	if own {
@@ -123,12 +116,11 @@ func (c *Context) RunCalendars(months int, u *market.Universe, skipped engine.Sk
 	return term, nil
 }
 
-// RunTerms corre cada plazo (por defecto los de [simulation] months) con todos sus calendarios.
 func (c *Context) RunTerms(u *market.Universe, months []int, skipMonths int) ([]model.Term, error) {
 	if months == nil {
 		months = c.Cfg.Simulation.Months
 	}
-	skipped := engine.Skipped{} // todos los plazos y desfases juntos: un solo aviso por motivo
+	skipped := engine.Skipped{}
 	terms := make([]model.Term, 0, len(months))
 	for _, m := range months {
 		t, err := c.RunCalendars(m, u, skipped, skipMonths)
@@ -141,7 +133,6 @@ func (c *Context) RunTerms(u *market.Universe, months []int, skipMonths int) ([]
 	return terms, nil
 }
 
-// AttachMarketCaps agrega la capitalización aprox. de cada selección del calendario base (solo informativa).
 func (c *Context) AttachMarketCaps(ctx context.Context, terms []model.Term, u *market.Universe) error {
 	var histories [][]model.Rebalance
 	for i := range terms {
@@ -178,7 +169,7 @@ func (c *Context) AttachMarketCaps(ctx context.Context, terms []model.Term, u *m
 	if err != nil {
 		return err
 	}
-	for t, v := range shares { // el período siguiente no vuelve a pedir lo mismo, tampoco con --no-cache
+	for t, v := range shares {
 		c.KnownShares[t] = v
 	}
 	market.AddMarketCaps(histories, c.Prices, shares)

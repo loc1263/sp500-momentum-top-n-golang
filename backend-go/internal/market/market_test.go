@@ -1,3 +1,8 @@
+// Pruebas de mercado: tickers, constituyentes por fecha y alias, cambios de índice, universos y
+// respuestas simuladas de Yahoo.
+//
+// Fecha: 2026-11-19
+
 package market
 
 import (
@@ -75,8 +80,8 @@ func TestConstituentsOnDateAndAliases(t *testing.T) {
 	}{
 		{"2020-06-01", []string{"A", "BNY", "C"}},
 		{"2021-01-01", []string{"A", "D"}},
-		{"2019-01-01", nil},           // antes del primer dato
-		{"2030-01-01", []string{"Z"}}, // después del último: lista actual
+		{"2019-01-01", nil},
+		{"2030-01-01", []string{"Z"}},
 	} {
 		if got := c.OnDate(tc.day); !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("OnDate(%s) = %v, quiero %v", tc.day, got, tc.want)
@@ -88,7 +93,7 @@ func TestConstituentsApplyChanges(t *testing.T) {
 	d := openTemp(t)
 	seed(t, d, [][2]string{{"2020-01-01", "A,B"}}, nil, [][3]string{{"2020-06-01", "C", "A"}, {"2019-01-01", "X", "B"}})
 	c, _ := NewConstituents(d, nil)
-	if !reflect.DeepEqual(c.dates, []string{"2020-01-01", "2020-06-01"}) { // el cambio anterior al CSV se ignora
+	if !reflect.DeepEqual(c.dates, []string{"2020-01-01", "2020-06-01"}) {
 		t.Fatalf("dates = %v", c.dates)
 	}
 	if got := c.OnDate("2020-07-01"); !reflect.DeepEqual(got, []string{"B", "C"}) {
@@ -123,7 +128,7 @@ func TestUniverseSelect(t *testing.T) {
 		t.Fatal("MinCapUSD")
 	}
 	got := u.Select([]string{"A", "B", "C", "D", "E"}, []float64{1, 1, 1, 1, math.NaN()})
-	if !reflect.DeepEqual(got, []string{"A", "C"}) { // B muy chica; D sin acciones; E sin precio
+	if !reflect.DeepEqual(got, []string{"A", "C"}) {
 		t.Fatalf("got %v", got)
 	}
 }
@@ -176,7 +181,6 @@ func TestParseChanges(t *testing.T) {
 	if first.Date != "2026-10-06" || *first.Added != "NEW-B" || *first.Removed != "OLD" || *first.Reason != "Reemplazo" {
 		t.Fatalf("fila 1: %+v", first)
 	}
-	// rowspan: la fecha y el motivo se repiten en la fila siguiente; las celdas vacías son nulas
 	if rows[1].Date != "2026-06-01" || *rows[1].Added != "AAA" || rows[1].Removed != nil {
 		t.Fatalf("fila 2: %+v", rows[1])
 	}
@@ -196,12 +200,11 @@ func TestParseCurrent(t *testing.T) {
 	}
 }
 
-// fakeYahoo sirve el chart diario de cada ticker desde series (fecha -> cierre ajustado).
 type fakeYahoo struct {
 	mu     sync.Mutex
 	series map[string]map[string]float64
 	calls  map[string]int
-	broken map[string]bool // tickers para los que Yahoo responde con un error del servidor
+	broken map[string]bool
 }
 
 func (f *fakeYahoo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -287,7 +290,7 @@ func TestFetchClassifiesGoneAndKeepsRowsInRange(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Rows) != 5 || res.Rows[0].Date != "2024-01-03" || res.Rows[4].Date != "2024-01-07" { // fin exclusivo
+	if len(res.Rows) != 5 || res.Rows[0].Date != "2024-01-03" || res.Rows[4].Date != "2024-01-07" {
 		t.Fatalf("rows = %+v", res.Rows)
 	}
 	if !reflect.DeepEqual(res.NoData, []string{"GONE"}) || !res.Gone["GONE"] {
@@ -305,8 +308,6 @@ func TestUpdatePricesRefetchesOnlyTickersWithChangedAdjustment(t *testing.T) {
 	}, calls: map[string]int{}}
 	dl := newDownloader(t, f)
 
-	// Lo guardado llega hasta el 20 de enero. STABLE coincide con Yahoo; SPLIT guardó el doble de lo que Yahoo dice hoy
-	// (pagó dividendo o hizo split desde entonces: cambió su base de ajuste).
 	for day := range daily("2024-01-01", 20, 0, 0) {
 		saveRows(t, d, []repoRow{{"STABLE", day, f.series["STABLE"][day]}, {"SPLIT", day, 2 * f.series["SPLIT"][day]}})
 	}
@@ -324,7 +325,6 @@ func TestUpdatePricesRefetchesOnlyTickersWithChangedAdjustment(t *testing.T) {
 	if closes["SPLIT"] != f.series["SPLIT"]["2024-01-05"] {
 		t.Fatalf("SPLIT debió bajarse completo con los precios nuevos: %v", closes)
 	}
-	// STABLE: una sola descarga corta (solape); SPLIT: la corta y la completa; NEWCOMER: solo la completa
 	if f.calls["STABLE"] != 1 || f.calls["SPLIT"] != 2 || f.calls["NEWCOMER"] != 1 {
 		t.Fatalf("llamadas: %v", f.calls)
 	}
@@ -376,7 +376,7 @@ func TestUpdatePricesDoesNotDeleteTickersThatFailedForTransientReasons(t *testin
 		t.Fatal(err)
 	}
 	last, _ := repo.LastDates(d)
-	if last["OK"] != "2024-01-30" || last["FLAKY"] != "2024-01-20" { // FLAKY conserva lo que tenía
+	if last["OK"] != "2024-01-30" || last["FLAKY"] != "2024-01-20" {
 		t.Fatalf("last = %v", last)
 	}
 }
@@ -391,7 +391,6 @@ func totalCalls(f *fakeYahoo) int {
 	return n
 }
 
-// Los tickers que Yahoo no informa se anotan por el día: la segunda corrida no vuelve a pedirlos, salvo con --no-cache.
 func TestEnsureSharesRemembersTickersWithoutDataForTheDay(t *testing.T) {
 	d := openTemp(t)
 	f := &fakeYahoo{series: map[string]map[string]float64{}, calls: map[string]int{}}
@@ -413,7 +412,7 @@ func TestEnsureSharesRemembersTickersWithoutDataForTheDay(t *testing.T) {
 	if n := totalCalls(f); n != first {
 		t.Fatalf("la segunda corrida hizo %d requests más", n-first)
 	}
-	if _, err := dl.EnsureShares(ctx, d, []string{"GONE1"}, false, s, nil); err != nil { // --no-cache
+	if _, err := dl.EnsureShares(ctx, d, []string{"GONE1"}, false, s, nil); err != nil {
 		t.Fatal(err)
 	}
 	if totalCalls(f) == first {

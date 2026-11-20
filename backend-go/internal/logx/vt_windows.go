@@ -1,5 +1,9 @@
 //go:build windows
 
+// Configuración de consola en Windows: habilita las secuencias de terminal virtual para los colores.
+//
+// Fecha: 2026-11-19
+
 package logx
 
 import (
@@ -8,7 +12,6 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// enableVT habilita las secuencias ANSI en la consola de Windows.
 func enableVT(f *os.File) {
 	h := windows.Handle(f.Fd())
 	var mode uint32
@@ -17,8 +20,6 @@ func enableVT(f *os.File) {
 	}
 }
 
-// ConfigureConsole pone la consola de Windows en UTF-8 para que se vean → ≥ … y los acentos (solo si la salida es una
-// terminal; al redirigir a archivo o pipe Go ya escribe UTF-8).
 func ConfigureConsole() {
 	for _, f := range []*os.File{os.Stdout, os.Stderr} {
 		var mode uint32

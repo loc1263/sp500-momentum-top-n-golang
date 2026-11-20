@@ -3,27 +3,25 @@
 //
 // Formato: TOP-<ÁREA>-<NNN>. Áreas: CFG configuración, NET descargas, DAT datos, BKT backtest, ACT Top actual,
 // ETF referencia libre de riesgo de los ETFs, GES ETFs por gestora, QNT modelo por score, EVA evaluador, VIS visor. Los IDs no se reutilizan ni se renumeran: documentarlos en la tabla de errores del README.
+//
+// Fecha: 2026-11-19
 package errs
 
 import "fmt"
 
-// Code es un código del catálogo.
 type Code struct {
 	ID     string
-	Level  string // "warning": se sigue con lo que haya; "error": la operación se corta o falla
+	Level  string
 	Title  string
-	Action string // qué hacer
+	Action string
 }
 
-// Msg es `text` precedido por el ID: "TOP-BKT-003: Pocos tickers...". Sirve como formato de log.
 func (c Code) Msg(text string) string { return c.ID + ": " + text }
 
-// Errorf arma un error con el ID delante.
 func (c Code) Errorf(format string, args ...any) error {
 	return fmt.Errorf("%s: %s", c.ID, fmt.Sprintf(format, args...))
 }
 
-// Catalog tiene todos los códigos por ID.
 var Catalog = map[string]Code{}
 
 func code(id, level, title, action string) Code {
@@ -35,7 +33,6 @@ func code(id, level, title, action string) Code {
 	return c
 }
 
-// Configuración
 var (
 	CfgMissing = code("TOP-CFG-001", "warning", "No existe el archivo de configuración",
 		"Se usan los valores por defecto. Crea config.toml o pasa --config con la ruta correcta.")
@@ -47,7 +44,6 @@ var (
 		"Casi siempre es un typo en config.toml: compáralo con backend-go/config.toml.")
 )
 
-// Descargas
 var (
 	NetComposition = code("TOP-NET-001", "error", "Falló la descarga de la composición del índice",
 		"Revisa la conexión; se usa lo guardado en SQLite. Reintenta o usa --no-cache.")
@@ -65,7 +61,6 @@ var (
 		"Revisa el mensaje original; los tickers afectados pueden quedar sin datos.")
 )
 
-// Datos
 var (
 	DatBadDates = code("TOP-DAT-001", "warning", "Filas con fecha no interpretable en la tabla de cambios",
 		"Se ignoran. Si son muchas, el formato de la fuente cambió.")
@@ -85,7 +80,6 @@ var (
 		"Actualiza el código (git pull) o usa otra base en [data] db_path; no se modifica la base.")
 )
 
-// Backtest
 var (
 	BktEmpty = code("TOP-BKT-001", "error", "El backtest no generó ningún rebalanceo",
 		"Revisa las fechas, el histórico descargado y que el universo no sea demasiado chico.")
@@ -102,7 +96,6 @@ var (
 		"Se omite ese calendario; el resto continúa.")
 )
 
-// Top actual
 var (
 	ActShortWindow = code("TOP-ACT-001", "error", "No hay ruedas de precios suficientes",
 		"Descarga más historia (--no-cache) o reduce el plazo en meses.")
@@ -110,14 +103,12 @@ var (
 		"Misma regla que el backtest. Revisa si Yahoo falló para esos tickers y reintenta.")
 )
 
-// Referencia libre de riesgo de los ETFs (ETF-001 a 004 y 006 eran del ranking de Vanguard, ya retirado; no se reutilizan)
 var (
 	EtfNoRiskFree = code("TOP-ETF-005", "warning", "La referencia libre de riesgo no está disponible",
 		"El score se calcula sin restarla (los ETFs casi sin riesgo quedan arriba). "+
 			"Revisa [etfq] risk_free_ticker: debe ser un ETF de las gestoras y tener historia completa.")
 )
 
-// ETFs por gestora
 var (
 	GesNoFamily = code("TOP-GES-001", "warning", "Una gestora no devolvió ETFs",
 		"Yahoo falló o no conoce ese nombre. Revisa [etfq] families: name debe ser el fundFamily de Yahoo (p. ej. 'iShares'). Las demás gestoras siguen.")
@@ -127,13 +118,11 @@ var (
 		"Revisa la conexión y [etfq] families; los ETFs nuevos entran cuando acumulan historia para el plazo más largo.")
 )
 
-// Modelo cuantitativo
 var (
 	QntNoSignal = code("TOP-QNT-001", "error", "No hay acciones suficientes para el ranking del modelo por score",
 		"Descarga más historia (--no-cache) o baja [quant] top_n; revisa también TOP-DAT-005.")
 )
 
-// Evaluador de empresas
 var (
 	EvaNoData = code("TOP-EVA-001", "warning", "Empresas sin datos fundamentales en Yahoo",
 		"Quedan fuera del evaluador; se reintentan en la próxima corrida.")
@@ -145,7 +134,6 @@ var (
 			"si no quieres ese universo, pon [evaluator] sp500 = false.")
 )
 
-// Visor de acciones grandes y ETFs
 var (
 	VisNoRef = code("TOP-VIS-001", "error", "No se pudo bajar el historial de SPY",
 		"SPY es la referencia de beta y de los rendimientos relativos. Revisa la conexión o reintenta más tarde (suele ser un límite de Yahoo).")

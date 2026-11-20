@@ -1,3 +1,7 @@
+// Pruebas de las tablas del reporte: plazos, historial, barridos, offsets, modelos y calendarios.
+//
+// Fecha: 2026-11-19
+
 package tables
 
 import (

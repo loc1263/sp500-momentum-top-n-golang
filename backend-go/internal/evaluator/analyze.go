@@ -1,3 +1,7 @@
+// Analiza las métricas de una empresa, las clasifica por categoría y emite un veredicto global.
+//
+// Fecha: 2026-11-19
+
 package evaluator
 
 import (
@@ -6,7 +10,6 @@ import (
 	"strings"
 )
 
-// Level es la evaluación de una métrica: good (bien), warn (atención), bad (alerta), info (solo informativa) o na (sin datos).
 type Level string
 
 const (
@@ -21,7 +24,6 @@ var nan = math.NaN()
 
 func isNaN(v float64) bool { return math.IsNaN(v) || math.IsInf(v, 0) }
 
-// ptr es el número para el JSON: null si falta.
 func ptr(v float64) *float64 {
 	if isNaN(v) {
 		return nil
@@ -30,7 +32,6 @@ func ptr(v float64) *float64 {
 	return &v
 }
 
-// hi y lo evalúan "más alto es mejor" y "más bajo es mejor" con dos umbrales (bien, atención).
 func hi(v, good, warn float64) Level {
 	switch {
 	case v >= good:
@@ -51,29 +52,26 @@ func lo(v, good, warn float64) Level {
 	return Bad
 }
 
-// Metric es una métrica evaluada. Su nombre, unidad y explicación están en Payload.Metrics (por ID) para no repetirlos en cada empresa.
 type Metric struct {
 	ID     string     `json:"id"`
 	Value  *float64   `json:"v"`
 	Level  Level      `json:"l"`
-	Label  string     `json:"lb,omitempty"` // texto del distintivo cuando no alcanza con el color (p. ej. «Barato»)
-	Text   string     `json:"t,omitempty"`  // valor que no es un número (consenso de analistas)
-	Note   string     `json:"n,omitempty"`  // explicación propia de esta empresa
-	Series []*float64 `json:"s,omitempty"`  // evolución anual (tendencia)
-	Low    *float64   `json:"lo,omitempty"` // extremos del rango de 52 semanas
+	Label  string     `json:"lb,omitempty"`
+	Text   string     `json:"t,omitempty"`
+	Note   string     `json:"n,omitempty"`
+	Series []*float64 `json:"s,omitempty"`
+	Low    *float64   `json:"lo,omitempty"`
 	High   *float64   `json:"hi,omitempty"`
 }
 
-// Category es un grupo de métricas con su veredicto.
 type Category struct {
 	ID      string     `json:"id"`
 	Verdict Level      `json:"verdict"`
 	Metrics []Metric   `json:"metrics,omitempty"`
-	Years   []string   `json:"years,omitempty"` // años fiscales de las series de la tendencia
+	Years   []string   `json:"years,omitempty"`
 	Peers   *PeerTable `json:"peers,omitempty"`
 }
 
-// Company es el análisis de una empresa.
 type Company struct {
 	Ticker      string     `json:"ticker"`
 	Name        string     `json:"name"`
@@ -81,18 +79,17 @@ type Company struct {
 	Sector      string     `json:"sector,omitempty"`
 	Industry    string     `json:"industry,omitempty"`
 	Currency    string     `json:"currency,omitempty"`
-	FinCurrency string     `json:"fin_currency,omitempty"` // moneda de los estados financieros, si es distinta de la del precio
-	Bank        bool       `json:"bank,omitempty"`         // banco o aseguradora: caja y deuda no aplican
+	FinCurrency string     `json:"fin_currency,omitempty"`
+	Bank        bool       `json:"bank,omitempty"`
 	Price       *float64   `json:"price"`
 	MarketCap   *float64   `json:"market_cap"`
-	AsOf        string     `json:"as_of,omitempty"` // fecha del último estado financiero trimestral
+	AsOf        string     `json:"as_of,omitempty"`
 	Verdict     Level      `json:"verdict"`
 	Categories  []Category `json:"categories"`
 
 	peerVals map[string]float64
 }
 
-// Verdict resume una lista de niveles: «good» si el promedio es alto y ninguno es malo, «bad» si es bajo.
 func Verdict(levels []Level) Level {
 	sum, n := 0, 0
 	anyBad := false
@@ -130,7 +127,6 @@ func metricsVerdict(ms []Metric) Level {
 	return Verdict(ls)
 }
 
-// m arma una métrica: sin valor, el nivel es «na».
 func m(id string, v float64, level Level) Metric {
 	if isNaN(v) {
 		return Metric{ID: id, Level: NA}
@@ -138,8 +134,6 @@ func m(id string, v float64, level Level) Metric {
 	return Metric{ID: id, Value: ptr(v), Level: level}
 }
 
-// Analyze evalúa a una empresa con sus datos. Las categorías son: rentabilidad, crecimiento, caja, deuda y liquidez, valoración
-// y tendencia; la comparación con competidores la agrega AttachPeers cuando ya están todas las empresas del universo.
 func Analyze(r Raw, universe string) Company {
 	c := Company{Ticker: r.Ticker, Name: r.Name, Universe: universe, Sector: r.Sector, Industry: r.Industry, Currency: r.Currency,
 		Price: ptr(r.Price), MarketCap: ptr(r.MarketCap), AsOf: r.AsOf, Bank: r.isBank()}
@@ -167,17 +161,15 @@ func Analyze(r Raw, universe string) Company {
 		roe = r.NetIncome / r.QEquity * 100
 	}
 
-	// Rentabilidad
 	prof := []Metric{
 		m("net_margin", netMargin, ifOK(netMargin, func() Level { return hi(netMargin, 15, 5) })),
 		m("op_margin", opMargin, ifOK(opMargin, func() Level { return hi(opMargin, 15, 5) })),
 		m("roe", roe, ifOK(roe, func() Level { return hi(roe, 15, 8) })),
 	}
-	if roe > 60 { // un ROE tan alto casi siempre es un patrimonio muy pequeño (recompras o pérdidas), no eficiencia: no cuenta como «bien»
+	if roe > 60 {
 		prof[2].Level, prof[2].Label = Warn, "Muy alto"
 	}
 
-	// Crecimiento
 	quality := nan
 	if pe > 0 && r.FwdPE > 0 {
 		quality = r.FwdPE / pe
@@ -196,7 +188,6 @@ func Analyze(r Raw, universe string) Company {
 		grow[2].Note = "Forward P/E parecido al P/E: se espera una utilidad estable."
 	}
 
-	// Caja. El capex se deduce de flujo operativo − flujo libre, que es lo que Yahoo informa.
 	fcf, ocf := r.FCF, r.OCF
 	capex := nan
 	if !isNaN(ocf) && !isNaN(fcf) {
@@ -211,7 +202,7 @@ func Analyze(r Raw, universe string) Company {
 		cover = ocf / capex
 	}
 	fcfYield := nan
-	if !isNaN(fcf) && r.MarketCap > 0 && r.sameCurrency() { // si el balance está en otra moneda que el precio, el cociente no vale
+	if !isNaN(fcf) && r.MarketCap > 0 && r.sameCurrency() {
 		fcfYield = fcf / r.MarketCap * 100
 	}
 	fcfLevel := Bad
@@ -225,7 +216,6 @@ func Analyze(r Raw, universe string) Company {
 		m("fcf_yield", fcfYield, ifOK(fcfYield, func() Level { return hi(fcfYield, 3, 0) })),
 	}
 
-	// Deuda y liquidez
 	netDebt := nan
 	if !isNaN(r.Debt) && !isNaN(r.Cash) {
 		netDebt = r.Debt - r.Cash
@@ -242,7 +232,7 @@ func Analyze(r Raw, universe string) Company {
 	switch {
 	case !isNaN(r.Debt) && r.QEquity > 0:
 		debtEquity = r.Debt / r.QEquity
-	case !isNaN(r.DebtToEquity) && r.DebtToEquity >= 0: // Yahoo lo informa en %
+	case !isNaN(r.DebtToEquity) && r.DebtToEquity >= 0:
 		debtEquity = r.DebtToEquity / 100
 	}
 	ndLevel := NA
@@ -268,7 +258,6 @@ func Analyze(r Raw, universe string) Company {
 		m("debt_equity", debtEquity, ifOK(debtEquity, func() Level { return lo(debtEquity, 0.5, 1) })),
 	}
 
-	// Valoración
 	upside := nan
 	if !isNaN(r.Target) && r.Price > 0 {
 		upside = (r.Target/r.Price - 1) * 100
@@ -336,7 +325,6 @@ func Analyze(r Raw, universe string) Company {
 	return c
 }
 
-// ifOK evalúa f solo si v es un número.
 func ifOK(v float64, f func() Level) Level {
 	if isNaN(v) {
 		return NA
@@ -344,7 +332,6 @@ func ifOK(v float64, f func() Level) Level {
 	return f()
 }
 
-// valuation es el nivel y el texto del P/E: bajo 15 barato, hasta 30 medio, más caro; sin utilidad es una alerta.
 func valuation(v float64) (Level, string) {
 	switch {
 	case isNaN(v):
@@ -359,7 +346,6 @@ func valuation(v float64) (Level, string) {
 	return Bad, "Caro"
 }
 
-// overall resume los veredictos de las categorías (la comparación con competidores incluida, si ya está).
 func overall(cats []Category) Level {
 	ls := make([]Level, 0, len(cats))
 	for _, c := range cats {
@@ -368,9 +354,6 @@ func overall(cats []Category) Level {
 	return Verdict(ls)
 }
 
-// ---- Tendencia ----
-
-// firstLast son los extremos con dato de una serie: posiciones y valores.
 func firstLast(a []float64) (i, j int, first, last float64, ok bool) {
 	i = -1
 	for k, v := range a {
@@ -387,7 +370,6 @@ func firstLast(a []float64) (i, j int, first, last float64, ok bool) {
 	return i, j, a[i], a[j], true
 }
 
-// cagr es el crecimiento anual compuesto en %; nan si algún extremo no es positivo.
 func cagr(a, b float64, years int) float64 {
 	if a > 0 && b > 0 && years > 0 {
 		return (math.Pow(b/a, 1/float64(years)) - 1) * 100
@@ -403,7 +385,6 @@ func series(a []float64) []*float64 {
 	return out
 }
 
-// trend evalúa la evolución de los últimos años fiscales: ingresos, utilidad, flujo libre, margen operativo y deuda.
 func trend(r Raw) Category {
 	cat := Category{ID: "trend"}
 	t := r.Trend
@@ -496,14 +477,13 @@ func trend(r Raw) Category {
 func signed(v float64, dec int) string {
 	p := math.Pow(10, float64(dec))
 	s := math.Round(v*p) / p
-	out := strings.Replace(formatFloat(s, dec), ".", ",", 1) // coma decimal, como el resto del sitio
+	out := strings.Replace(formatFloat(s, dec), ".", ",", 1)
 	if s >= 0 {
 		return "+" + out
 	}
 	return out
 }
 
-// pctLabel es el crecimiento anual para el distintivo de la tendencia, o vacío si no se puede calcular.
 func pctLabel(c float64) string {
 	if isNaN(c) {
 		return ""
@@ -511,26 +491,21 @@ func pctLabel(c float64) string {
 	return signed(c, 1) + " %/año"
 }
 
-// ---- Competidores ----
-
-// PeerRow es una métrica comparada con la de los competidores.
 type PeerRow struct {
 	ID     string     `json:"id"`
 	Mine   *float64   `json:"mine"`
-	Values []*float64 `json:"values"` // una por competidor, en el orden de PeerTable.Tickers
+	Values []*float64 `json:"values"`
 	Median *float64   `json:"median"`
 	Level  Level      `json:"l"`
-	Best   int        `json:"best"` // -1 = la empresa, 0.. = competidor con el mejor valor; -2 si no hay
+	Best   int        `json:"best"`
 }
 
-// PeerTable es la comparación con los competidores.
 type PeerTable struct {
 	Tickers []string  `json:"tickers"`
 	Names   []string  `json:"names"`
 	Rows    []PeerRow `json:"rows"`
 }
 
-// peerMetrics son las métricas que se comparan; lowerBetter marca las que se prefieren bajas (P/E).
 var peerMetrics = []struct {
 	ID          string
 	LowerBetter bool
@@ -549,7 +524,6 @@ func median(a []float64) float64 {
 	return (s[n/2-1] + s[n/2]) / 2
 }
 
-// compare dice si mine es mejor, parecido o peor que la mediana de los competidores (más de 10 % de diferencia).
 func compare(mine, med float64, lowerBetter bool) Level {
 	tol := math.Abs(med) * 0.1
 	d := mine - med
@@ -565,7 +539,6 @@ func compare(mine, med float64, lowerBetter bool) Level {
 	return Bad
 }
 
-// peerTable compara a c con los competidores peers.
 func peerTable(c Company, peers []Company) *PeerTable {
 	t := &PeerTable{}
 	for _, p := range peers {
@@ -589,7 +562,6 @@ func peerTable(c Company, peers []Company) *PeerTable {
 		if !isNaN(mine) && !isNaN(med) {
 			row.Level = compare(mine, med, pm.LowerBetter)
 		}
-		// el mejor valor del grupo (en P/E solo cuenta el positivo)
 		cand := append([]float64{mine}, vals...)
 		best, n := -2, 0
 		for i, v := range cand {
@@ -616,8 +588,6 @@ func valueOr(m map[string]float64, k string) float64 {
 	return nan
 }
 
-// AttachPeers agrega a cada empresa la comparación con hasta n competidores del mismo universo: los de su misma industria (o, si
-// no hay, de su sector) con la capitalización más cercana.
 func AttachPeers(cs []Company, n int) {
 	for i := range cs {
 		peers := pickPeers(cs, i, n)

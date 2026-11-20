@@ -1,3 +1,8 @@
+// Pruebas de la selección actual: orden por retorno, descarte de tickers incompletos, filtro de
+// capitalización, alternativas, alias y cambios de selección.
+//
+// Fecha: 2026-11-19
+
 package actual
 
 import (
@@ -18,7 +23,6 @@ import (
 	"top3/internal/repo"
 )
 
-// makePrices son n tickers que crecen a ritmos distintos durante `days` días hábiles que terminan el 2024-12-31.
 func makePrices(days, n int) *model.Prices {
 	var dates []time.Time
 	for d := dateutil.MustParse("2024-12-31"); len(dates) < days; d = d.AddDate(0, 0, -1) {
@@ -124,7 +128,7 @@ func TestCurrentTickersAppliesAliasesAndDedupes(t *testing.T) {
 	for _, tk := range []string{"BK", "AAPL", "BNY"} {
 		d.Exec("INSERT INTO constituents_current VALUES (?)", tk)
 	}
-	db.SetMeta(d, "constituents_current_fetched", db.Today()) // descargada hoy: no se vuelve a bajar
+	db.SetMeta(d, "constituents_current_fetched", db.Today())
 	got, err := CurrentTickers(d, map[string]string{"BK": "BNY"}, true, config.Default().Data)
 	if err != nil || !reflect.DeepEqual(got, []string{"BNY", "AAPL"}) {
 		t.Fatalf("got %v err %v", got, err)
@@ -234,7 +238,6 @@ func TestSaveTwiceDoesNotDuplicateRowsAndReportsChanges(t *testing.T) {
 	if n != 2 || alts != 1 {
 		t.Fatalf("picks=%d alternates=%d", n, alts)
 	}
-	// el día siguiente cambia un puesto: la nota lo cuenta contra la corrida anterior
 	next := fakeResult(prices, prices.Rows())
 	next.AsOf = next.AsOf.AddDate(0, 0, 1)
 	next.Picks[1].Ticker = "T08"

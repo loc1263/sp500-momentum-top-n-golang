@@ -1,3 +1,7 @@
+// Pruebas de la clasificación de respuestas de Yahoo.
+//
+// Fecha: 2026-11-19
+
 package yahoo
 
 import (

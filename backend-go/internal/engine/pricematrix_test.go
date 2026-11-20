@@ -1,3 +1,8 @@
+// Pruebas de la matriz de precios: retornos, retorno de mantener igual ponderado, huecos, últimos
+// precios y días de salto.
+//
+// Fecha: 2026-11-19
+
 package engine
 
 import (
@@ -12,7 +17,6 @@ import (
 	"top3/internal/testutil"
 )
 
-// messy son precios con huecos sueltos, tickers que empiezan tarde y otros que dejan de cotizar.
 func messy(days, tickers int, seed int64) *model.Prices {
 	rng := rand.New(rand.NewSource(seed))
 	dates := testutil.BDaysN("2022-01-03", days)
@@ -28,17 +32,17 @@ func messy(days, tickers int, seed int64) *model.Prices {
 			p.Px[i*tickers+j] = px
 		}
 	}
-	for _, j := range rng.Perm(tickers)[:8] { // huecos sueltos
+	for _, j := range rng.Perm(tickers)[:8] {
 		for k := 0; k < 3; k++ {
 			p.Px[(10+rng.Intn(days-20))*tickers+j] = math.NaN()
 		}
 	}
-	for _, j := range rng.Perm(tickers)[:5] { // empieza tarde
+	for _, j := range rng.Perm(tickers)[:5] {
 		for i := 0; i < 50+rng.Intn(250); i++ {
 			p.Px[i*tickers+j] = math.NaN()
 		}
 	}
-	for _, j := range rng.Perm(tickers)[:4] { // deja de cotizar
+	for _, j := range rng.Perm(tickers)[:4] {
 		for i := 100 + rng.Intn(days-120); i < days; i++ {
 			p.Px[i*tickers+j] = math.NaN()
 		}
@@ -46,7 +50,6 @@ func messy(days, tickers int, seed int64) *model.Prices {
 	return p
 }
 
-// referenceRank es la definición directa: ventana de lookback+1 ruedas hasta when, sin los tickers con huecos.
 func referenceRank(p *model.Prices, tickers []string, when time.Time, lookback int) ([]Ranked, bool) {
 	rows := 0
 	for _, d := range p.Dates {
@@ -131,7 +134,6 @@ func TestHoldReturnIsEqualWeightMean(t *testing.T) {
 	if _, _, _, ok := m.HoldReturn([]string{"A"}, dates[0], dates[0]); ok {
 		t.Fatal("una sola rueda no tiene retorno")
 	}
-	// fechas que no son ruedas: del sábado al lunes siguiente
 	sat := dateutil.MustParse("2024-01-06")
 	if _, _, _, ok := m.HoldReturn([]string{"A"}, sat, sat.AddDate(0, 0, 2)); ok {
 		t.Fatal("sin ruedas en el rango")
@@ -197,7 +199,7 @@ func TestSkipDaysMovesTheWindowBack(t *testing.T) {
 			t.Fatalf("%s: %v vs %v", r.Ticker, r.Return, want)
 		}
 	}
-	short := testutil.MakePrices("2024-01-01", "2024-03-29", 2) // 64 ruedas
+	short := testutil.MakePrices("2024-01-01", "2024-03-29", 2)
 	ms := NewMatrix(short)
 	if _, ok := ms.Returns(short.Tickers, short.Dates[short.Rows()-1], 63, 0); !ok {
 		t.Fatal("64 ruedas alcanzan sin skip")

@@ -1,3 +1,7 @@
+// Orquesta el cálculo cuantitativo: ranking final, cobertura, exclusiones y portafolio de Markowitz.
+//
+// Fecha: 2026-11-19
+
 package quant
 
 import (
@@ -20,10 +24,8 @@ import (
 	"top3/internal/yahoo"
 )
 
-// Num es un número que en JSON sale como null cuando es NaN o infinito (JSON no los admite).
 type Num float64
 
-// MarshalJSON escribe null para NaN e infinitos.
 func (n Num) MarshalJSON() ([]byte, error) {
 	if f := float64(n); math.IsNaN(f) || math.IsInf(f, 0) {
 		return []byte("null"), nil
@@ -31,7 +33,6 @@ func (n Num) MarshalJSON() ([]byte, error) {
 	return json.Marshal(float64(n))
 }
 
-// UnmarshalJSON lee null como NaN.
 func (n *Num) UnmarshalJSON(b []byte) error {
 	if string(b) == "null" {
 		*n = Num(math.NaN())
@@ -45,7 +46,6 @@ func (n *Num) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// RankRow es una acción del ranking final con sus scores, indicadores y el peso de Markowitz (solo las del top).
 type RankRow struct {
 	Rank            int            `json:"rank"`
 	Ticker          string         `json:"ticker"`
@@ -78,7 +78,6 @@ type RankRow struct {
 	Weight          Num            `json:"weight"`
 }
 
-// Settings son los parámetros con los que se calculó el modelo.
 type Settings struct {
 	TopN          int                `json:"top_n"`
 	VolTarget     float64            `json:"vol_target"`
@@ -93,14 +92,12 @@ type Settings struct {
 	HealthWeights map[string]float64 `json:"health_weights"`
 }
 
-// Excluded son las acciones que quedaron fuera de cada score por falta de datos.
 type Excluded struct {
 	NoMomentum     []string `json:"sin_momentum"`
 	NoFundamentals []string `json:"sin_datos_financieros"`
 	NoTechnical    []string `json:"sin_datos_tecnicos"`
 }
 
-// Coverage dice cuántas acciones tienen cada score y cuáles quedaron fuera.
 type Coverage struct {
 	Universe  int      `json:"universe"`
 	Momentum  int      `json:"momentum"`
@@ -110,21 +107,18 @@ type Coverage struct {
 	Excluded  Excluded `json:"excluded"`
 }
 
-// MarkowitzTicker es el retorno esperado y la volatilidad de una de las acciones del top.
 type MarkowitzTicker struct {
 	Ticker    string `json:"ticker"`
 	ExpReturn Num    `json:"exp_return"`
 	Vol       Num    `json:"vol"`
 }
 
-// MarkowitzOut es el resultado de Markowitz sobre el top.
 type MarkowitzOut struct {
 	Tickers []MarkowitzTicker `json:"tickers"`
 	Frontier
 	Main string `json:"main"`
 }
 
-// Payload es el resultado del modelo por score, tal como se guarda en SQLite y lo lee el frontend.
 type Payload struct {
 	AsOf        string       `json:"as_of"`
 	GeneratedAt string       `json:"generated_at"`
@@ -134,7 +128,6 @@ type Payload struct {
 	Markowitz   MarkowitzOut `json:"markowitz"`
 }
 
-// Inputs son los datos con los que se calcula el modelo.
 type ComputeInput struct {
 	Prices  *model.Prices
 	Tickers []string
@@ -152,10 +145,8 @@ type scored struct {
 	score       float64
 }
 
-// Compute arma el ranking por score y Markowitz sobre los mejores.
 func Compute(in ComputeInput, cfg config.Config) (*Payload, error) {
 	q := cfg.Quant
-	// Sin la rueda de hoy si aún no cerró: de las acciones actuales no tiene ningún precio y anularía el momentum de todas
 	prices := in.Prices.Reindex(in.Tickers).TrimEmptyTail()
 	tickers := in.Tickers
 	n := len(tickers)
@@ -182,7 +173,6 @@ func Compute(in ComputeInput, cfg config.Config) (*Payload, error) {
 	}
 	health := HealthScore(rows, hw)
 
-	// técnico: sobre todas las acciones del índice (el ranking porcentual las incluye a todas)
 	o := repo.OHLCVFrames{High: in.OHLCV.High, Low: in.OHLCV.Low, Close: in.OHLCV.Close, Volume: in.OHLCV.Volume}
 	techs := make([]TechnicalScore, n)
 	for i, t := range tickers {
@@ -233,7 +223,6 @@ func Compute(in ComputeInput, cfg config.Config) (*Payload, error) {
 	logx.Infof("Acciones: %d en el índice, %d con momentum, %d con datos financieros, %d con datos técnicos, %d en el ranking final",
 		n, nMom, nHealth, nTech, len(ranked))
 
-	// Markowitz sobre las mejores
 	topN := q.TopN
 	top := make([]string, topN)
 	sectors := make([]string, topN)
@@ -246,7 +235,6 @@ func Compute(in ComputeInput, cfg config.Config) (*Payload, error) {
 	if err != nil {
 		return nil, err
 	}
-	// los pesos de la tabla son los de la primera cartera disponible: máximo retorno o, si no se alcanza el riesgo, Sharpe
 	weight := map[string]float64{}
 	for _, w := range frontier.Portfolios[0].Weights {
 		weight[w.Ticker] = w.Weight
@@ -335,7 +323,6 @@ func coverage(tickers []string, momentum []float64, health []Health, withData []
 	return c
 }
 
-// Run actualiza precios, OHLCV y datos financieros, calcula los scores y Markowitz y guarda el resultado en SQLite.
 func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, useCache bool) (*Payload, error) {
 	d, err := db.Open(cfg.Data.DBPath)
 	if err != nil {
@@ -343,7 +330,6 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, useCache bool)
 	}
 	defer d.Close()
 	dl := &market.Downloader{Y: y, Workers: cfg.Data.SharesWorkers}
-	// El modelo mira las últimas DayYear+1 ruedas de precios (momentum y Markowitz): no hace falta cargar el histórico de 12 años.
 	md, err := dl.RefreshRecent(ctx, d, cfg, useCache, dateutil.Today(), 450, DayYear+1)
 	if err != nil {
 		return nil, err
@@ -376,7 +362,6 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, useCache bool)
 	return payload, nil
 }
 
-// Summary es el texto de la consola con las mejores acciones.
 func (p *Payload) Summary() []string {
 	lines := []string{fmt.Sprintf("Ranking al %s (%d acciones). Las mejores:", p.AsOf, p.Coverage.Ranked)}
 	for _, r := range p.Ranking[:min(p.Settings.TopN, len(p.Ranking))] {

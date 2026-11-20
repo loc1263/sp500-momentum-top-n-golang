@@ -1,3 +1,7 @@
+// Pruebas del guardado y la restauración del historial en archivo.
+//
+// Fecha: 2026-11-19
+
 package history
 
 import (
@@ -50,7 +54,6 @@ func TestSaveRestoreRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Base nueva (caché perdido): se restaura y al guardar de nuevo el archivo queda idéntico.
 	cfg.Data.DBPath = filepath.Join(filepath.Dir(cfg.Data.DBPath), "nueva.db")
 	if err := Restore(cfg); err != nil {
 		t.Fatal(err)
@@ -79,7 +82,7 @@ func TestSaveRestoreRoundTrip(t *testing.T) {
 func TestRestoreKeepsExistingHistory(t *testing.T) {
 	cfg := testConfig(t)
 	seed(t, cfg)
-	if err := Restore(cfg); err != nil { // la base ya tiene historial: no duplica
+	if err := Restore(cfg); err != nil {
 		t.Fatal(err)
 	}
 	d, _ := db.Open(cfg.Data.DBPath)

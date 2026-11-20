@@ -1,3 +1,8 @@
+// Pruebas del reporte: agrupación de corridas, base vacía, modelo con salto, selecciones actuales,
+// rotación y mitades del período.
+//
+// Fecha: 2026-11-19
+
 package report
 
 import (
@@ -62,13 +67,13 @@ func build(t *testing.T, d *sql.DB, cfg config.Config) *Report {
 }
 
 func TestBuildReportGroupsLatestRuns(t *testing.T) {
-	d, cfg := openTemp(t), config.Default() // periods_years = [3, 5, 10]
+	d, cfg := openTemp(t), config.Default()
 	seedRun(t, d, 4, 0, nil, 5)
 	seedRun(t, d, 4, 1, nil, 5)
-	seedRun(t, d, 4, 0, nil, 5) // repetida: gana la última
+	seedRun(t, d, 4, 0, nil, 5)
 	seedRun(t, d, 6, 0, 10.0, 5)
 	seedRun(t, d, 4, 0, nil, 10)
-	seedRun(t, d, 4, 0, nil, 7) // período fuera de [backtest] periods_years: se ignora
+	seedRun(t, d, 4, 0, nil, 7)
 	r := build(t, d, cfg)
 
 	if len(r.Backtest) != 2 || r.Backtest[0].MinCapBillions != nil || *r.Backtest[1].MinCapBillions != 10 {
@@ -182,14 +187,13 @@ func TestActualWithoutPreviousRunHasNoChanges(t *testing.T) {
 }
 
 func TestHalvesSplitThePeriodAtItsMidpoint(t *testing.T) {
-	// 4 años: capital x2 en la primera mitad y x1,5 en la segunda
 	cal := Calendar{Offset: 0, StartDate: "2020-01-01", EndDate: "2024-01-01", Equity: []EquityPoint{
 		{"2020-01-01", 1000}, {"2022-01-01", 2000}, {"2024-01-01", 3000}}}
 	h, err := halves([]Calendar{cal})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h.Split != "2021-12-31" { // mitad exacta del período
+	if h.Split != "2021-12-31" {
 		t.Fatalf("split %s", h.Split)
 	}
 	if math.Abs(*h.First-(math.Sqrt(2)-1)) > 0.01 || math.Abs(*h.Second-(math.Sqrt(1.5)-1)) > 0.01 {
@@ -232,23 +236,23 @@ func TestTrackingMeasuresOpenAndClosedSelections(t *testing.T) {
 	if err != nil || len(got) != 2 {
 		t.Fatalf("got %+v err %v", got, err)
 	}
-	opened, closed := got[0], got[1] // de la más nueva a la más vieja
+	opened, closed := got[0], got[1]
 	if opened.AsOf != "2024-06-03" || opened.Closed || math.Abs(opened.Return-((15.0/14-1)+(18.0/20-1))/2) > 1e-12 {
 		t.Fatalf("abierta: %+v", opened)
 	}
-	if closed.AsOf != "2024-01-02" || !closed.Closed || closed.Until != "2024-05-02" || math.Abs(closed.Return-(0.2-0.1)/2) > 1e-12 { // solo hasta que terminó la tenencia de 4 meses
+	if closed.AsOf != "2024-01-02" || !closed.Closed || closed.Until != "2024-05-02" || math.Abs(closed.Return-(0.2-0.1)/2) > 1e-12 {
 		t.Fatalf("cerrada: %+v", closed)
 	}
 }
 
 func TestTrackingSkipsTheSelectionOfTheLastDayAndEmptyData(t *testing.T) {
 	d := openTemp(t)
-	if got, _ := tracking(d, 0, 4); len(got) != 0 { // sin precios
+	if got, _ := tracking(d, 0, 4); len(got) != 0 {
 		t.Fatalf("got %+v", got)
 	}
 	seedClosePrices(t, d, []any{"AAA", "2024-01-02", 10.0})
 	seedTrack(t, d, "2024-01-02", [2]any{"AAA", 10.0})
-	if got, _ := tracking(d, 0, 4); len(got) != 0 { // todavía no pasó ni un día
+	if got, _ := tracking(d, 0, 4); len(got) != 0 {
 		t.Fatalf("got %+v", got)
 	}
 }

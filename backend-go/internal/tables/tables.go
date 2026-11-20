@@ -1,4 +1,6 @@
 // Package tables arma las tablas de resultados como (encabezados, filas) de texto; las usa la consola.
+//
+// Fecha: 2026-11-19
 package tables
 
 import (
@@ -12,13 +14,11 @@ import (
 	"top3/internal/numfmt"
 )
 
-// Table son los encabezados y las filas de una tabla de texto.
 type Table struct {
 	Headers []string
 	Rows    [][]string
 }
 
-// HistoryTable es una fila por rebalanceo: el Top N, el capital al momento de entrar y su % vs. el capital inicial.
 func HistoryTable(history []model.Rebalance, equity []model.EquityPoint, initialCapital float64) Table {
 	capByDate := make(map[string]float64, len(equity))
 	for _, e := range equity {
@@ -64,7 +64,6 @@ func HistoryTable(history []model.Rebalance, equity []model.EquityPoint, initial
 		row = append(row, capitalCols(capByDate[h.Date])...)
 		rows = append(rows, row)
 	}
-	// Fila final: valor al cierre del último tramo
 	if len(equity) > 0 {
 		last := equity[len(equity)-1]
 		if day := dateutil.Day(last.Date); !seen[day] {
@@ -76,7 +75,6 @@ func HistoryTable(history []model.Rebalance, equity []model.EquityPoint, initial
 	return Table{headers, rows}
 }
 
-// CalendarTable es una fila por calendario de arranque: primer rebalanceo, rebalanceos y resultado.
 func CalendarTable(calendars []model.Calendar) Table {
 	t := Table{Headers: []string{"Primer rebalanceo", "Rebalanceos", "Capital final (US$)", "Retorno total", "CAGR"}}
 	for _, c := range calendars {
@@ -86,7 +84,6 @@ func CalendarTable(calendars []model.Calendar) Table {
 	return t
 }
 
-// byMedianCAGR ordena los plazos de mejor a peor CAGR mediano (estable).
 func byMedianCAGR(terms []model.Term) []model.Term {
 	out := append([]model.Term(nil), terms...)
 	med := func(t model.Term) float64 { m, _, _ := t.CagrStats(); return m }
@@ -114,7 +111,6 @@ func withCalendars(terms []model.Term) []model.Term {
 	return out
 }
 
-// SweepTable compara los plazos, de mejor a peor CAGR mediano; los plazos sin resultado van al final.
 func SweepTable(terms []model.Term) Table {
 	t := Table{Headers: []string{"Plazo", "Rebalanceos", "Capital final (US$)", "Retorno total", "CAGR",
 		"Calendarios", "CAGR mediana", "CAGR mín", "CAGR máx"}}
@@ -133,7 +129,6 @@ func SweepTable(terms []model.Term) Table {
 	return t
 }
 
-// SweepBest es la línea del mejor plazo ("" si ninguno tiene resultado).
 func SweepBest(terms []model.Term, initialCapital float64) string {
 	ranked := byMedianCAGR(withBase(terms))
 	if len(ranked) == 0 {
@@ -146,7 +141,6 @@ func SweepBest(terms []model.Term, initialCapital float64) string {
 		numfmt.Comma(t.Base().FinalCapital, 2), numfmt.Pct(t.Base().TotalReturnPct))
 }
 
-// OffsetsTable es la sensibilidad al arranque: mediana y rango del CAGR y del capital final de cada plazo.
 func OffsetsTable(terms []model.Term) Table {
 	t := Table{Headers: []string{"Plazo", "Calendarios", "CAGR mediana", "CAGR mín", "CAGR máx",
 		"Capital mediana", "Capital mín", "Capital máx"}}
@@ -160,7 +154,6 @@ func OffsetsTable(terms []model.Term) Table {
 	return t
 }
 
-// OffsetsBest es la línea del mejor plazo por CAGR mediano ("" si ninguno tiene calendarios).
 func OffsetsBest(terms []model.Term) string {
 	ranked := byMedianCAGR(withCalendars(terms))
 	if len(ranked) == 0 {
@@ -172,7 +165,6 @@ func OffsetsBest(terms []model.Term) string {
 		t.Months, numfmt.Pct(median), numfmt.Pct(low), numfmt.Pct(high), len(t.Calendars))
 }
 
-// ModelsTable es el modelo de siempre (N-0) frente al skip-month (N-1), plazo por plazo: CAGR mediano y capital mediano.
 func ModelsTable(terms, skipTerms []model.Term) Table {
 	t := Table{Headers: []string{"Plazo", "CAGR N-0", "CAGR N-1", "Dif. CAGR", "Capital N-0", "Capital N-1", "Gana"}}
 	skipByMonths := map[int]model.Term{}

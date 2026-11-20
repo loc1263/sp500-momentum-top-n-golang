@@ -1,5 +1,7 @@
 // Package repo es el acceso a SQLite: un archivo por agregado. Todo el SQL del proyecto vive acá (y el esquema en
 // internal/db). Las funciones leen todas las filas antes de seguir: la base usa una sola conexión.
+//
+// Fecha: 2026-11-19
 package repo
 
 import (
@@ -12,7 +14,6 @@ import (
 	"top3/internal/model"
 )
 
-// SavePrices guarda precios en formato largo (INSERT OR REPLACE).
 func SavePrices(d *sql.DB, rows []model.PriceRow) error {
 	return db.Tx(d, func(tx *sql.Tx) error {
 		st, err := tx.Prepare("INSERT OR REPLACE INTO prices (ticker, date, close) VALUES (?, ?, ?)")
@@ -29,23 +30,19 @@ func SavePrices(d *sql.DB, rows []model.PriceRow) error {
 	})
 }
 
-// ClearPrices borra todos los precios.
 func ClearPrices(d *sql.DB) error {
 	_, err := d.Exec("DELETE FROM prices")
 	return err
 }
 
-// DeletePricesBefore borra los precios anteriores a day (YYYY-MM-DD) y devuelve cuántas filas.
 func DeletePricesBefore(d *sql.DB, day string) (int64, error) {
 	return rowsAffected(d.Exec("DELETE FROM prices WHERE date < ?", day))
 }
 
-// ForgetNoDataBefore olvida los tickers sin datos consultados hasta day inclusive (ya vencieron: se volverían a pedir igual).
 func ForgetNoDataBefore(d *sql.DB, day string) (int64, error) {
 	return rowsAffected(d.Exec("DELETE FROM no_data_tickers WHERE checked <= ?", day))
 }
 
-// DeletePriceTickers borra todos los precios de los tickers.
 func DeletePriceTickers(d *sql.DB, tickers []string) error {
 	return db.Tx(d, func(tx *sql.Tx) error {
 		for _, t := range tickers {
@@ -57,13 +54,11 @@ func DeletePriceTickers(d *sql.DB, tickers []string) error {
 	})
 }
 
-// HasPrices dice si hay algún precio guardado.
 func HasPrices(d *sql.DB) bool {
 	var one int
 	return d.QueryRow("SELECT 1 FROM prices LIMIT 1").Scan(&one) == nil
 }
 
-// LastDates es {ticker: último día con precio}.
 func LastDates(d *sql.DB) (map[string]string, error) {
 	rows, err := d.Query("SELECT ticker, MAX(date) FROM prices GROUP BY ticker")
 	if err != nil {
@@ -81,14 +76,12 @@ func LastDates(d *sql.DB) (map[string]string, error) {
 	return out, rows.Err()
 }
 
-// LatestPriceDate es el último día con algún precio ("" si no hay).
 func LatestPriceDate(d *sql.DB) (string, error) {
 	var v sql.NullString
 	err := d.QueryRow("SELECT MAX(date) FROM prices").Scan(&v)
 	return v.String, err
 }
 
-// ClosesOnOrBefore es {ticker: último cierre en day o antes} en una sola consulta; los tickers sin precios no figuran.
 func ClosesOnOrBefore(d *sql.DB, tickers []string, day string) (map[string]float64, error) {
 	if len(tickers) == 0 {
 		return map[string]float64{}, nil
@@ -117,7 +110,6 @@ func ClosesOnOrBefore(d *sql.DB, tickers []string, day string) (map[string]float
 	return out, rows.Err()
 }
 
-// StoredSince son los cierres guardados desde since, por ticker y fecha.
 func StoredSince(d *sql.DB, since string) (map[[2]string]float64, error) {
 	rows, err := d.Query("SELECT ticker, date, close FROM prices WHERE date >= ?", since)
 	if err != nil {
@@ -152,7 +144,6 @@ func readMatrix(rows *sql.Rows) (*model.Prices, error) {
 	return model.FromRows(long), nil
 }
 
-// PriceMatrixSince son los cierres desde start como matriz (fechas x tickers).
 func PriceMatrixSince(d *sql.DB, start string) (*model.Prices, error) {
 	rows, err := d.Query("SELECT date, ticker, close FROM prices WHERE date >= ?", start)
 	if err != nil {
@@ -161,7 +152,6 @@ func PriceMatrixSince(d *sql.DB, start string) (*model.Prices, error) {
 	return readMatrix(rows)
 }
 
-// PriceMatrix son todos los cierres como matriz (fechas x tickers).
 func PriceMatrix(d *sql.DB) (*model.Prices, error) {
 	rows, err := d.Query("SELECT date, ticker, close FROM prices")
 	if err != nil {
@@ -170,7 +160,6 @@ func PriceMatrix(d *sql.DB) (*model.Prices, error) {
 	return readMatrix(rows)
 }
 
-// KnownNoData son los tickers que Yahoo dijo hace menos de ttlDays días que no existen o están dados de baja.
 func KnownNoData(d *sql.DB, ttlDays int) (map[string]bool, error) {
 	out := map[string]bool{}
 	if ttlDays <= 0 {
@@ -192,7 +181,6 @@ func KnownNoData(d *sql.DB, ttlDays int) (map[string]bool, error) {
 	return out, rows.Err()
 }
 
-// RememberNoData anota los tickers sin datos de esta descarga y olvida los que ahora sí tienen.
 func RememberNoData(d *sql.DB, gone []string, withData []string) error {
 	today := db.Today()
 	return db.Tx(d, func(tx *sql.Tx) error {
@@ -210,13 +198,11 @@ func RememberNoData(d *sql.DB, gone []string, withData []string) error {
 	})
 }
 
-// OHLCVRow es una fila de la tabla ohlcv.
 type OHLCVRow struct {
 	Ticker, Date                   string
 	Open, High, Low, Close, Volume float64
 }
 
-// ReplaceOHLCV reemplaza todo el OHLCV guardado.
 func ReplaceOHLCV(d *sql.DB, rows []OHLCVRow) error {
 	return db.Tx(d, func(tx *sql.Tx) error {
 		if _, err := tx.Exec("DELETE FROM ohlcv"); err != nil {
@@ -236,12 +222,10 @@ func ReplaceOHLCV(d *sql.DB, rows []OHLCVRow) error {
 	})
 }
 
-// OHLCVFrames son los campos del OHLCV como matrices fecha x ticker.
 type OHLCVFrames struct {
 	Open, High, Low, Close, Volume *model.Prices
 }
 
-// LoadOHLCV lee el OHLCV guardado como una matriz por campo.
 func LoadOHLCV(d *sql.DB) (OHLCVFrames, error) {
 	rows, err := d.Query("SELECT ticker, date, open, high, low, close, volume FROM ohlcv")
 	if err != nil {
@@ -269,7 +253,6 @@ func LoadOHLCV(d *sql.DB) (OHLCVFrames, error) {
 	if err := rows.Err(); err != nil {
 		return OHLCVFrames{}, err
 	}
-	// Las cinco matrices comparten fechas y tickers para poder recorrerlas juntas.
 	f := OHLCVFrames{Close: model.FromRows(closeRows)}
 	align := func(r []model.PriceRow) *model.Prices {
 		p := model.FromRows(r)
@@ -279,7 +262,6 @@ func LoadOHLCV(d *sql.DB) (OHLCVFrames, error) {
 	return f, nil
 }
 
-// alignTo devuelve p con las mismas filas y columnas que ref (lo que falte, NaN).
 func alignTo(p, ref *model.Prices) *model.Prices {
 	out := model.NewPrices(ref.Dates, ref.Tickers)
 	rowOf := make(map[int64]int, p.Rows())
@@ -300,7 +282,6 @@ func alignTo(p, ref *model.Prices) *model.Prices {
 	return out
 }
 
-// nullable guarda un NaN como NULL (SQLite no tiene NaN).
 func nullable(v float64) any {
 	if math.IsNaN(v) {
 		return nil

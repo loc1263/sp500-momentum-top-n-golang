@@ -1,3 +1,8 @@
+// Pruebas de estadística: ranking por percentil con empates, infinitos, desvío, media y variación
+// porcentual.
+//
+// Fecha: 2026-11-19
+
 package stats
 
 import (
@@ -11,7 +16,6 @@ func almost(a, b float64) bool { return math.Abs(a-b) < 1e-12 || (math.IsNaN(a) 
 func TestRankPctAveragesTiesAndKeepsNaN(t *testing.T) {
 	nan := math.NaN()
 	got := RankPct([]float64{10, 30, nan, 20, 20}, true)
-	// válidos: 10 (1), 20 y 20 (2 y 3 -> 2.5), 30 (4); se divide por 4
 	want := []float64{0.25, 1, nan, 0.625, 0.625}
 	for i := range want {
 		if !almost(got[i], want[i]) {
@@ -30,7 +34,7 @@ func TestRankPctHandlesInfinities(t *testing.T) {
 	if !almost(got[0], 0.25) || !almost(got[2], 0.5) || !almost(got[1], 0.875) || !almost(got[3], 0.875) {
 		t.Fatalf("got %v", got)
 	}
-	asc := RankPct([]float64{1, inf}, false) // ascending=False: el infinito es el mejor puesto
+	asc := RankPct([]float64{1, inf}, false)
 	if !almost(asc[1], 0.5) || !almost(asc[0], 1) {
 		t.Fatalf("got %v", asc)
 	}

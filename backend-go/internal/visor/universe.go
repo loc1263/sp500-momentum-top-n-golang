@@ -1,3 +1,7 @@
+// Universos del Visor: acciones y ETFs, datos estáticos de cotización y detección de ETFs apalancados.
+//
+// Fecha: 2026-11-19
+
 package visor
 
 import (
@@ -10,18 +14,15 @@ import (
 	"top3/internal/yahoo"
 )
 
-// usExchanges son las bolsas de EE. UU. del screener de Yahoo (los demás símbolos son cotizaciones en el exterior).
 var usExchanges = map[string]bool{"NMS": true, "NGM": true, "NCM": true, "NYQ": true, "ASE": true, "PCX": true, "BTS": true}
 
-// Static son los datos de un instrumento que no salen de su historial de precios.
 type Static struct {
 	Name         string
-	MarketCap    *float64 // US$ (acciones)
-	AUM          *float64 // US$ (ETFs)
-	ExpenseRatio *float64 // % anual (ETFs)
+	MarketCap    *float64
+	AUM          *float64
+	ExpenseRatio *float64
 }
 
-// StaticOf arma los datos de un instrumento con lo que traen el screener y la cotización de Yahoo.
 func StaticOf(symbol, longName, shortName string, marketCap float64, raw map[string]any) Static {
 	s := Static{Name: longName}
 	if s.Name == "" {
@@ -42,8 +43,6 @@ func StaticOf(symbol, longName, shortName string, marketCap float64, raw map[str
 	return s
 }
 
-// screen baja del screener de Yahoo los símbolos de EE. UU. que cumplen q, de mayor a menor por sortField, de a 250 por página. limit
-// <= 0 trae todos. Los símbolos repetidos se descartan.
 func screen(ctx context.Context, y *yahoo.Client, q gohoo.Query, quoteType, sortField string, limit int) (map[string]Static, []string, error) {
 	statics := map[string]Static{}
 	var order []string
@@ -75,19 +74,16 @@ func screen(ctx context.Context, y *yahoo.Client, q gohoo.Query, quoteType, sort
 	return statics, order, nil
 }
 
-// StockUniverse son las acciones de EE. UU. con capitalización mayor a capMin (US$), de mayor a menor.
 func StockUniverse(ctx context.Context, y *yahoo.Client, capMin float64) (map[string]Static, []string, error) {
 	q := gohoo.And(gohoo.Eq("region", "us"), gohoo.Gt("intradaymarketcap", capMin))
 	return screen(ctx, y, q, "EQUITY", "intradaymarketcap", 0)
 }
 
-// ETFUniverse son los top ETFs de EE. UU. por AUM, con AUM mayor a aumMin (US$).
 func ETFUniverse(ctx context.Context, y *yahoo.Client, top int, aumMin float64) (map[string]Static, []string, error) {
 	q := gohoo.And(gohoo.Eq("region", "us"), gohoo.Gt("fundnetassets", aumMin))
 	return screen(ctx, y, q, "ETF", "fundnetassets", top)
 }
 
-// QuoteStatics completa los datos de los símbolos que el screener no trajo (los ETFs pedidos a mano) con /v7/finance/quote.
 func QuoteStatics(ctx context.Context, y *yahoo.Client, symbols []string) (map[string]Static, error) {
 	qs, err := y.Quotes(ctx, symbols)
 	out := map[string]Static{}
@@ -97,17 +93,13 @@ func QuoteStatics(ctx context.Context, y *yahoo.Client, symbols []string) (map[s
 	return out, err
 }
 
-// Palabras que delatan un ETF apalancado o inverso (se buscan en el nombre y la categoría).
 var (
 	leverPlain = regexp.MustCompile(`\b[1-9](\.\d+)?x\b|leveraged|inverse|\bbear\b|\bdaily (2|3)x\b`)
 	leverUltra = regexp.MustCompile(`\bultra(pro|short)?\b`)
 	leverShort = regexp.MustCompile(`\bshort\b`)
-	// Tras "short": renta fija corta, no apalancada ("Short-Term Bond", "Short Duration"...).
-	shortSafe = []string{"term", "duration", "maturity", "bond", "income", "treasury", "govern"}
+	shortSafe  = []string{"term", "duration", "maturity", "bond", "income", "treasury", "govern"}
 )
 
-// IsLeveraged dice si un ETF es apalancado o inverso, por su nombre y su categoría. "Ultra-Short Bond", "Ultrashort Bond" o "Short
-// Duration" son renta fija corta, no apalancados.
 func IsLeveraged(name, category string) bool {
 	text := strings.ToLower(name + " " + category)
 	if leverPlain.MatchString(text) {
@@ -127,12 +119,10 @@ func IsLeveraged(name, category string) bool {
 	return false
 }
 
-// shortAfter dice si rest empieza con "-short" o " short".
 func shortAfter(rest string) bool {
 	return followedBy(rest, []string{"short"})
 }
 
-// followedBy dice si rest empieza con un separador ("-" o " ") y luego alguna de las palabras (como prefijo).
 func followedBy(rest string, words []string) bool {
 	if len(rest) < 2 || (rest[0] != '-' && rest[0] != ' ') {
 		return false

@@ -1,3 +1,7 @@
+// Obtiene las acciones en circulación y calcula las capitalizaciones de mercado.
+//
+// Fecha: 2026-11-19
+
 package market
 
 import (
@@ -18,8 +22,6 @@ import (
 	"top3/internal/repo"
 )
 
-// FetchShares baja las acciones en circulación actuales de los tickers: primero en lotes por el endpoint de cotizaciones y,
-// para los que ese no trae, de a uno por quoteSummary. Los que Yahoo no informa no figuran en el resultado.
 func (dl *Downloader) FetchShares(ctx context.Context, tickers []string) map[string]float64 {
 	out := map[string]float64{}
 	if len(tickers) == 0 {
@@ -58,9 +60,6 @@ func (dl *Downloader) FetchShares(ctx context.Context, tickers []string) map[str
 	return out
 }
 
-// EnsureShares son las acciones en circulación (actuales) de los tickers. Las guardadas hace menos de shares_ttl_days días
-// se reutilizan (cambian por trimestre, no a diario); con --no-cache se vuelven a pedir. known son datos ya obtenidos en
-// esta corrida (no se vuelven a pedir, tampoco con --no-cache).
 func (dl *Downloader) EnsureShares(ctx context.Context, d *sql.DB, tickers []string, useCache bool, s config.Data,
 	known map[string]float64) (map[string]float64, error) {
 	cutoff := dateutil.Day(time.Now().AddDate(0, 0, -s.SharesTTLDays))
@@ -69,7 +68,7 @@ func (dl *Downloader) EnsureShares(ctx context.Context, d *sql.DB, tickers []str
 		return nil, err
 	}
 	shares := map[string]float64{}
-	noInfo := map[string]bool{} // los que Yahoo ya dijo hoy que no informa: se reintentan mañana, no en cada corrida
+	noInfo := map[string]bool{}
 	if useCache {
 		noInfo = loadNoShares(d)
 	}
@@ -109,8 +108,6 @@ func (dl *Downloader) EnsureShares(ctx context.Context, d *sql.DB, tickers []str
 	return shares, nil
 }
 
-// noSharesKey es la clave de meta con los tickers sin dato de acciones: "YYYY-MM-DD|T1,T2,...". Solo vale el día en que se
-// anotó.
 const noSharesKey = "shares_missing"
 
 func loadNoShares(d *sql.DB) map[string]bool {
@@ -146,7 +143,6 @@ func saveNoShares(d *sql.DB, before map[string]bool, missing []string) {
 	}
 }
 
-// AddMarketCaps agrega a cada rebalanceo la capitalización aprox. de sus selecciones: precio de esa fecha × acciones actuales.
 func AddMarketCaps(histories [][]model.Rebalance, prices *model.Prices, shares map[string]float64) {
 	for _, history := range histories {
 		for i := range history {
@@ -162,7 +158,7 @@ func AddMarketCaps(histories [][]model.Rebalance, prices *model.Prices, shares m
 				if !ok || row < 0 {
 					continue
 				}
-				if px := prices.LastValid(j, row); px == px { // no NaN
+				if px := prices.LastValid(j, row); px == px {
 					if sh, ok := shares[p.Ticker]; ok {
 						caps[p.Ticker] = px * sh
 					}

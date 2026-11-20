@@ -1,3 +1,7 @@
+// Resolutor de programación cuadrática usado por la optimización de portafolio.
+//
+// Fecha: 2026-11-19
+
 package quant
 
 import (
@@ -5,19 +9,17 @@ import (
 	"math"
 )
 
-// qp es un programa cuadrático convexo:  min ½ xᵀHx + cᵀx  sujeto a  Ax = b,  Gx ≤ h.
 type qp struct {
-	H [][]float64 // n x n, simétrica semidefinida positiva
+	H [][]float64
 	c []float64
-	A [][]float64 // p x n (puede ser vacía)
+	A [][]float64
 	b []float64
-	G [][]float64 // m x n
+	G [][]float64
 	h []float64
 }
 
 var errNoConverge = errors.New("el optimizador no convergió")
 
-// solveLinear resuelve M x = rhs por eliminación gaussiana con pivoteo parcial (los sistemas son de decenas de filas).
 func solveLinear(m [][]float64, rhs []float64) ([]float64, error) {
 	n := len(rhs)
 	a := make([][]float64, n)
@@ -94,7 +96,6 @@ func dot(a, b []float64) float64 {
 	return s
 }
 
-// maxStep es el mayor paso α ∈ (0, 1] con v + α dv ≥ 0.
 func maxStep(v, dv []float64) float64 {
 	alpha := 1.0
 	for i := range v {
@@ -105,8 +106,6 @@ func maxStep(v, dv []float64) float64 {
 	return alpha
 }
 
-// solve resuelve el programa con un método de puntos interiores primal-dual (predictor-corrector de Mehrotra) que parte de x0
-// (no hace falta que sea factible). Devuelve el óptimo con tolerancia ≈ 1e-10 o un error si no converge (problema infactible).
 func (q *qp) solve(x0 []float64) ([]float64, error) {
 	n, p, m := len(q.c), len(q.A), len(q.G)
 	x := append([]float64(nil), x0...)
@@ -139,7 +138,6 @@ func (q *qp) solve(x0 []float64) ([]float64, error) {
 			return x, nil
 		}
 
-		// matriz de Newton reducida: [H + GᵀDG, Aᵀ; A, 0]
 		size := n + p
 		K := make([][]float64, size)
 		for i := range K {

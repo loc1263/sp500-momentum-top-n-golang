@@ -1,3 +1,8 @@
+// Pruebas de la salida por consola: alineación de tablas, ajuste de ancho, banner, color de celdas y
+// resumen del backtest.
+//
+// Fecha: 2026-11-19
+
 package console
 
 import (

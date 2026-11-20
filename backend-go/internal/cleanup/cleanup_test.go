@@ -1,3 +1,7 @@
+// Pruebas de la limpieza: poda de archivos de salida, de corridas y de datos vencidos.
+//
+// Fecha: 2026-11-19
+
 package cleanup
 
 import (
@@ -30,7 +34,7 @@ func TestPruneOutputFilesCountsDaysFromTheNewestReport(t *testing.T) {
 	for _, n := range names {
 		touch(t, filepath.Join(dir, n))
 	}
-	doomed, err := PruneOutputFiles(dir, 3) // conserva 18, 19 y 20 de abril (desde el más reciente, no desde hoy)
+	doomed, err := PruneOutputFiles(dir, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +71,7 @@ func TestPruneStaleDataDeletesOnlyWhatExpired(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer d.Close()
-	cfg := config.Default() // history_years 12, shares_ttl 30, fundamentals_ttl 7, no_data_ttl 30
+	cfg := config.Default()
 	today := time.Date(2026, 10, 24, 0, 0, 0, 0, time.UTC)
 	must := func(q string, args ...any) {
 		if _, err := d.Exec(q, args...); err != nil {

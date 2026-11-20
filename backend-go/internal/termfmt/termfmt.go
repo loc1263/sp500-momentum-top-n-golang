@@ -1,4 +1,6 @@
 // Package termfmt es el formato de terminal: ancho máximo de línea y paleta de colores ANSI.
+//
+// Fecha: 2026-11-19
 package termfmt
 
 import (
@@ -7,7 +9,6 @@ import (
 	"unicode/utf8"
 )
 
-// MaxWidth es el ancho máximo de una línea de la consola: más ancho se desborda y se corta feo.
 const MaxWidth = 130
 
 const (
@@ -24,15 +25,10 @@ const (
 
 var ansi = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
-// VisibleLen es el largo de text en caracteres, sin contar las secuencias de color.
 func VisibleLen(text string) int { return utf8.RuneCountInString(ansi.ReplaceAllString(text, "")) }
 
-// Color envuelve text en los códigos dados.
 func Color(text string, codes ...string) string { return strings.Join(codes, "") + text + Reset }
 
-// Wrap parte text en líneas de hasta width caracteres, cortando en espacios. Las líneas siguientes a la primera se
-// sangran con indent (si es nil, la sangría de la línea original + 4). Un texto que ya trae colores no se parte: el color
-// abierto en una línea quedaría sin cerrar en la otra (quien llama parte primero y pinta después).
 func Wrap(text string, width int, indent *string) []string {
 	var out []string
 	for _, line := range strings.Split(text, "\n") {
@@ -50,7 +46,6 @@ func Wrap(text string, width int, indent *string) []string {
 	return out
 }
 
-// WrapDefault es Wrap con el ancho máximo y la sangría por defecto.
 func WrapDefault(text string) []string { return Wrap(text, MaxWidth, nil) }
 
 func wrapLine(line string, width int, subsequent string) []string {
@@ -59,7 +54,7 @@ func wrapLine(line string, width int, subsequent string) []string {
 	var lines []string
 	cur := lead
 	curLen := utf8.RuneCountInString(lead)
-	empty := true // la línea en curso todavía no tiene palabras
+	empty := true
 	flush := func() {
 		lines = append(lines, cur)
 		cur, curLen, empty = subsequent, utf8.RuneCountInString(subsequent), true
@@ -84,7 +79,6 @@ func wrapLine(line string, width int, subsequent string) []string {
 				flush()
 				continue
 			}
-			// la palabra sola no entra: se corta
 			room := max(width-curLen, 1)
 			runes := []rune(w)
 			cur += string(runes[:min(room, len(runes))])
@@ -102,7 +96,6 @@ func wrapLine(line string, width int, subsequent string) []string {
 	return lines
 }
 
-// Truncate recorta text a width caracteres con «…» al final si no entraba.
 func Truncate(text string, width int) string {
 	runes := []rune(text)
 	if len(runes) <= width {
@@ -111,7 +104,6 @@ func Truncate(text string, width int) string {
 	return string(runes[:max(width-1, 0)]) + "…"
 }
 
-// FitWidths reduce los anchos de columna (de la más ancha a la más angosta) hasta que la tabla entre en limit.
 func FitWidths(widths []int, separator, limit, minimum int) []int {
 	w := append([]int(nil), widths...)
 	total := func() int {
@@ -136,7 +128,6 @@ func FitWidths(widths []int, separator, limit, minimum int) []int {
 	return w
 }
 
-// PadLeft y PadRight rellenan con espacios hasta width caracteres (no bytes).
 func PadLeft(s string, width int) string {
 	if n := width - utf8.RuneCountInString(s); n > 0 {
 		return strings.Repeat(" ", n) + s

@@ -1,5 +1,7 @@
 // Package actual calcula el Top N actual del S&P 500: las acciones que más subieron en los últimos N meses (el criterio
 // del backtest, aplicado a hoy), con sus suplentes y la rotación contra la corrida anterior.
+//
+// Fecha: 2026-11-19
 package actual
 
 import (
@@ -10,12 +12,10 @@ import (
 	"top3/internal/dateutil"
 )
 
-// Changes son los tickers que entran, salen y se mantienen (en el orden del ranking actual / anterior).
 type Changes struct {
 	Entered, Exited, Kept []string
 }
 
-// DiffPicks compara la selección anterior con la actual.
 func DiffPicks(previous, current []string) Changes {
 	in := func(list []string, t string) bool {
 		for _, x := range list {
@@ -41,7 +41,6 @@ func DiffPicks(previous, current []string) Changes {
 	return c
 }
 
-// NextRebalance es el primer inicio de mes de la grilla anchor + k x months que no es anterior a today.
 func NextRebalance(anchor string, months int, today time.Time) (time.Time, error) {
 	a, err := dateutil.Parse(anchor)
 	if err != nil {
@@ -61,7 +60,6 @@ func orDash(list []string) string {
 	return strings.Join(list, ", ")
 }
 
-// Describe son las líneas de texto para la consola: qué entró y salió y cuándo toca rebalancear.
 func Describe(previousAsOf string, changes Changes, anchor string, months int, today time.Time) []string {
 	var lines []string
 	switch {

@@ -1,3 +1,7 @@
+// Pruebas del formato numérico: separador decimal, signo y porcentaje.
+//
+// Fecha: 2026-11-19
+
 package numfmt
 
 import (
@@ -16,7 +20,7 @@ func TestComma(t *testing.T) {
 		{1000, 0, "1,000"},
 		{-12345.5, 1, "-12,345.5"},
 		{0.004, 2, "0.00"},
-		{-0.004, 2, "-0.00"}, // redondeo a cero con signo
+		{-0.004, 2, "-0.00"},
 		{15000, 2, "15,000.00"},
 	}
 	for _, c := range cases {

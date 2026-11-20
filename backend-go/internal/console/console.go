@@ -1,4 +1,6 @@
 // Package console es la salida por terminal: tablas de texto y resúmenes de cada tipo de corrida.
+//
+// Fecha: 2026-11-19
 package console
 
 import (
@@ -19,27 +21,22 @@ import (
 	"top3/internal/termfmt"
 )
 
-// Out es donde se imprime (la salida estándar; los tests la reemplazan).
 var Out io.Writer = os.Stdout
 
 var signedPercent = regexp.MustCompile(`^[+-]\d[\d,]*(\.\d+)?%$`)
 
 func useColor() bool { return Out == io.Writer(os.Stdout) && logx.ColorEnabled(os.Stdout) }
 
-// Println imprime una línea sin partirla.
 func Println(args ...any) { fmt.Fprintln(Out, args...) }
 
-// Line imprime text partiendo las líneas más largas que termfmt.MaxWidth, para que no se desborden.
 func Line(text string) {
 	for _, l := range termfmt.WrapDefault(text) {
 		fmt.Fprintln(Out, l)
 	}
 }
 
-// Linef es Line con formato.
 func Linef(format string, args ...any) { Line(fmt.Sprintf(format, args...)) }
 
-// Banner imprime un título entre marcos de `=` de `width` caracteres.
 func Banner(text string, width int) {
 	frame := strings.Repeat("=", width)
 	if useColor() {
@@ -53,8 +50,6 @@ func Banner(text string, width int) {
 	fmt.Fprintln(Out, frame)
 }
 
-// paintCell pinta las ganancias en verde y las pérdidas en rojo (celdas con forma de porcentaje con signo); el 0 queda
-// sin color.
 func paintCell(cell, padded string) string {
 	c := strings.TrimSpace(cell)
 	if signedPercent.MatchString(c) {
@@ -69,8 +64,6 @@ func paintCell(cell, padded string) string {
 	return padded
 }
 
-// Table imprime una tabla de texto: las columnas desde rightFrom van alineadas a la derecha. Si no entra en el ancho
-// máximo se recortan (con «…») las columnas más anchas. Encabezado en negrita; ganancias en verde y pérdidas en rojo.
 func Table(headers []string, rows [][]string, rightFrom int) {
 	widths := make([]int, len(headers))
 	for i, h := range headers {
@@ -118,16 +111,13 @@ func Table(headers []string, rows [][]string, rightFrom int) {
 	}
 }
 
-// PrintTable imprime una tabla de tables.Table.
 func PrintTable(t tables.Table, rightFrom int) { Table(t.Headers, t.Rows, rightFrom) }
 
-// History imprime el historial de selecciones.
 func History(history []model.Rebalance, equity []model.EquityPoint, initialCapital float64) {
 	t := tables.HistoryTable(history, equity, initialCapital)
 	PrintTable(t, len(t.Headers)-2)
 }
 
-// Run son los datos de una corrida del backtest que la consola muestra.
 type Run struct {
 	Start, End     time.Time
 	Years          float64
@@ -135,7 +125,6 @@ type Run struct {
 	TopN           int
 }
 
-// Backtest imprime el resultado del backtest normal de un plazo.
 func Backtest(r Run, term model.Term, minCapB float64) {
 	base := term.Base()
 	n := term.Months
@@ -163,7 +152,6 @@ func Backtest(r Run, term model.Term, minCapB float64) {
 	}
 }
 
-// Sweep imprime la comparación de plazos.
 func Sweep(r Run, terms []model.Term, minCapB float64) {
 	if minCapB != 0 {
 		Linef("\nUniverso: %s (cap. aprox. ≥ US$ %s B)", market.Label(minCapB), numfmt.G(minCapB))
@@ -190,7 +178,6 @@ func universeSuffix(minCapB float64) string {
 	return " - " + market.Label(minCapB)
 }
 
-// Models imprime el modelo N-0 frente al skip-month N-1.
 func Models(r Run, terms, skipTerms []model.Term, minCapB float64) {
 	Banner(fmt.Sprintf("MODELO N-0 vs. SKIP-MONTH N-1 - %s a %s%s", dateutil.Day(r.Start), dateutil.Day(r.End), universeSuffix(minCapB)), 85)
 	PrintTable(tables.ModelsTable(terms, skipTerms), 1)
@@ -198,7 +185,6 @@ func Models(r Run, terms, skipTerms []model.Term, minCapB float64) {
 		"CAGR y capital = mediana de los calendarios de arranque.")
 }
 
-// Offsets imprime la sensibilidad al arranque.
 func Offsets(r Run, terms []model.Term, minCapB float64) {
 	Banner(fmt.Sprintf("SENSIBILIDAD AL ARRANQUE - %s a %s%s", dateutil.Day(r.Start), dateutil.Day(r.End), universeSuffix(minCapB)), 85)
 	PrintTable(tables.OffsetsTable(terms), 1)
@@ -213,7 +199,6 @@ func Offsets(r Run, terms []model.Term, minCapB float64) {
 	}
 }
 
-// Actual imprime el Top actual.
 func Actual(topN, months int, minCapB float64, asOf string, windowStart string, windowRows int, headers []string,
 	rows [][]string, weight float64, notes []string, alternates [][]string) {
 	Banner(fmt.Sprintf("TOP %d S&P 500%s - últimos %d meses", topN, market.Title(minCapB), months), 70)

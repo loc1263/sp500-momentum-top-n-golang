@@ -1,9 +1,11 @@
 // Package etfq es la sección de ETFs por gestora: los ETFs de iShares, Vanguard, SPDR (State Street), Invesco y Schwab con su
 // calidad (costos y liquidez), sin backtest.
 //
-// Es independiente de la sección de ETFs de Vanguard (package etf), de la que solo reutiliza el cálculo del score de momentum
+// Reutiliza el cálculo del score de momentum de package etf
 // (etf.ScoreEtfs, con los plazos, la referencia libre de riesgo y la volatilidad mínima de [etfq]). Todo sale de Yahoo Finance:
 // la lista de cada gestora, el TER y el AUM vienen del screener (filtrado por fundFamily) y la categoría de Info.
+//
+// Fecha: 2026-11-19
 package etfq
 
 import (
@@ -30,19 +32,16 @@ import (
 	"top3/internal/yahoo"
 )
 
-// NoCategory es la categoría de los ETFs para los que Yahoo no informa ninguna.
 const NoCategory = "Sin categoría"
 
-// Fund es un ETF de una gestora. TER en % anual y AUM en US$ (nil = Yahoo no lo informa).
 type Fund struct {
 	Ticker string
 	Name   string
-	Issuer string // nombre para mostrar de la gestora
+	Issuer string
 	TER    *float64
 	AUM    *float64
 }
 
-// FetchFamily baja del screener de Yahoo todos los ETFs de EE. UU. de una gestora, con su TER y su AUM.
 func FetchFamily(ctx context.Context, y *yahoo.Client, family config.Family) ([]Fund, error) {
 	label := family.Label
 	if label == "" {
@@ -88,8 +87,6 @@ func fundOf(q gohoo.ScreenQuote, issuer string) (Fund, bool) {
 	return f, true
 }
 
-// LoadFunds baja los ETFs de todas las gestoras. Una que falla o no devuelve nada se avisa (TOP-GES-001) y se sigue con las
-// demás. Un ticker que aparece en dos gestoras queda con la primera. Devuelve también los ETFs listados por gestora.
 func LoadFunds(ctx context.Context, y *yahoo.Client, families []config.Family) ([]Fund, map[string]int) {
 	var funds []Fund
 	seen := map[string]bool{}
@@ -123,7 +120,6 @@ func errOrEmpty(err error) any {
 	return "Yahoo no devolvió ETFs"
 }
 
-// FetchCategories baja de Yahoo la categoría (Morningstar) de cada ETF; los que no la informan quedan fuera del mapa.
 func FetchCategories(ctx context.Context, y *yahoo.Client, tickers []string, workers int) map[string]string {
 	results := gohoo.ParallelMap(ctx, tickers, workers, func(ctx context.Context, ticker string) (string, error) {
 		info, err := y.Info(ctx, ticker)
@@ -141,12 +137,10 @@ func FetchCategories(ctx context.Context, y *yahoo.Client, tickers []string, wor
 	return out
 }
 
-// Options son los parámetros de Run.
 type Options struct {
-	TopN int // 0 = [etfq] top_n
+	TopN int
 }
 
-// Run baja las listas de las gestoras, calcula momentum y calidad, guarda el resultado en SQLite y lo imprime.
 func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, opt Options) error {
 	q := cfg.Etfq
 	topN := opt.TopN
@@ -167,13 +161,12 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, opt Options) e
 	for i, f := range funds {
 		tickers[i] = f.Ticker
 	}
-	start := dateutil.Day(endDay.AddDate(0, 0, -(horizons[len(horizons)-1]*31 + 60))) // margen para las ruedas necesarias
+	start := dateutil.Day(endDay.AddDate(0, 0, -(horizons[len(horizons)-1]*31 + 60)))
 	dl := &market.Downloader{Y: y, Workers: cfg.Data.SharesWorkers}
 	prices, err := dl.DownloadRecent(ctx, tickers, start, dateutil.Day(endDay.AddDate(0, 0, 1)), cfg.Data.BatchSize)
 	if err != nil {
 		return err
 	}
-	// Sin las ruedas finales sin cierre (Yahoo tarda en publicar la de hoy): dejarían con hueco a casi todos los ETFs
 	prices = prices.Slice(0, sort.Search(prices.Rows(), func(i int) bool { return prices.Dates[i].After(endDay) })).TrimEmptyTail().DropAllNaN()
 	if prices.Rows() == 0 {
 		return errs.GesEmpty.Errorf("Yahoo no devolvió precios.")
@@ -216,8 +209,6 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, opt Options) e
 	return nil
 }
 
-// resolveCategories devuelve la categoría de cada ticker: la guardada si es reciente y, si no, la que informa Yahoo ahora (que se
-// guarda). Los que Yahoo no informa quedan con NoCategory (sin guardar, para reintentar en la próxima corrida).
 func resolveCategories(ctx context.Context, d *sql.DB, y *yahoo.Client, tickers []string, ttlDays, workers int) (map[string]string, error) {
 	saved, err := repo.EtfqCategories(d)
 	if err != nil {
@@ -245,7 +236,7 @@ func resolveCategories(ctx context.Context, d *sql.DB, y *yahoo.Client, tickers 
 			if c, ok := fresh[t]; ok {
 				out[t] = c
 			} else if s, ok := saved[t]; ok {
-				out[t] = s[0] // Yahoo no respondió: mejor la categoría vieja que ninguna
+				out[t] = s[0]
 			} else {
 				missing = append(missing, t)
 			}
@@ -258,7 +249,6 @@ func resolveCategories(ctx context.Context, d *sql.DB, y *yahoo.Client, tickers 
 	return out, nil
 }
 
-// present imprime el ranking final por consola.
 func present(p Payload, topN int) {
 	console.Banner(fmt.Sprintf("ETFS POR GESTORA - momentum y calidad (%d rankeados)", len(p.Rows)), 100)
 	console.Line("Datos al cierre del " + p.AsOf)

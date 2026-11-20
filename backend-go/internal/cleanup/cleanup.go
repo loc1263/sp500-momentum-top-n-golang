@@ -3,6 +3,8 @@
 // Qué NO se borra, a propósito: actual_picks/actual_alternates y etf_scores (de ahí salen el calendario de rebalanceo, los
 // cambios contra la corrida anterior y el seguimiento de cada selección; pesan muy poco) y los precios dentro de la ventana
 // de [data] history_years (el backtest los necesita).
+//
+// Fecha: 2026-11-19
 package cleanup
 
 import (
@@ -22,25 +24,18 @@ import (
 	"top3/internal/repo"
 )
 
-// Los reportes terminan en _YYYYMMDD.html.
 var fileDay = regexp.MustCompile(`_(\d{8})\.html$`)
 
-// Report es lo que se borró.
 type Report struct {
 	Files []string
-	// Rows son las filas borradas por concepto, en el orden en que se informan.
-	Rows []Rows
+	Rows  []Rows
 }
 
-// Rows es la cantidad de filas borradas de un concepto.
 type Rows struct {
 	Name string
 	N    int64
 }
 
-// PruneOutputFiles borra los reportes HTML de dir (y sus subcarpetas) de hace más de keepDays días. Los días se cuentan desde
-// el reporte más reciente (no desde hoy) y siempre se conserva al menos ese último día, para que dejar de correr el pipeline
-// una semana no borre todos los reportes.
 func PruneOutputFiles(dir string, keepDays int) ([]string, error) {
 	type dated struct {
 		day  time.Time
@@ -89,8 +84,6 @@ func PruneOutputFiles(dir string, keepDays int) ([]string, error) {
 	return doomed, nil
 }
 
-// PruneStaleData borra de SQLite lo que ya no se va a usar: precios anteriores a la ventana del histórico y datos de caché
-// (acciones en circulación, datos financieros, tickers sin datos) más viejos que su propia vigencia.
 func PruneStaleData(d *sql.DB, cfg config.Config, today time.Time) ([]Rows, error) {
 	data := cfg.Data
 	before := func(days int) string { return today.AddDate(0, 0, -days).Format("2006-01-02") }
@@ -114,8 +107,6 @@ func PruneStaleData(d *sql.DB, cfg config.Config, today time.Time) ([]Rows, erro
 	return out, nil
 }
 
-// Run es la limpieza completa: reportes HTML, corridas viejas del backtest y datos vencidos; luego compacta la base.
-// keepDays = 0 usa los de la configuración.
 func Run(cfg config.Config, keepDays int) (Report, error) {
 	var rep Report
 	files, err := PruneOutputFiles(cfg.Output.Dir, firstNonZero(keepDays, cfg.Output.KeepDays))
@@ -140,7 +131,7 @@ func Run(cfg config.Config, keepDays int) (Report, error) {
 	}
 	for _, r := range rep.Rows {
 		if r.N > 0 {
-			if _, err := d.Exec("VACUUM"); err != nil { // devuelve el espacio al disco; fuera de transacción
+			if _, err := d.Exec("VACUUM"); err != nil {
 				return rep, err
 			}
 			break
