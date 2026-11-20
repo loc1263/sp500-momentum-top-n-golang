@@ -374,8 +374,7 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 | `[tickers.aliases]` | `VIEJO = "NUEVO"` | 6 renombres | Unifica símbolos renombrados |
 | `[universe]` | `min_cap_billions` | `10` | Umbral de `--large-cap` (miles de millones de US$) |
 | | `sweep_min_cap_billions` | `[0, 10, 200]` | Universos que corre `--sweep` por defecto (0 = índice completo) |
-| `[output]` | `dir`, `keep_days`, `*_subdir`, `*_prefix` | | Reservadas; no se generan reportes HTML. `dir` y `keep_days` solo sirven para limpiar archivos viejos |
-| | `frontend_data` | `"output/report.json"` | JSON de datos (Top actual, ETFs, modelo por score y backtest) que lee `topwx site` |
+| `[output]` | `report_json` | `"output/report.json"` | JSON de datos (Top actual, ETFs, modelo por score y backtest) que lee `topwx site` |
 | | `history_file` | `"history/history.json"` | Historial del Top actual, suplentes y ETFs, versionado en git (ver [Historial en JSON](#historial-en-json)); `""` = desactivado |
 | | `log_dir` | `"log"` | Carpeta de los logs |
 | | `backtest_log`, `actual_log`, `etfq_log`, `quant_log` | `topwx_*.log` | Nombres de los archivos de log |
@@ -403,7 +402,7 @@ incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]
 
 ### Reportes
 
-El backend en Go no genera reportes HTML: los resultados se ven en la web y por consola.
+El backend en Go no genera reportes HTML: los resultados se ven en el sitio (`topwx site`) y por consola.
 
 ### Consola
 

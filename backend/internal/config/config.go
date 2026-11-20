@@ -65,25 +65,17 @@ type Simulation struct {
 }
 
 type Output struct {
-	Dir            string `toml:"dir" json:"dir"`
-	KeepDays       int    `toml:"keep_days" json:"keep_days"`
-	BacktestSubdir string `toml:"backtest_subdir" json:"backtest_subdir"`
-	ActualSubdir   string `toml:"actual_subdir" json:"actual_subdir"`
-	BacktestPrefix string `toml:"backtest_prefix" json:"backtest_prefix"`
-	SweepPrefix    string `toml:"sweep_prefix" json:"sweep_prefix"`
-	OffsetsPrefix  string `toml:"offsets_prefix" json:"offsets_prefix"`
-	ActualPrefix   string `toml:"actual_prefix" json:"actual_prefix"`
-	LogDir         string `toml:"log_dir" json:"log_dir"`
-	BacktestLog    string `toml:"backtest_log" json:"backtest_log"`
-	ActualLog      string `toml:"actual_log" json:"actual_log"`
-	EtfqLog        string `toml:"etfq_log" json:"etfq_log"`
-	QuantLog       string `toml:"quant_log" json:"quant_log"`
-	EvaluatorLog   string `toml:"evaluator_log" json:"evaluator_log"`
-	VisorLog       string `toml:"visor_log" json:"visor_log"`
-	ExportLog      string `toml:"export_log" json:"export_log"`
-	PruneLog       string `toml:"prune_log" json:"prune_log"`
-	FrontendData   string `toml:"frontend_data" json:"frontend_data"`
-	HistoryFile    string `toml:"history_file" json:"history_file"`
+	LogDir       string `toml:"log_dir" json:"log_dir"`
+	BacktestLog  string `toml:"backtest_log" json:"backtest_log"`
+	ActualLog    string `toml:"actual_log" json:"actual_log"`
+	EtfqLog      string `toml:"etfq_log" json:"etfq_log"`
+	QuantLog     string `toml:"quant_log" json:"quant_log"`
+	EvaluatorLog string `toml:"evaluator_log" json:"evaluator_log"`
+	VisorLog     string `toml:"visor_log" json:"visor_log"`
+	ExportLog    string `toml:"export_log" json:"export_log"`
+	PruneLog     string `toml:"prune_log" json:"prune_log"`
+	ReportJSON   string `toml:"report_json" json:"report_json"`
+	HistoryFile  string `toml:"history_file" json:"history_file"`
 }
 
 type Family struct {
@@ -189,13 +181,11 @@ func Default() Config {
 		Tickers:    Tickers{Aliases: defaultAliases()},
 		Simulation: Simulation{Months: []int{3, 4, 6, 8, 12}},
 		Output: Output{
-			Dir: "output", KeepDays: 7, BacktestSubdir: "backtest", ActualSubdir: "actual",
-			BacktestPrefix: "topwx_backtest", SweepPrefix: "topwx_sweep", OffsetsPrefix: "topwx_offsets",
-			ActualPrefix: "topwx_actual", LogDir: "log",
+			LogDir:      "log",
 			BacktestLog: "topwx_backtest.log", ActualLog: "topwx_actual.log", EtfqLog: "topwx_etfq.log",
-			QuantLog: "topwx_quant.log", EvaluatorLog: "topwx_evaluator.log", VisorLog: "topwx_visor.log", ExportLog: "export_frontend.log", PruneLog: "topwx_prune.log",
-			FrontendData: "output/report.json",
-			HistoryFile:  "history/history.json",
+			QuantLog: "topwx_quant.log", EvaluatorLog: "topwx_evaluator.log", VisorLog: "topwx_visor.log", ExportLog: "topwx_export.log", PruneLog: "topwx_prune.log",
+			ReportJSON:  "output/report.json",
+			HistoryFile: "history/history.json",
 		},
 		Etfq: Etfq{
 			HorizonsMonths: []int{3, 6, 12}, MinVol: 0.01, RiskFreeTicker: "VUSB",

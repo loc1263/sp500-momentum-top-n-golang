@@ -233,10 +233,6 @@ func normalize(w []float64) []float64 {
 	return out
 }
 
-func Optimize(tickers []string, mu []float64, sigma [][]float64, volTarget, wMax, riskFree float64, sectors []string, sectorMax float64) (Frontier, error) {
-	return OptimizeMin(tickers, mu, sigma, volTarget, wMax, riskFree, sectors, sectorMax, 0, 0)
-}
-
 type solved struct {
 	minVar, maxSharpe, maxReturn []float64
 	minVol, sectorMax            float64

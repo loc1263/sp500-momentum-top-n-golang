@@ -134,11 +134,6 @@ func TestUniverseSelect(t *testing.T) {
 }
 
 func TestUniverseLabels(t *testing.T) {
-	for cap, suffix := range map[float64]string{0: "", 5: "_cap5B", 10: "_largecap", 200: "_megacap"} {
-		if Suffix(cap) != suffix {
-			t.Errorf("Suffix(%g) = %q", cap, Suffix(cap))
-		}
-	}
 	if Label(0) != "índice completo" || Label(200) != "mega-cap" || Label(10) != "large-cap + mega-cap" ||
 		!strings.HasPrefix(Label(5), "cap.") || Title(0) != "" {
 		t.Fatal("etiquetas")

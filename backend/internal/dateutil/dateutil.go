@@ -16,6 +16,7 @@ func Parse(s string) (time.Time, error) {
 	return time.Parse(Layout, s)
 }
 
+// MustParse es Parse para fechas fijas (pruebas); entra en pánico si s no es válida.
 func MustParse(s string) time.Time {
 	t, err := Parse(s)
 	if err != nil {

@@ -149,11 +149,6 @@ func (p *Prices) Slice(from, to int) *Prices {
 	return out
 }
 
-func (p *Prices) Since(day time.Time) *Prices {
-	i := sort.Search(len(p.Dates), func(i int) bool { return !p.Dates[i].Before(day) })
-	return p.Slice(i, p.Rows())
-}
-
 func (p *Prices) TrimEmptyTail() *Prices {
 	end := p.Rows()
 	for end > 0 {

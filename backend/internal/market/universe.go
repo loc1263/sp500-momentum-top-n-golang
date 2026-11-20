@@ -92,18 +92,6 @@ func Label(minCapB float64) string {
 	return fmt.Sprintf("cap. ≥ US$ %g B", minCapB)
 }
 
-func Suffix(minCapB float64) string {
-	switch {
-	case minCapB == 0:
-		return ""
-	case minCapB >= MegaCapB:
-		return "_megacap"
-	case minCapB >= LargeCapB:
-		return "_largecap"
-	}
-	return fmt.Sprintf("_cap%gB", minCapB)
-}
-
 func Title(minCapB float64) string {
 	if minCapB == 0 {
 		return ""

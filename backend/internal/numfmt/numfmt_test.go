@@ -40,9 +40,6 @@ func TestSignedAndPct(t *testing.T) {
 	if Pct(-2.04) != "-2.0%" || Pct(0) != "+0.0%" || Pct(12.34) != "+12.3%" {
 		t.Errorf("Pct: %s %s %s", Pct(-2.04), Pct(0), Pct(12.34))
 	}
-	if Frac(0.1234, true) != "+12.3%" || Frac(0.1234, false) != "12.3%" || Frac(math.NaN(), true) != "n/d" {
-		t.Error("Frac")
-	}
 	if G(4) != "4" || G(0.5) != "0.5" || G(200) != "200" {
 		t.Error("G")
 	}

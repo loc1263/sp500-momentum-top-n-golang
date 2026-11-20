@@ -323,6 +323,7 @@ func NewConstituents(d *sql.DB, aliases map[string]string) (*Constituents, error
 	return c, nil
 }
 
+// NewConstituentsFrom arma una composición en memoria, sin CSV ni base (para pruebas de otros paquetes).
 func NewConstituentsFrom(dates []string, lists [][]string, current []string) *Constituents {
 	return &Constituents{dates: dates, lists: lists, Current: current}
 }

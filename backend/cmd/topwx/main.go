@@ -334,7 +334,7 @@ func runSite(ctx context.Context, args []string) error {
 	f := newFlags("site", "Genera el sitio estático (HTML + CSS + JS plano, sin Node) a partir de los JSON del backend")
 	paths := site.Paths{}
 	f.StringVar(&paths.Visor, "visor", "", "JSON del Visor (default: [visor] output del config)")
-	f.StringVar(&paths.Report, "report", "", "JSON del reporte: Top actual, ETFs y About (default: [output] frontend_data del config)")
+	f.StringVar(&paths.Report, "report", "", "JSON del reporte: Top actual, ETFs y About (default: [output] report_json del config)")
 	f.StringVar(&paths.Evaluator, "evaluator", "", "JSON del evaluador (default: [evaluator] output del config)")
 	out := f.String("out", "../frontend", "Carpeta donde se escribe el sitio")
 	serve := f.String("serve", "", "Después de generar, sirve el sitio en esta dirección (ej. localhost:8080)")
@@ -345,7 +345,7 @@ func runSite(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	for path, def := range map[*string]string{&paths.Visor: cfg.Visor.Output, &paths.Report: cfg.Output.FrontendData, &paths.Evaluator: cfg.Evaluator.Output} {
+	for path, def := range map[*string]string{&paths.Visor: cfg.Visor.Output, &paths.Report: cfg.Output.ReportJSON, &paths.Evaluator: cfg.Evaluator.Output} {
 		if *path == "" {
 			*path = def
 		}
@@ -367,8 +367,8 @@ func runSite(ctx context.Context, args []string) error {
 }
 
 func runPrune(args []string) error {
-	f := newFlags("prune", "Borra reportes, corridas y datos viejos para no llenar el disco")
-	keep := f.Int("keep-days", 0, "Días a conservar de reportes HTML y corridas del backtest (default: [output] keep_days y [data] runs_keep_days del config)")
+	f := newFlags("prune", "Borra corridas del backtest y datos viejos de la base para no llenar el disco")
+	keep := f.Int("keep-days", 0, "Días a conservar de corridas del backtest (default: [data] runs_keep_days del config)")
 	if stop, err := f.parse(args); stop {
 		return err
 	}
@@ -380,7 +380,6 @@ func runPrune(args []string) error {
 	if err != nil {
 		return err
 	}
-	console.Println(fmt.Sprintf("Reportes HTML borrados: %d", len(rep.Files)))
 	for _, r := range rep.Rows {
 		name := r.Name
 		console.Println(fmt.Sprintf("%s: %d filas borradas", strings.ToUpper(name[:1])+name[1:], r.N))

@@ -50,14 +50,4 @@ func Signed(x float64, decimals int) string {
 
 func Pct(x float64) string { return Signed(x, 1) + "%" }
 
-func Frac(x float64, signed bool) string {
-	if math.IsNaN(x) {
-		return "n/d"
-	}
-	if signed {
-		return Signed(x*100, 1) + "%"
-	}
-	return strconv.FormatFloat(x*100, 'f', 1, 64) + "%"
-}
-
 func G(x float64) string { return strconv.FormatFloat(x, 'g', -1, 64) }

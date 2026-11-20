@@ -28,17 +28,16 @@ type tcol struct {
 }
 
 type etfqPage struct {
-	Overview     overview
-	Intro        string
-	Issuers      []etfq.Issuer
-	IssuerNames  []string
-	Categories   []string
-	Cols         []tcol
-	Rows         []trow
-	Total        int
-	NotRanked    int
-	ColSpan      int
-	RiskFreeText string
+	Overview    overview
+	Intro       string
+	Issuers     []etfq.Issuer
+	IssuerNames []string
+	Categories  []string
+	Cols        []tcol
+	Rows        []trow
+	Total       int
+	NotRanked   int
+	ColSpan     int
 }
 
 type overview struct {

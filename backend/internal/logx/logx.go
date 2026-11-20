@@ -144,6 +144,7 @@ func Close() {
 	}
 }
 
+// SetConsole redirige la salida de consola y fija el nivel mínimo (lo usan las pruebas para capturar mensajes; w nil vuelve a stderr).
 func SetConsole(w io.Writer, min int) {
 	mu.Lock()
 	defer mu.Unlock()

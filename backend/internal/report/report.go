@@ -651,7 +651,7 @@ func Export(cfg config.Config) (string, error) {
 	if err := enc.Encode(rep); err != nil {
 		return "", err
 	}
-	path := cfg.Output.FrontendData
+	path := cfg.Output.ReportJSON
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", err
 	}

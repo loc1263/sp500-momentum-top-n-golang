@@ -67,28 +67,16 @@ SATS = "ECHO"
 min_cap_billions = 10
 # Universos que corre --sweep por defecto (sin --large-cap / --min-cap-billions):
 # 0 = índice completo, 10 = large-cap + mega-cap, 200 = mega-cap.
-# Para cada uno se genera el HTML del sweep y el de sensibilidad al arranque (offsets).
 sweep_min_cap_billions = [0, 10, 200]
 
 [output]
-# Carpeta de los reportes HTML (nombre: topwx_backtest_YYYYMMDD.html / topwx_sweep_YYYYMMDD.html)
-dir = "output"
-# Días de reportes HTML que se conservan (los más viejos se borran al final del pipeline o con `topwx prune`)
-keep_days = 7
-# Subcarpetas dentro de dir y prefijos de archivo (se les agrega el sufijo de universo y _YYYYMMDD.html)
-backtest_subdir = "backtest"
-actual_subdir = "actual"
-backtest_prefix = "topwx_backtest"
-sweep_prefix = "topwx_sweep"
-offsets_prefix = "topwx_offsets"
-actual_prefix = "topwx_actual"
 # Logs (nivel DEBUG, se sobrescriben en cada corrida)
 log_dir = "log"
 backtest_log = "topwx_backtest.log"
 actual_log = "topwx_actual.log"
-export_log = "export_frontend.log"
+export_log = "topwx_export.log"
 # JSON con los resultados del día (Top actual, ETFs, modelo por score y backtest); lo lee topwx site
-frontend_data = "output/report.json"
+report_json = "output/report.json"
 # Historial del Top actual y de ETFs (se versiona en git). La base SQLite es solo caché: si no tiene historial, se restaura de aquí
 history_file = "history/history.json"
 
