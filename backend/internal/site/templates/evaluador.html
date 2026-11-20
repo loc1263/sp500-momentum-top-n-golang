@@ -30,7 +30,7 @@
         <thead>
           <tr>
             {{- template "ths" .Cols}}
-            {{- range .CatCols}}<th class="cat" title="{{.Title}}">{{.Title}}<span class="hint" tabindex="0" role="img" aria-label="{{.Why}}" title="{{.Why}}">?</span></th>{{end}}
+            {{- range .CatCols}}<th class="cat" title="{{.Title}}">{{.Title}}{{template "hint" .Why}}</th>{{end}}
           </tr>
         </thead>
         <tbody>{{template "rows" .Rows}}
@@ -48,4 +48,4 @@
 {{end}}
 {{end}}
 
-{{define "scripts"}}<script src="{{.Root}}table.js" defer></script>{{end}}
+{{define "scripts"}}<script src="{{.Root}}pager.js" defer></script><script src="{{.Root}}table.js" defer></script>{{end}}

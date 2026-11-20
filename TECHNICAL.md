@@ -580,20 +580,22 @@ report, cleanup, pipeline...) está en [`backend/README.md`](backend/README.md).
 
 | Archivo | Responsabilidad |
 |---|---|
-| `build.go` | Lee los JSON (`LoadInputs`), arma cada página y copia los archivos estáticos; si falta un JSON, la página lo avisa |
 | `shell.go`, `templates/layout.html` | Cáscara común: encabezado, pestañas en cinco grupos (Momentum, ETFs, Acciones por score, Análisis fundamental y Visor), Home / About / tema, subtítulo y pie. El Lab tiene su propia cáscara |
-| `site.go`, `templates/visor.html`, `static/visor.js` | Visor: filas ya formateadas por Go; el JS filtra por columna, ordena, pagina, marca filas y descarga CSV con los valores crudos incrustados |
+| `site.go`, `build.go` | Paquete y servidor (`Serve`); `build.go` lee los JSON (`LoadInputs`), arma cada página y copia los archivos estáticos; si falta un JSON, la página lo avisa |
+| `visor_page.go`, `visor_format.go`, `templates/visor.html`, `static/visor.js` | Visor: filas ya formateadas por Go; el JS filtra por columna, ordena, pagina, marca filas y descarga CSV con los valores crudos incrustados |
 | `actual_page.go`, `templates/actual.html` | Top actual (Home): un bloque por universo con selector, cambios, suplentes y seguimiento |
 | `etfq_page.go`, `templates/etfq.html` | ETFs por gestora: resumen, filtros y tabla de todos los ETFs |
 | `quant_page.go`, `templates/quant.html` | Modelo por score: cómo se calcula, Markowitz y ranking con tres vistas de columnas |
 | `evaluator_page.go`, `evalfmt.go`, `templates/evaluador.html`, `empresa.html` | Evaluador: listado y una página por empresa (`evaluador/<TICKER>.html`) con minigráficos SVG y pares |
 | `lab_page.go`, `chart.go`, `templates/lab_*.html`, `static/chart.js` | Lab: una página por vista, universo y período (`lab/<vista>-<universo>-<años>.html`); gráficos SVG con cursor y valores |
 | `about_page.go`, `templates/about.html` | About: qué se muestra, conceptos, fuentes y límites |
-| `format.go`, `cells.go` | Formato es-AR (porcentajes, dinero, miles) y color de celdas |
-| `static/table.js` | JS común de las tablas: filtros, búsqueda, orden, paginación, vistas de columnas y selectores. Sin dependencias ni build |
+| `format.go`, `table.go` | Formato es-AR (porcentajes, dinero, miles) y las piezas comunes de las tablas (encabezados, filas, celdas, clases de color) |
+| `static/table.js`, `static/pager.js` | JS común de las tablas: filtros, búsqueda, orden, paginación (`pager.js` también lo usa el Visor), vistas de columnas y selectores. Sin dependencias ni build |
 | `static/site.css`, `static/site.js` | Estilos y tema claro / oscuro |
 
-Los tests están junto al código (`site_test.go`, `pages_test.go`, `lab_test.go`) y generan el sitio con JSON de ejemplo.
+Los tests están junto al código (`visor_test.go`, `pages_test.go`, `lab_test.go`) y generan el sitio con JSON de ejemplo.
+
+**Agregar algo nuevo.** Un comando: una fila en `commands` (`backend/cmd/topwx/main.go`) y su `runX` en `commands.go`. Una página del sitio: un `<nombre>_page.go` que arma los datos, una plantilla en `templates/`, su paso en `build.go` y, si lleva pestaña, una entrada en `tabs` (`shell.go`); las tablas reutilizan `table.go`, `partials.html` y `static/table.js`.
 
 **Tests.** Backend: un archivo de tests por paquete; no usan red (Yahoo se simula con un servidor local) y los datos son
 sintéticos. Los indicadores técnicos, Ledoit-Wolf y Markowitz se comparan contra valores de referencia calculados con herramientas externas.

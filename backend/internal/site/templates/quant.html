@@ -53,10 +53,10 @@
       <thead>
         <tr>
           <th>Ticker</th><th>Empresa</th><th>Sector</th>
-          <th class="r">Score<span class="hint" tabindex="0" role="img" title="Score final, de 0 a 100: promedio de los scores de momentum, salud financiera y técnico.">?</span></th>
-          <th class="r">Retorno esp.<span class="hint" tabindex="0" role="img" title="Retorno anual esperado de la acción: mezcla su retorno de 12 meses con un retorno de largo plazo.">?</span></th>
-          <th class="r">Vol. anual<span class="hint" tabindex="0" role="img" title="Volatilidad anual: cuánto oscila el precio en un año. Más alta = más riesgo.">?</span></th>
-          {{- range .MkHead}}<th class="r">{{.Label}}{{if .Help}}<span class="hint" tabindex="0" role="img" title="{{.Help}}">?</span>{{end}}</th>{{end}}
+          <th class="r">Score{{template "hint" "Score final, de 0 a 100: promedio de los scores de momentum, salud financiera y técnico."}}</th>
+          <th class="r">Retorno esp.{{template "hint" "Retorno anual esperado de la acción: mezcla su retorno de 12 meses con un retorno de largo plazo."}}</th>
+          <th class="r">Vol. anual{{template "hint" "Volatilidad anual: cuánto oscila el precio en un año. Más alta = más riesgo."}}</th>
+          {{- range .MkHead}}<th class="r">{{.Label}}{{if .Help}}{{template "hint" .Help}}{{end}}</th>{{end}}
         </tr>
       </thead>
       <tbody>
@@ -75,7 +75,7 @@
       <tfoot>
         {{- range .MkFoot}}
         <tr>
-          <td colspan="6">{{.Label}}{{if .Help}}<span class="hint" tabindex="0" role="img" title="{{.Help}}">?</span>{{end}}</td>
+          <td colspan="6">{{.Label}}{{if .Help}}{{template "hint" .Help}}{{end}}</td>
           {{- range .Cells}}<td class="r {{.Class}}">{{.Text}}</td>{{end}}
         </tr>
         {{- end}}
@@ -87,7 +87,7 @@
   <div class="wrap narrow">
     <table>
       <thead>
-        <tr><th>Sector</th>{{range .SectorHead}}<th class="r">{{.Label}}{{if .Help}}<span class="hint" tabindex="0" role="img" title="{{.Help}}">?</span>{{end}}</th>{{end}}</tr>
+        <tr><th>Sector</th>{{range .SectorHead}}<th class="r">{{.Label}}{{if .Help}}{{template "hint" .Help}}{{end}}</th>{{end}}</tr>
       </thead>
       <tbody>
         {{- range .SectorRows}}
@@ -129,4 +129,4 @@
 {{end}}
 {{end}}
 
-{{define "scripts"}}<script src="{{.Root}}table.js" defer></script>{{end}}
+{{define "scripts"}}<script src="{{.Root}}pager.js" defer></script><script src="{{.Root}}table.js" defer></script>{{end}}

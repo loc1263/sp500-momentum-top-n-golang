@@ -117,19 +117,7 @@
         th.setAttribute('aria-sort', on ? (state.desc ? 'descending' : 'ascending') : 'none');
         th.querySelector('.arrow').textContent = on ? (state.desc ? ' ▼' : ' ▲') : '';
       });
-      if (pager) renderPager(list.length, pages);
-    }
-
-    function renderPager(total, pages) {
-      pager.hidden = total <= size;
-      if (pager.hidden) return;
-      const p = state.page;
-      const btn = (go, label, aria, off) => `<button type="button" data-go="${go}" aria-label="${aria}"${off ? ' disabled' : ''}>${label}</button>`;
-      pager.innerHTML =
-        `<span class="muted">${p * size + 1}–${Math.min(total, (p + 1) * size)} de ${total}</span>` +
-        `<span class="btns">${btn('first', '«', 'Primera página', p === 0)}${btn('prev', '‹', 'Página anterior', p === 0)}` +
-        `<span class="cur">Página ${p + 1} de ${pages}</span>` +
-        `${btn('next', '›', 'Página siguiente', p >= pages - 1)}${btn('last', '»', 'Última página', p >= pages - 1)}</span>`;
+      if (pager) window.renderPager(pager, { page: state.page, size, total: list.length });
     }
 
     applyView();

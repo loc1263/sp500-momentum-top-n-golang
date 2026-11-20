@@ -33,7 +33,7 @@ type Inputs struct {
 // Paths son las rutas de los JSON que lee LoadInputs.
 type Paths struct{ Visor, Report, Evaluator string }
 
-var staticFiles = []string{"site.css", "site.js", "table.js", "chart.js", "visor.js"}
+var staticFiles = []string{"site.css", "site.js", "pager.js", "table.js", "chart.js", "visor.js"}
 
 func readJSON[T any](path string) (*T, error) {
 	raw, err := os.ReadFile(path)
@@ -257,7 +257,7 @@ func (b *builder) lab(r *report.Report) error {
 	}
 	best := r.Backtest[0]
 	for _, u := range r.Backtest {
-		if capValue2(u) > capValue2(best) {
+		if capOf(u.MinCapBillions) > capOf(best.MinCapBillions) {
 			best = u
 		}
 	}
@@ -267,11 +267,4 @@ func (b *builder) lab(r *report.Report) error {
 	target := labFile("backtest", capKeyOf(best.MinCapBillions), defaultYears(best, r.Settings.BacktestYears, r.Settings))
 	redirect := `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=` + target + `"><a href="` + target + `">Lab</a>`
 	return os.WriteFile(filepath.Join(b.out, "lab.html"), []byte(redirect), 0o644)
-}
-
-func capValue2(u report.Universe) float64 {
-	if u.MinCapBillions == nil {
-		return 0
-	}
-	return *u.MinCapBillions
 }

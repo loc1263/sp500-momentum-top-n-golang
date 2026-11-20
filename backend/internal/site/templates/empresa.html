@@ -19,7 +19,7 @@
     {{- range .Sections}}
     <section class="sec{{if .Wide}} wide{{end}}" aria-labelledby="sec-{{.ID}}">
       <div class="sec-h">
-        <h4 id="sec-{{.ID}}">{{.Title}}<span class="hint" tabindex="0" role="img" aria-label="{{.Why}}" title="{{.Why}}">?</span></h4>
+        <h4 id="sec-{{.ID}}">{{.Title}}{{template "hint" .Why}}</h4>
         <span class="pill {{.Pill.Level}}">{{.Pill.Text}}</span>
       </div>
       {{- if eq .Kind "peers"}}
@@ -36,7 +36,7 @@
           <tbody>
             {{- range .Peers.Rows}}
             <tr>
-              <td>{{.Name}}<span class="hint" tabindex="0" role="img" aria-label="{{.Why}}" title="{{.Why}}">?</span></td>
+              <td>{{.Name}}{{template "hint" .Why}}</td>
               <td class="r me{{if .MineBest}} best{{end}}">{{.Mine}}</td>
               {{- range .Values}}<td class="r{{if .Best}} best{{end}}">{{.Text}}</td>{{end}}
               <td class="r">{{.Median}}</td>
@@ -55,7 +55,7 @@
         {{- range .Metrics}}
         <li>
           <div class="row">
-            <span class="mname">{{.Name}}<span class="hint" tabindex="0" role="img" aria-label="{{.Why}}" title="{{.Why}}">?</span></span>
+            <span class="mname">{{.Name}}{{template "hint" .Why}}</span>
             <span class="mval">{{.Value}}</span>
             <span class="pill {{.Pill.Level}}">{{.Pill.Text}}</span>
           </div>

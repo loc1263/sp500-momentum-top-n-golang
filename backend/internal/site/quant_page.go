@@ -166,12 +166,43 @@ type sectorRow struct {
 }
 
 func newQuantPage(q quantData) quantPage {
-	s, cov, mk := q.Settings, q.Coverage, q.Mk
-	pg := quantPage{AsOf: q.AsOf, Ranked: strconv.Itoa(cov.Ranked), Universe: strconv.Itoa(cov.Universe), TopN: s.TopN, Total: len(q.Ranking)}
-	wDigits := 1
+	pg := quantPage{AsOf: q.AsOf, Ranked: strconv.Itoa(q.Coverage.Ranked), Universe: strconv.Itoa(q.Coverage.Universe), TopN: q.Settings.TopN, Total: len(q.Ranking)}
+	pg.fillNotes(q)
+	pg.fillPortfolios(q)
+	pg.fillSectors(q)
+	pg.fillRanking(q)
+	return pg
+}
+
+// weightDigits son los decimales de los pesos: ninguno si el paso de redondeo es de 1% o más.
+func weightDigits(s quant.Settings) int {
 	if s.WStep >= 0.01 {
-		wDigits = 0
+		return 0
 	}
+	return 1
+}
+
+func weightOf(p quant.Portfolio, ticker string) float64 {
+	for _, w := range p.Weights {
+		if w.Ticker == ticker {
+			return w.Weight
+		}
+	}
+	return 0
+}
+
+func sectorWeightOf(p quant.Portfolio, sector string) float64 {
+	for _, w := range p.Sectors {
+		if w.Sector == sector {
+			return w.Weight
+		}
+	}
+	return 0
+}
+
+// fillNotes arma los textos de «Cómo se calcula» y de Markowitz: pesos del score, restricciones, estimación y avisos.
+func (pg *quantPage) fillNotes(q quantData) {
+	s, mk := q.Settings, q.Mk
 	if len(s.Weights) > 0 {
 		distinct := map[float64]bool{}
 		parts := make([]string, len(s.Weights))
@@ -200,8 +231,12 @@ func newQuantPage(q quantData) quantPage {
 	if !hasMax {
 		pg.NoMaxReturnNote = fmt.Sprintf("No hay cartera de máximo retorno: con estas %d acciones la volatilidad mínima posible es %s, por encima del tope de %s.", s.TopN, share(mk.MinVol, 1), share(s.VolTarget, 0))
 	}
+}
 
-	// Carteras de Markowitz
+// fillPortfolios arma la tabla de las mejores acciones con el peso de cada una en cada cartera de Markowitz.
+func (pg *quantPage) fillPortfolios(q quantData) {
+	s, mk := q.Settings, q.Mk
+	wDigits := weightDigits(s)
 	inputs := map[string]struct{ ret, vol *float64 }{}
 	for _, t := range mk.Tickers {
 		inputs[t.Ticker] = struct{ ret, vol *float64 }{t.ExpReturn, t.Vol}
@@ -210,22 +245,6 @@ func newQuantPage(q quantData) quantPage {
 		pg.MkHead = append(pg.MkHead, mkHead{Label: p.Label, Help: portfolioHelp[p.Key]})
 	}
 	pg.SectorHead = pg.MkHead
-	weightOf := func(p quant.Portfolio, tk string) float64 {
-		for _, w := range p.Weights {
-			if w.Ticker == tk {
-				return w.Weight
-			}
-		}
-		return 0
-	}
-	sectorWeight := func(p quant.Portfolio, sector string) float64 {
-		for _, w := range p.Sectors {
-			if w.Sector == sector {
-				return w.Weight
-			}
-		}
-		return 0
-	}
 	top := q.Ranking
 	if len(top) > s.TopN {
 		top = top[:s.TopN]
@@ -261,7 +280,12 @@ func newQuantPage(q quantData) quantPage {
 		sharpe.Cells = append(sharpe.Cells, mkCell{Text: esNum(p.Sharpe, 2)})
 	}
 	pg.MkFoot = []mkFoot{foot, vol, sharpe}
+}
 
+// fillSectors arma el peso por sector de cada cartera, de mayor a menor en la primera.
+func (pg *quantPage) fillSectors(q quantData) {
+	mk := q.Mk
+	wDigits := weightDigits(q.Settings)
 	seen := map[string]bool{}
 	var names []string
 	for _, p := range mk.Portfolios {
@@ -274,7 +298,7 @@ func newQuantPage(q quantData) quantPage {
 	}
 	sort.SliceStable(names, func(i, j int) bool {
 		if len(mk.Portfolios) > 0 {
-			a, b := sectorWeight(mk.Portfolios[0], names[i]), sectorWeight(mk.Portfolios[0], names[j])
+			a, b := sectorWeightOf(mk.Portfolios[0], names[i]), sectorWeightOf(mk.Portfolios[0], names[j])
 			if a != b {
 				return a > b
 			}
@@ -285,7 +309,7 @@ func newQuantPage(q quantData) quantPage {
 		row := sectorRow{Name: n}
 		for _, p := range mk.Portfolios {
 			c := mkCell{}
-			if w := sectorWeight(p, n); w != 0 {
+			if w := sectorWeightOf(p, n); w != 0 {
 				c.Text = share(w, wDigits)
 				if w >= mk.SectorMax-1e-4 {
 					c.Class = "atcap"
@@ -296,8 +320,11 @@ func newQuantPage(q quantData) quantPage {
 		pg.SectorRows = append(pg.SectorRows, row)
 	}
 	pg.SectorCap = share(mk.SectorMax, 0)
+}
 
-	// Ranking
+// fillRanking arma la tabla del ranking completo con las columnas de las tres vistas.
+func (pg *quantPage) fillRanking(q quantData) {
+	s, cov := q.Settings, q.Coverage
 	note := fmt.Sprintf("Las %d acciones con los tres scores, de mejor a peor score final.", cov.Ranked)
 	for _, x := range []struct {
 		prefix string
@@ -323,15 +350,16 @@ func newQuantPage(q quantData) quantPage {
 	pg.Views = []option{{Value: "ind", Label: "Indicadores", Selected: true}, {Value: "sal", Label: "Salud: score por grupo"}, {Value: "tec", Label: "Técnico: score por grupo"}}
 
 	for _, c := range quantCols {
-		col := tcol{Label: c.Label, Views: c.Views, Help: quantHelp[c.Key], Dir: "asc", AriaSort: "none"}
+		col := tcol{Label: c.Label, Views: c.Views, Help: quantHelp[c.Key], Dir: "asc"}
 		if c.Key != "rank" && c.Key != "ticker" && c.Key != "name" && c.Key != "sector" {
 			col.Num, col.Dir = true, "desc"
 		}
 		if c.Key == "rank" {
-			col.Initial, col.AriaSort, col.Arrow = "asc", "ascending", " ▲"
+			col.Initial = "asc"
 		}
 		pg.Cols = append(pg.Cols, col)
 	}
+	pg.Cols = newCols(pg.Cols)
 	pg.ColSpan = len(pg.Cols)
 	for _, r := range q.Ranking {
 		row := trow{Search: strings.ToLower(r.Ticker + " " + r.Name), Attrs: map[string]string{"sector": r.Sector}}
@@ -345,7 +373,6 @@ func newQuantPage(q quantData) quantPage {
 		}
 		pg.Rows = append(pg.Rows, row)
 	}
-	return pg
 }
 
 func sectorShort(s string) string {

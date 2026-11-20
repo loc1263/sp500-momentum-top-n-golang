@@ -7,25 +7,13 @@ package site
 
 import (
 	"fmt"
-	"html/template"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
 	"topwx/internal/etfq"
 )
-
-// tcol describe un encabezado de tabla ordenable (lo lee table.js).
-type tcol struct {
-	Label    string
-	Num      bool
-	Dir      string // sentido del primer clic: «asc» o «desc»
-	Initial  string // «asc» / «desc» si es el orden con que vienen las filas
-	AriaSort string
-	Views    string // vistas en que se muestra la columna (table.js, data-views)
-	Help     string
-	Arrow    string
-}
 
 type etfqPage struct {
 	Overview    overview
@@ -42,15 +30,6 @@ type etfqPage struct {
 
 type overview struct {
 	AsOf, Listed, IssuerCount, Scored, Excluded, Eligibility, RiskFree string
-}
-
-// trow es una fila de tabla: sus atributos data-* y sus celdas.
-type trow struct {
-	Class  string
-	Href   string // si no está vacío, un clic en la fila navega ahí
-	Search string
-	Attrs  map[string]string // se emiten como data-f-<clave>
-	Cells  []cellView
 }
 
 func newEtfqPage(p etfq.Payload) etfqPage {
@@ -108,13 +87,7 @@ func newEtfqPage(p etfq.Payload) etfqPage {
 	for _, h := range p.Horizons {
 		pg.Cols = append(pg.Cols, tcol{Label: fmt.Sprintf("Ret. %dm", h), Num: true, Dir: "desc"})
 	}
-	for i := range pg.Cols {
-		pg.Cols[i].AriaSort = "none"
-		if pg.Cols[i].Initial != "" {
-			pg.Cols[i].AriaSort = "ascending"
-			pg.Cols[i].Arrow = " ▲"
-		}
-	}
+	pg.Cols = newCols(pg.Cols)
 	pg.ColSpan = len(pg.Cols)
 
 	for _, r := range p.Rows {
@@ -144,10 +117,10 @@ func etfqRow(r etfq.Row, p etfq.Payload, s etfq.Settings) trow {
 		final = cellView{Class: "r", Text: esNum(*r.Final, 1), V: fnum(*r.Final), Strong: true}
 	}
 	terClass, aumClass := "r", "r"
-	if contains(r.Excluded, "ter") {
+	if slices.Contains(r.Excluded, "ter") {
 		terClass += " neg"
 	}
-	if contains(r.Excluded, "aum") {
+	if slices.Contains(r.Excluded, "aum") {
 		aumClass += " neg"
 	}
 	ter := cellView{Class: terClass, Text: nd, V: vOf(r.TER)}
@@ -171,7 +144,7 @@ func etfqRow(r etfq.Row, p etfq.Payload, s etfq.Settings) trow {
 		if x, ok := r.Returns[strconv.Itoa(h)]; ok {
 			v = &x
 		}
-		row.Cells = append(row.Cells, cellView{Class: strings.TrimSpace("r " + signClass(v)), Text: pctFrac(v, 1), V: vOf(v)})
+		row.Cells = append(row.Cells, cellView{Class: numClass(v), Text: pctFrac(v, 1), V: vOf(v)})
 	}
 	return row
 }
@@ -189,37 +162,4 @@ func etfqReason(r etfq.Row, s etfq.Settings) string {
 		}
 	}
 	return strings.Join(parts, " y ")
-}
-
-// fnum es el valor crudo para ordenar (data-v): decimal con punto, sin formato.
-func fnum(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
-
-func vOf(p *float64) string {
-	if p == nil {
-		return ""
-	}
-	return fnum(*p)
-}
-
-func contains(list []string, s string) bool {
-	for _, x := range list {
-		if x == s {
-			return true
-		}
-	}
-	return false
-}
-
-// FAttrs emite los atributos data-f-<clave> de la fila (ordenados) para que table.js los filtre.
-func (r trow) FAttrs() template.HTMLAttr {
-	keys := make([]string, 0, len(r.Attrs))
-	for k := range r.Attrs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	var b strings.Builder
-	for _, k := range keys {
-		fmt.Fprintf(&b, ` data-f-%s="%s"`, k, esc(r.Attrs[k]))
-	}
-	return template.HTMLAttr(b.String())
 }

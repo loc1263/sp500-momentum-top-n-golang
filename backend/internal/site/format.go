@@ -93,3 +93,9 @@ var accents = strings.NewReplacer("á", "a", "é", "e", "í", "i", "ó", "o", "�
 func collateEs(a, b string) int {
 	return strings.Compare(accents.Replace(strings.ToLower(a)), accents.Replace(strings.ToLower(b)))
 }
+
+// Variantes para valores que nunca faltan (float64 en lugar de *float64): porcentaje con signo, clase de color, dinero y entero.
+func pf(v float64, digits int) string { return pctFrac(&v, digits) }
+func sg(v float64) string             { return signClass(&v) }
+func uf(v float64) string             { return usd(&v) }
+func nf(v float64) string             { return esNum(v, 0) }

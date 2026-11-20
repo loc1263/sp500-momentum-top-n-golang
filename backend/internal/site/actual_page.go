@@ -20,11 +20,6 @@ type actualPage struct {
 	Universe []actualView
 }
 
-type option struct {
-	Value, Label string
-	Selected     bool
-}
-
 type actualView struct {
 	Key           string
 	Hidden        bool
@@ -61,7 +56,7 @@ func capKeyOf(min *float64) string {
 func newActualPage(list []report.Actual) actualPage {
 	best := 0
 	for i, a := range list {
-		if capValue(a) > capValue(list[best]) {
+		if capOf(a.MinCapBillions) > capOf(list[best].MinCapBillions) {
 			best = i
 		}
 	}
@@ -71,13 +66,6 @@ func newActualPage(list []report.Actual) actualPage {
 		pg.Universe = append(pg.Universe, newActualView(a, i != best))
 	}
 	return pg
-}
-
-func capValue(a report.Actual) float64 {
-	if a.MinCapBillions == nil {
-		return 0
-	}
-	return *a.MinCapBillions
 }
 
 func newActualView(a report.Actual, hidden bool) actualView {
@@ -121,7 +109,7 @@ func newActualView(a report.Actual, hidden bool) actualView {
 		}
 		v.Tracking = append(v.Tracking, trow{Cells: []cellView{
 			{Text: t.AsOf}, {Text: t.Until}, {Class: "r", Text: strconv.Itoa(t.Days)}, {Text: status},
-			{HTML: template.HTML(strings.Join(picks, ", "))}, {Class: strings.TrimSpace("r " + signClass(&t.Return)), Text: pctFrac(&t.Return, 1)},
+			{HTML: template.HTML(strings.Join(picks, ", "))}, {Class: numClass(&t.Return), Text: pctFrac(&t.Return, 1)},
 		}})
 	}
 	return v
@@ -132,7 +120,7 @@ func pickRow(p report.ActualPick, withWeight bool, weight float64) trow {
 	cells := []cellView{
 		{Text: strconv.Itoa(p.Rank)},
 		{Text: p.Ticker, Href: tickerURL("acciones", p.Ticker), Ext: true},
-		{Class: strings.TrimSpace("r " + signClass(&ret)), Text: pctFrac(&ret, 1)},
+		{Class: numClass(&ret), Text: pctFrac(&ret, 1)},
 		{Class: "r", Text: billions(p.MarketCap)},
 		{Class: "r", Text: usd(&p.Price)},
 	}
@@ -147,4 +135,12 @@ func list(tickers []string) string {
 		return "-"
 	}
 	return strings.Join(tickers, ", ")
+}
+
+// capOf es la capitalización mínima de un universo en miles de millones (0 = índice completo).
+func capOf(min *float64) float64 {
+	if min == nil {
+		return 0
+	}
+	return *min
 }

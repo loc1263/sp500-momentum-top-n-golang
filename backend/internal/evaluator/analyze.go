@@ -144,23 +144,60 @@ func Analyze(r Raw, universe string) Company {
 		r = r.withoutCashAndDebt()
 	}
 
-	pe := r.PE
-	if isNaN(pe) && r.EPS > 0 && r.Price > 0 {
-		pe = r.Price / r.EPS
+	cats := []Category{
+		{ID: "prof", Metrics: profitability(r)}, {ID: "grow", Metrics: growth(r)}, {ID: "cash", Metrics: cashFlow(r)},
+		{ID: "debt", Metrics: leverage(r)}, {ID: "val", Metrics: valuationMetrics(r)}, trend(r),
 	}
-	netMargin := nan
-	if !isNaN(r.NetIncome) && r.Revenue > 0 {
-		netMargin = r.NetIncome / r.Revenue * 100
+	for i := range cats {
+		cats[i].Verdict = metricsVerdict(cats[i].Metrics)
 	}
-	opMargin := nan
-	if !isNaN(r.QOpIncome) && r.QRevenue > 0 {
-		opMargin = r.QOpIncome / r.QRevenue * 100
-	}
-	roe := r.ROE
-	if isNaN(roe) && !isNaN(r.NetIncome) && r.QEquity > 0 {
-		roe = r.NetIncome / r.QEquity * 100
-	}
+	c.Categories = cats
+	c.peerVals = map[string]float64{"pe": peOf(r), "fwd_pe": r.FwdPE, "rev_growth": r.RevGrowth, "net_margin": netMarginOf(r),
+		"op_margin": opMarginOf(r), "roe": roeOf(r), "fcf_margin": fcfMarginOf(r)}
+	c.Verdict = overall(c.Categories)
+	return c
+}
 
+// Valores derivados que usan varias categorías y la comparación con pares. NaN si falta algún dato.
+
+func peOf(r Raw) float64 {
+	if isNaN(r.PE) && r.EPS > 0 && r.Price > 0 {
+		return r.Price / r.EPS
+	}
+	return r.PE
+}
+
+func netMarginOf(r Raw) float64 {
+	if !isNaN(r.NetIncome) && r.Revenue > 0 {
+		return r.NetIncome / r.Revenue * 100
+	}
+	return nan
+}
+
+func opMarginOf(r Raw) float64 {
+	if !isNaN(r.QOpIncome) && r.QRevenue > 0 {
+		return r.QOpIncome / r.QRevenue * 100
+	}
+	return nan
+}
+
+func roeOf(r Raw) float64 {
+	if isNaN(r.ROE) && !isNaN(r.NetIncome) && r.QEquity > 0 {
+		return r.NetIncome / r.QEquity * 100
+	}
+	return r.ROE
+}
+
+func fcfMarginOf(r Raw) float64 {
+	if !isNaN(r.FCF) && r.Revenue > 0 {
+		return r.FCF / r.Revenue * 100
+	}
+	return nan
+}
+
+// profitability: márgenes y retorno sobre patrimonio.
+func profitability(r Raw) []Metric {
+	netMargin, opMargin, roe := netMarginOf(r), opMarginOf(r), roeOf(r)
 	prof := []Metric{
 		m("net_margin", netMargin, ifOK(netMargin, func() Level { return hi(netMargin, 15, 5) })),
 		m("op_margin", opMargin, ifOK(opMargin, func() Level { return hi(opMargin, 15, 5) })),
@@ -169,7 +206,12 @@ func Analyze(r Raw, universe string) Company {
 	if roe > 60 {
 		prof[2].Level, prof[2].Label = Warn, "Muy alto"
 	}
+	return prof
+}
 
+// growth: crecimiento de ingresos y utilidad, y calidad de la utilidad (Forward P/E contra P/E).
+func growth(r Raw) []Metric {
+	pe := peOf(r)
 	quality := nan
 	if pe > 0 && r.FwdPE > 0 {
 		quality = r.FwdPE / pe
@@ -187,16 +229,17 @@ func Analyze(r Raw, universe string) Company {
 	} else if !isNaN(quality) {
 		grow[2].Note = "Forward P/E parecido al P/E: se espera una utilidad estable."
 	}
+	return grow
+}
 
+// cashFlow: flujo de caja libre, su margen, la cobertura de la inversión y el rendimiento sobre la capitalización.
+func cashFlow(r Raw) []Metric {
 	fcf, ocf := r.FCF, r.OCF
 	capex := nan
 	if !isNaN(ocf) && !isNaN(fcf) {
 		capex = ocf - fcf
 	}
-	fcfMargin := nan
-	if !isNaN(fcf) && r.Revenue > 0 {
-		fcfMargin = fcf / r.Revenue * 100
-	}
+	fcfMargin := fcfMarginOf(r)
 	cover := nan
 	if !isNaN(ocf) && capex > 0 {
 		cover = ocf / capex
@@ -209,13 +252,17 @@ func Analyze(r Raw, universe string) Company {
 	if fcf > 0 {
 		fcfLevel = Good
 	}
-	cash := []Metric{
+	return []Metric{
 		m("fcf", fcf, fcfLevel),
 		m("fcf_margin", fcfMargin, ifOK(fcfMargin, func() Level { return hi(fcfMargin, 8, 0) })),
 		m("capex_cover", cover, ifOK(cover, func() Level { return hi(cover, 1.1, 0.8) })),
 		m("fcf_yield", fcfYield, ifOK(fcfYield, func() Level { return hi(fcfYield, 3, 0) })),
 	}
+}
 
+// leverage: deuda neta, años de flujo para pagarla, cobertura de intereses, liquidez y deuda sobre patrimonio.
+func leverage(r Raw) []Metric {
+	ocf := r.OCF
 	netDebt := nan
 	if !isNaN(r.Debt) && !isNaN(r.Cash) {
 		netDebt = r.Debt - r.Cash
@@ -250,14 +297,18 @@ func Analyze(r Raw, universe string) Company {
 	if netDebt < 0 {
 		nd.Label = "Caja neta"
 	}
-	debt := []Metric{
+	return []Metric{
 		nd,
 		m("net_debt_years", netDebtYears, ifOK(netDebtYears, func() Level { return lo(netDebtYears, 1, 3) })),
 		m("interest_cover", interestCover, ifOK(interestCover, func() Level { return hi(interestCover, 8, 3) })),
 		m("current_ratio", r.CurrentRatio, ifOK(r.CurrentRatio, func() Level { return hi(r.CurrentRatio, 1.2, 1) })),
 		m("debt_equity", debtEquity, ifOK(debtEquity, func() Level { return lo(debtEquity, 0.5, 1) })),
 	}
+}
 
+// valuationMetrics: P/E, Forward P/E, potencial hasta el precio objetivo, posición en el rango de 52 semanas, beta, dividendo y opinión.
+func valuationMetrics(r Raw) []Metric {
+	pe := peOf(r)
 	upside := nan
 	if !isNaN(r.Target) && r.Price > 0 {
 		upside = (r.Target/r.Price - 1) * 100
@@ -309,20 +360,7 @@ func Analyze(r Raw, universe string) Company {
 	if r.Rating != "" {
 		ratingM = Metric{ID: "rating", Level: Info, Text: r.Rating}
 	}
-	val := []Metric{peM, fpeM, upM, posM, betaM, divM, ratingM}
-
-	cats := []Category{
-		{ID: "prof", Metrics: prof}, {ID: "grow", Metrics: grow}, {ID: "cash", Metrics: cash},
-		{ID: "debt", Metrics: debt}, {ID: "val", Metrics: val}, trend(r),
-	}
-	for i := range cats {
-		cats[i].Verdict = metricsVerdict(cats[i].Metrics)
-	}
-	c.Categories = cats
-	c.peerVals = map[string]float64{"pe": pe, "fwd_pe": r.FwdPE, "rev_growth": r.RevGrowth, "net_margin": netMargin,
-		"op_margin": opMargin, "roe": roe, "fcf_margin": fcfMargin}
-	c.Verdict = overall(c.Categories)
-	return c
+	return []Metric{peM, fpeM, upM, posM, betaM, divM, ratingM}
 }
 
 func ifOK(v float64, f func() Level) Level {

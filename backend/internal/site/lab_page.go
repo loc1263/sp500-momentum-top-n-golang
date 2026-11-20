@@ -28,11 +28,6 @@ func labFile(view, cap string, years float64) string {
 	return fmt.Sprintf("lab/%s-%s-%s.html", view, cap, fnum(years))
 }
 
-func pf(v float64, digits int) string { return pctFrac(&v, digits) }
-func sg(v float64) string             { return signClass(&v) }
-func uf(v float64) string             { return usd(&v) }
-func nf(v float64) string             { return esNum(v, 0) }
-
 // labCtx es el universo y período de una página del Lab.
 type labCtx struct {
 	Key      string
@@ -198,7 +193,7 @@ func newBtTerm(t report.Term, ctx labCtx, selected bool) btTerm {
 				cells = append(cells, cellView{})
 			}
 		}
-		cells = append(cells, cellView{Class: "r", Text: usd(h.Capital)}, cellView{Class: strings.TrimSpace("r " + signClass(h.Gain)), Text: pctFrac(h.Gain, 1)})
+		cells = append(cells, cellView{Class: "r", Text: usd(h.Capital)}, cellView{Class: numClass(h.Gain), Text: pctFrac(h.Gain, 1)})
 		v.History = append(v.History, trow{Cells: cells})
 	}
 	if n := len(base.Equity); n > 0 && !picked[base.Equity[n-1].Date] {
@@ -208,7 +203,7 @@ func newBtTerm(t report.Term, ctx labCtx, selected bool) btTerm {
 		for i := 0; i < v.HistCols; i++ {
 			cells = append(cells, cellView{})
 		}
-		cells = append(cells, cellView{Class: "r", Text: uf(last.Capital)}, cellView{Class: strings.TrimSpace("r " + sg(last.Capital-ctx.Settings.InitialCapital)), Text: pf(gain, 1)})
+		cells = append(cells, cellView{Class: "r", Text: uf(last.Capital)}, cellView{Class: numClassF(last.Capital - ctx.Settings.InitialCapital), Text: pf(gain, 1)})
 		v.History = append(v.History, trow{Cells: cells})
 	}
 	for _, c := range t.Calendars {
@@ -218,7 +213,7 @@ func newBtTerm(t report.Term, ctx labCtx, selected bool) btTerm {
 		}
 		v.CalRows = append(v.CalRows, trow{Cells: []cellView{
 			{Text: c.StartDate}, {Text: c.EndDate}, {Text: fr}, {Class: "r", Text: strconv.Itoa(c.Rebalances)}, {Class: "r", Text: uf(c.FinalCapital)},
-			{Class: strings.TrimSpace("r " + sg(c.TotalReturn)), Text: pf(c.TotalReturn, 1)}, {Class: strings.TrimSpace("r " + sg(c.CAGR)), Text: pf(c.CAGR, 1)},
+			{Class: numClassF(c.TotalReturn), Text: pf(c.TotalReturn, 1)}, {Class: numClassF(c.CAGR), Text: pf(c.CAGR, 1)},
 		}})
 	}
 	return v
@@ -306,10 +301,10 @@ func newSweepPage(r *report.Report, ctx labCtx) swPage {
 		}
 		pg.Rows = append(pg.Rows, trow{Cells: []cellView{
 			{HTML: template.HTML(fmt.Sprintf("<strong>%d meses</strong>%s", x.months, badges))},
-			{Class: "r typical " + sg(x.s.CagrMedian), Text: pf(x.s.CagrMedian, 1)}, {Class: "r typical", Text: nf(x.s.CapitalMedian)},
-			{Class: "r " + sg(x.s.CagrMin), Text: pf(x.s.CagrMin, 1)}, {Class: "r", Text: nf(x.s.CapitalMin)},
-			{Class: "r " + sg(x.s.CagrMax), Text: pf(x.s.CagrMax, 1)}, {Class: "r", Text: nf(x.s.CapitalMax)},
-			{Class: "r " + sg(x.base.CAGR), Text: pf(x.base.CAGR, 1)}, {Class: "r", Text: nf(x.base.FinalCapital)},
+			{Class: numClassF(x.s.CagrMedian) + " typical", Text: pf(x.s.CagrMedian, 1)}, {Class: "r typical", Text: nf(x.s.CapitalMedian)},
+			{Class: numClassF(x.s.CagrMin), Text: pf(x.s.CagrMin, 1)}, {Class: "r", Text: nf(x.s.CapitalMin)},
+			{Class: numClassF(x.s.CagrMax), Text: pf(x.s.CagrMax, 1)}, {Class: "r", Text: nf(x.s.CapitalMax)},
+			{Class: numClassF(x.base.CAGR), Text: pf(x.base.CAGR, 1)}, {Class: "r", Text: nf(x.base.FinalCapital)},
 		}})
 		counts = append(counts, fmt.Sprintf("%dm: %d", x.months, x.s.Calendars))
 	}
@@ -317,7 +312,7 @@ func newSweepPage(r *report.Report, ctx labCtx) swPage {
 
 	lo, hi := rows[0].s.CagrMin, rows[0].s.CagrMax
 	for _, x := range rows {
-		lo, hi = minF(lo, x.s.CagrMin), maxF(hi, x.s.CagrMax)
+		lo, hi = min(lo, x.s.CagrMin), max(hi, x.s.CagrMax)
 	}
 	span := hi - lo
 	if span == 0 {
@@ -340,20 +335,6 @@ func newSweepPage(r *report.Report, ctx labCtx) swPage {
 	}
 	pg.Chart = chartHTML(series, "Capital (US$)")
 	return pg
-}
-
-func minF(a, b float64) float64 {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func maxF(a, b float64) float64 {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // ---- N-0 vs N-1 ----
@@ -380,39 +361,64 @@ type cmpChart struct {
 	Chart    template.HTML
 }
 
-func newComparePage(r *report.Report, ctx labCtx) cmpPage {
-	pg := cmpPage{Bar: newLabBar("compare", r, ctx), Capital: nf(ctx.Settings.InitialCapital)}
-	type crow struct {
-		months int
-		a, b   report.Term
-		diff   float64
-		winner string
+// termPair junta un plazo del modelo actual (N-0) con el mismo plazo del skip-month (N-1).
+type termPair struct {
+	months int
+	a, b   report.Term
+	diff   float64 // mediana anual de N-1 menos la de N-0
+	winner string  // «N-0», «N-1» o "" si empatan
+}
+
+func pairTerms(ctx labCtx) []termPair {
+	var pairs []termPair
+	if ctx.Skip == nil {
+		return nil
 	}
-	var rows []crow
-	if ctx.Skip != nil {
-		for _, t := range ctx.Period.Terms {
-			for _, x := range ctx.Skip.Terms {
-				if x.Months == t.Months {
-					d := x.Summary.CagrMedian - t.Summary.CagrMedian
-					w := ""
-					switch {
-					case d > 0:
-						w = "N-1"
-					case d < 0:
-						w = "N-0"
-					}
-					rows = append(rows, crow{months: t.Months, a: t, b: x, diff: d, winner: w})
-				}
+	for _, t := range ctx.Period.Terms {
+		for _, x := range ctx.Skip.Terms {
+			if x.Months != t.Months {
+				continue
 			}
+			d := x.Summary.CagrMedian - t.Summary.CagrMedian
+			w := ""
+			switch {
+			case d > 0:
+				w = "N-1"
+			case d < 0:
+				w = "N-0"
+			}
+			pairs = append(pairs, termPair{months: t.Months, a: t, b: x, diff: d, winner: w})
 		}
 	}
-	if len(rows) == 0 {
+	sort.SliceStable(pairs, func(i, j int) bool { return pairs[i].months < pairs[j].months })
+	return pairs
+}
+
+func newComparePage(r *report.Report, ctx labCtx) cmpPage {
+	pg := cmpPage{Bar: newLabBar("compare", r, ctx), Capital: nf(ctx.Settings.InitialCapital)}
+	pairs := pairTerms(ctx)
+	if len(pairs) == 0 {
 		pg.Empty = true
 		return pg
 	}
-	sort.SliceStable(rows, func(i, j int) bool { return rows[i].months < rows[j].months })
+	first := ""
+	for _, x := range pairs {
+		if fr := baseCalendar(x.a).FirstRebalance; fr != nil && *fr > first {
+			first = *fr
+		}
+	}
+	pg.Range1 = periodRange(ctx.Period, first)
+	pg.fillSummary(pairs)
+	pg.fillTerms(pairs)
+	pg.fillHalves(pairs)
+	pg.fillCharts(pairs, ctx.Settings.Months)
+	return pg
+}
+
+// fillSummary arma el titular: qué modelo gana en más plazos y la diferencia media del resultado típico.
+func (pg *cmpPage) fillSummary(pairs []termPair) {
 	winsSkip, winsBase, sum := 0, 0, 0.0
-	for _, x := range rows {
+	for _, x := range pairs {
 		sum += x.diff
 		switch x.winner {
 		case "N-1":
@@ -423,59 +429,69 @@ func newComparePage(r *report.Report, ctx labCtx) cmpPage {
 	}
 	switch {
 	case winsSkip == winsBase:
-		pg.Headline = fmt.Sprintf("Empate: cada modelo gana en %d de %d plazos.", winsBase, len(rows))
+		pg.Headline = fmt.Sprintf("Empate: cada modelo gana en %d de %d plazos.", winsBase, len(pairs))
 	case winsSkip > winsBase:
-		pg.Headline = fmt.Sprintf("El skip-month (N-1) gana en %d de %d plazos.", winsSkip, len(rows))
+		pg.Headline = fmt.Sprintf("El skip-month (N-1) gana en %d de %d plazos.", winsSkip, len(pairs))
 	default:
-		pg.Headline = fmt.Sprintf("El modelo actual (N-0) gana en %d de %d plazos.", winsBase, len(rows))
+		pg.Headline = fmt.Sprintf("El modelo actual (N-0) gana en %d de %d plazos.", winsBase, len(pairs))
 	}
-	avg := sum / float64(len(rows))
+	avg := sum / float64(len(pairs))
 	pg.AvgDiff, pg.AvgClass = pf(avg, 1), sg(avg)
+}
 
-	first := ""
-	for _, x := range rows {
-		if fr := baseCalendar(x.a).FirstRebalance; fr != nil && *fr > first {
-			first = *fr
-		}
-	}
-	pg.Range1 = periodRange(ctx.Period, first)
+func monthsCell(months int) cellView {
+	return cellView{HTML: template.HTML(fmt.Sprintf("<strong>%d meses</strong>", months))}
+}
 
-	halfWinner := func(a, b *float64) string {
-		if a == nil || b == nil || *a == *b {
-			return ""
-		}
-		if *b > *a {
-			return "N-1"
-		}
-		return "N-0"
-	}
-	dash := func(s string) string {
-		if s == "" {
-			return "-"
-		}
-		return s
-	}
-	steadyBase, steadySkip := 0, 0
-	for _, x := range rows {
+func badgeCell(text string) cellView {
+	return cellView{HTML: template.HTML(`<span class="badge good">` + text + `</span>`)}
+}
+
+// fillTerms arma la tabla plazo por plazo: resultado típico, peor y mejor arranque, capital final y ganador.
+func (pg *cmpPage) fillTerms(pairs []termPair) {
+	for _, x := range pairs {
 		sa, sb := x.a.Summary, x.b.Summary
-		winner := `-`
+		winner := cellView{Text: "-"}
 		if x.winner != "" {
-			winner = `<span class="badge good">` + x.winner + `</span>`
+			winner = badgeCell(x.winner)
 		}
 		pg.Rows = append(pg.Rows, trow{Cells: []cellView{
-			{HTML: template.HTML(fmt.Sprintf("<strong>%d meses</strong>", x.months))},
-			{Class: "r typical " + sg(sa.CagrMedian), Text: pf(sa.CagrMedian, 1)}, {Class: "r typical " + sg(sb.CagrMedian), Text: pf(sb.CagrMedian, 1)},
-			{Class: "r " + sg(x.diff), Text: pf(x.diff, 1)},
+			monthsCell(x.months),
+			{Class: numClassF(sa.CagrMedian) + " typical", Text: pf(sa.CagrMedian, 1)}, {Class: numClassF(sb.CagrMedian) + " typical", Text: pf(sb.CagrMedian, 1)},
+			{Class: numClassF(x.diff), Text: pf(x.diff, 1)},
 			{Class: "r", Text: pf(sa.CagrMin, 0) + " a " + pf(sa.CagrMax, 0)}, {Class: "r", Text: pf(sb.CagrMin, 0) + " a " + pf(sb.CagrMax, 0)},
 			{Class: "r", Text: nf(sa.CapitalMedian)}, {Class: "r", Text: nf(sb.CapitalMedian)},
-			{HTML: template.HTML(winner)},
+			winner,
 		}})
+	}
+}
 
+// halfWinner dice qué modelo rindió más en una mitad del período; "" si falta un dato o empatan.
+func halfWinner(a, b *float64) string {
+	if a == nil || b == nil || *a == *b {
+		return ""
+	}
+	if *b > *a {
+		return "N-1"
+	}
+	return "N-0"
+}
+
+func dash(s string) string {
+	if s == "" {
+		return "-"
+	}
+	return s
+}
+
+// fillHalves arma la tabla de las dos mitades del período y cuenta los plazos en que un modelo gana en ambas.
+func (pg *cmpPage) fillHalves(pairs []termPair) {
+	steadyBase, steadySkip := 0, 0
+	for _, x := range pairs {
+		sa, sb := x.a.Summary, x.b.Summary
 		f := halfWinner(sa.Halves.First, sb.Halves.First)
 		s := halfWinner(sa.Halves.Second, sb.Halves.Second)
-		if f != "" || s != "" {
-			pg.HasHalves = true
-		}
+		pg.HasHalves = pg.HasHalves || f != "" || s != ""
 		steady := ""
 		if f != "" && f == s {
 			steady = f
@@ -489,33 +505,35 @@ func newComparePage(r *report.Report, ctx labCtx) cmpPage {
 		if pg.Split == "" {
 			pg.Split = sa.Halves.Split
 		}
-		held := `<span class="muted">no</span>`
+		held := cellView{HTML: `<span class="muted">no</span>`}
 		if steady != "" {
-			held = `<span class="badge good">` + steady + ` en las dos</span>`
+			held = badgeCell(steady + " en las dos")
 		}
 		pg.HalfRows = append(pg.HalfRows, trow{Cells: []cellView{
-			{HTML: template.HTML(fmt.Sprintf("<strong>%d meses</strong>", x.months))},
-			{Class: strings.TrimSpace("r " + signClass(sa.Halves.First)), Text: pctFrac(sa.Halves.First, 1)}, {Class: strings.TrimSpace("r " + signClass(sb.Halves.First)), Text: pctFrac(sb.Halves.First, 1)},
+			monthsCell(x.months),
+			{Class: numClass(sa.Halves.First), Text: pctFrac(sa.Halves.First, 1)}, {Class: numClass(sb.Halves.First), Text: pctFrac(sb.Halves.First, 1)},
 			{Text: dash(f)},
-			{Class: strings.TrimSpace("r " + signClass(sa.Halves.Second)), Text: pctFrac(sa.Halves.Second, 1)}, {Class: strings.TrimSpace("r " + signClass(sb.Halves.Second)), Text: pctFrac(sb.Halves.Second, 1)},
+			{Class: numClass(sa.Halves.Second), Text: pctFrac(sa.Halves.Second, 1)}, {Class: numClass(sb.Halves.Second), Text: pctFrac(sb.Halves.Second, 1)},
 			{Text: dash(s)},
-			{HTML: template.HTML(held)},
+			held,
 		}})
 	}
-	pg.HalvesText = fmt.Sprintf("N-0 gana las dos mitades en %d de %d plazos, N-1 en %d; el resto se reparte.", steadyBase, len(rows), steadySkip)
+	pg.HalvesText = fmt.Sprintf("N-0 gana las dos mitades en %d de %d plazos, N-1 en %d; el resto se reparte.", steadyBase, len(pairs), steadySkip)
+}
 
-	chosen := rows[0].months
-	for _, x := range rows {
-		if x.months == ctx.Settings.Months {
+// fillCharts arma un gráfico por plazo (los dos modelos, arranque base); queda elegido el plazo de la configuración.
+func (pg *cmpPage) fillCharts(pairs []termPair, wanted int) {
+	chosen := pairs[0].months
+	for _, x := range pairs {
+		if x.months == wanted {
 			chosen = x.months
 		}
 	}
-	for _, x := range rows {
+	for _, x := range pairs {
 		series := []chartSeries{
 			{Name: fmt.Sprintf("%d-0 (actual)", x.months), Color: "var(--accent)", Width: 2.5, Points: equityPoints(baseCalendar(x.a))},
 			{Name: fmt.Sprintf("%d-1 (skip-month)", x.months), Color: "var(--s2)", Width: 2.5, Points: equityPoints(baseCalendar(x.b))},
 		}
 		pg.Charts = append(pg.Charts, cmpChart{Months: x.months, Selected: x.months == chosen, Chart: chartHTML(series, "Capital (US$)")})
 	}
-	return pg
 }

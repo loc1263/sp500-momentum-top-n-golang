@@ -11,7 +11,7 @@
 {{- end}}
 
 {{define "ths" -}}
-{{range .}}<th{{if .Views}} data-views="{{.Views}}"{{end}}{{if .Num}} class="r"{{end}} data-type="{{if .Num}}num{{else}}text{{end}}" data-dir="{{.Dir}}"{{if .Initial}} data-initial="{{.Initial}}"{{end}} aria-sort="{{.AriaSort}}"><button type="button" class="sort">{{.Label}}<span class="arrow">{{.Arrow}}</span></button>{{if .Help}}<span class="hint" tabindex="0" role="img" aria-label="{{.Help}}" title="{{.Help}}">?</span>{{end}}</th>{{end}}
+{{range .}}<th{{if .Views}} data-views="{{.Views}}"{{end}}{{if .Num}} class="r"{{end}} data-type="{{if .Num}}num{{else}}text{{end}}" data-dir="{{.Dir}}"{{if .Initial}} data-initial="{{.Initial}}"{{end}} aria-sort="{{.AriaSort}}"><button type="button" class="sort">{{.Label}}<span class="arrow">{{.Arrow}}</span></button>{{if .Help}}{{template "hint" .Help}}{{end}}</th>{{end}}
 {{- end}}
 
 {{define "rows" -}}
@@ -53,4 +53,8 @@
     <dd>Un único arranque: el primer mes del período. Es un caso concreto, no un promedio, y puede ser mucho mejor o peor que lo típico.</dd>
   </dl>
 </details>
+{{- end}}
+
+{{define "hint" -}}
+<span class="hint" tabindex="0" role="img" aria-label="{{.}}" title="{{.}}">?</span>
 {{- end}}

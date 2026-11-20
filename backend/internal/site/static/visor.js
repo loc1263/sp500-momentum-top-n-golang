@@ -106,20 +106,7 @@
     $('#clear').hidden = nFilters === 0;
     $('#clear-n').textContent = nFilters;
     $('#csv').disabled = rows.length === 0;
-    renderPager(rows.length, pages);
-  }
-
-  function renderPager(total, pages) {
-    const nav = $('#pager');
-    nav.hidden = total <= PAGE_SIZE;
-    if (nav.hidden) return;
-    const p = state.page;
-    const btn = (go, label, aria, off) => `<button type="button" data-go="${go}" aria-label="${aria}"${off ? ' disabled' : ''}>${label}</button>`;
-    nav.innerHTML =
-      `<span class="muted">${p * PAGE_SIZE + 1}–${Math.min(total, (p + 1) * PAGE_SIZE)} de ${total}</span>` +
-      `<span class="btns">${btn('first', '«', 'Primera página', p === 0)}${btn('prev', '‹', 'Página anterior', p === 0)}` +
-      `<span class="cur">Página ${p + 1} de ${pages}</span>` +
-      `${btn('next', '›', 'Página siguiente', p >= pages - 1)}${btn('last', '»', 'Última página', p >= pages - 1)}</span>`;
+    window.renderPager($('#pager'), { page: state.page, size: PAGE_SIZE, total: rows.length });
   }
 
   function resetFilters() {

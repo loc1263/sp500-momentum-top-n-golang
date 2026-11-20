@@ -66,12 +66,7 @@ func newEvaluatorList(p evaluator.Payload) evaluatorList {
 		{Label: "Ticker", Dir: "asc"}, {Label: "Empresa", Dir: "asc"}, {Label: "Sector", Dir: "asc"},
 		{Label: "Capitalización", Num: true, Dir: "desc", Initial: "desc"}, {Label: "Veredicto", Num: true, Dir: "asc"},
 	}
-	for i := range l.Cols {
-		l.Cols[i].AriaSort = "none"
-		if l.Cols[i].Initial != "" {
-			l.Cols[i].AriaSort, l.Cols[i].Arrow = "descending", " ▼"
-		}
-	}
+	l.Cols = newCols(l.Cols)
 	for _, s := range p.Sections {
 		l.CatCols = append(l.CatCols, catCol{Title: shortTitle(s.Title), Why: s.Why})
 	}
