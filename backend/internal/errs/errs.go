@@ -41,7 +41,7 @@ var (
 	CfgShortHistory = code("TOP-CFG-003", "warning", "El período del backtest empieza antes del histórico descargado",
 		"Sube [data] history_years (debe superar el mayor período + 1 año).")
 	CfgUnknownKey = code("TOP-CFG-004", "error", "Sección o clave desconocida en la configuración",
-		"Casi siempre es un typo en config.toml: compáralo con backend-go/config.toml.")
+		"Casi siempre es un typo en config.toml: compáralo con backend/config.toml.")
 )
 
 var (

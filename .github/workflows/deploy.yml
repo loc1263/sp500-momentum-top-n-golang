@@ -24,39 +24,39 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version-file: backend-go/go.mod
-          cache-dependency-path: backend-go/go.sum
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       # La base SQLite es solo caché: si se pierde, se vuelven a bajar los precios y el historial se restaura de
-      # backend-go/history/history.json. Cada ejecución guarda su propia clave y restaura la más reciente.
+      # backend/history/history.json. Cada ejecución guarda su propia clave y restaura la más reciente.
       - name: Restaurar la base SQLite
         uses: actions/cache@v6
         with:
-          path: backend-go/data
+          path: backend/data
           key: topwx-db-${{ github.run_id }}
           restore-keys: topwx-db-
 
       # Se compila con el Go de go.mod (staticcheck debe estar hecho con una versión igual o más nueva que la del módulo).
       # Versión fija para que un release nuevo no frene la publicación; subirla a propósito.
       - name: Linter del backend (staticcheck)
-        working-directory: backend-go
+        working-directory: backend
         run: |
           go install honnef.co/go/tools/cmd/staticcheck@v0.8.1
           staticcheck ./...
 
       - name: Tests del backend
-        working-directory: backend-go
+        working-directory: backend
         run: go test ./...
 
       - name: Pipeline
-        working-directory: backend-go
+        working-directory: backend
         run: |
           go build -o bin/topwx ./cmd/topwx
           ./bin/topwx pipeline
 
       - name: Guardar historial en git
         run: |
-          git add backend-go/history/history.json
+          git add backend/history/history.json
           if git diff --cached --quiet; then
             echo "Sin cambios en el historial."
             exit 0
@@ -69,7 +69,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: site
+          path: frontend
 
   deploy:
     needs: build

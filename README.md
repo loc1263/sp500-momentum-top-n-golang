@@ -36,7 +36,7 @@ No hace falta Node.js ni Python: el sitio es HTML, CSS y JS plano que genera el 
 
 ```
 git clone https://github.com/loc1263/sp500-momentum-top-n-golang.git
-cd sp500-momentum-top-n-golang/backend-go
+cd sp500-momentum-top-n-golang/backend
 ```
 
 **1. Generar los datos y el sitio** (la primera vez tarda varios minutos; luego solo actualiza lo que falta)
@@ -45,7 +45,7 @@ cd sp500-momentum-top-n-golang/backend-go
 go run ./cmd/topwx pipeline
 ```
 
-El pipeline termina generando el sitio en `site/` (en la raíz del repositorio). Con `--skip-site` no lo genera.
+El pipeline termina generando el sitio en `frontend/` (en la raíz del repositorio). Con `--skip-site` no lo genera.
 
 **2. Abrir la web**
 
@@ -54,14 +54,14 @@ go run ./cmd/topwx site --serve localhost:8080
 ```
 
 Luego abra **http://localhost:8080** (si el navegador no abre `localhost`, pruebe `127.0.0.1:8080`). Para detenerlo, `Ctrl+C`.
-Sin `--serve`, `topwx site` solo regenera `site/` a partir de los JSON de `backend-go/output/`, sin volver a descargar nada.
+Sin `--serve`, `topwx site` solo regenera `frontend/` a partir de los JSON de `backend/output/`, sin volver a descargar nada.
 Para actualizar los resultados, repita el paso 1 y recargue la página.
 
 ## Problemas frecuentes
 
 | Síntoma | Solución |
 |---|---|
-| Una página dice «No se pudo cargar el JSON...» o «Sin Top actual» | Falta el paso 1: ejecute `go run ./cmd/topwx pipeline` en `backend-go/` y vuelva a generar el sitio |
+| Una página dice «No se pudo cargar el JSON...» o «Sin Top actual» | Falta el paso 1: ejecute `go run ./cmd/topwx pipeline` en `backend/` y vuelva a generar el sitio |
 | El navegador no abre `localhost` | Use `http://127.0.0.1:8080` o elija otro puerto con `--serve localhost:3000` |
 | Errores `TOP-NET-...` durante la descarga | Suelen ser límites de Yahoo Finance o de red; reintente más tarde |
 
@@ -69,7 +69,7 @@ Para actualizar los resultados, repita el paso 1 y recargue la página.
 
 - [`TECHNICAL.md`](TECHNICAL.md): cómo funciona, comandos y opciones, modelo por score, configuración, base de datos,
   códigos de error, estructura y tests.
-- [`backend-go/README.md`](backend-go/README.md): paquetes del backend y rendimiento.
+- [`backend/README.md`](backend/README.md): paquetes del backend y rendimiento.
 
 Los datos vienen de Yahoo Finance (vía [`gohoo`](https://github.com/loc1263/gohoo)), de
 [`hanshof/sp500_constituents`](https://github.com/hanshof/sp500_constituents) y de Wikipedia. Proyecto de uso personal

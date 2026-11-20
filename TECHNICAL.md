@@ -2,7 +2,7 @@
 
 Detalle de funcionamiento, comandos, configuración, base de datos y códigos de error de
 `sp500-momentum-top-n-golang`. Para instalar y ejecutar el proyecto, ver el [README](README.md); para los paquetes del
-backend y el rendimiento, [`backend-go/README.md`](backend-go/README.md).
+backend y el rendimiento, [`backend/README.md`](backend/README.md).
 
 ## Cómo funciona
 
@@ -70,26 +70,26 @@ cuando no se filtra.
 
 ## Uso
 
-Los comandos del backend se corren desde `backend-go/` (las rutas del config son relativas a esa carpeta). Abajo `topwx` es
+Los comandos del backend se corren desde `backend/` (las rutas del config son relativas a esa carpeta). Abajo `topwx` es
 `go run ./cmd/topwx` o el binario que deja `go build -o bin/topwx ./cmd/topwx`.
 
 ### Generar y abrir el sitio
 
 ```
-topwx pipeline                          # datos + JSON + sitio estático en ../site
-topwx site                              # regenera ../site desde los JSON de output/ (sin descargar nada)
+topwx pipeline                          # datos + JSON + sitio estático en ../frontend
+topwx site                              # regenera ../frontend desde los JSON de output/ (sin descargar nada)
 topwx site --serve localhost:8080       # además lo sirve por HTTP (Ctrl+C lo detiene)
-topwx site --out ../site --report output/report.json --visor output/visor.json --evaluator output/evaluator.json
+topwx site --out ../frontend --report output/report.json --visor output/visor.json --evaluator output/evaluator.json
 ```
 
 El sitio es HTML, CSS y JS plano, sin Node ni build: `topwx site` arma las páginas con `html/template` (paquete `internal/site`) a partir de
 `output/report.json` (Top actual, ETFs, modelo por score, backtest y About), `output/evaluator.json` (Evaluador) y `output/visor.json` (Visor),
 que dejan `topwx pipeline`, `topwx export`, `topwx evaluator` y `topwx visor`. Si falta uno, esa página dice qué comando correr y el resto se
-genera igual. Primero hay que haber corrido el pipeline al menos una vez. La carpeta `site/` se puede publicar en cualquier hosting estático.
+genera igual. Primero hay que haber corrido el pipeline al menos una vez. La carpeta `frontend/` se puede publicar en cualquier hosting estático.
 ### Pipeline completo
 
 ```
-cd backend-go
+cd backend
 topwx pipeline                           # todo: actualiza datos, backtest, Top actual, JSON y sitio estático
 topwx pipeline --tests          # corre antes los tests
 topwx pipeline --no-cache       # descarga todo de nuevo (solo el primer paso que descarga; los demás leen lo que acaba de guardar)
@@ -343,7 +343,7 @@ Las limitaciones están en [`docs/modelo-multifactor-etfs.md`](docs/modelo-multi
 el TER es el último informado y los pesos no están validados (no hay backtest). Un ETF sin historia suficiente para el plazo más largo,
 con huecos o de tipo efectivo no entra (se cuenta en la web). Un aviso `TOP-GES-001` indica que una gestora no devolvió ETFs.
 
-## Configuración (`backend-go/config.toml`)
+## Configuración (`backend/config.toml`)
 
 Los valores de la columna «Por defecto» son los que se usan si la clave no está en el archivo; el `config.toml`
 incluido puede traer otros (por ejemplo más períodos y plazos en `[simulation]`).
@@ -424,7 +424,7 @@ errores** agrupado por código, con cuántas veces ocurrió, un ejemplo y qué h
 
 La base SQLite es **solo caché**: todo lo que contiene se puede volver a bajar o calcular, salvo el historial de
 `actual_picks`, `actual_alternates` y `etf_scores` (de ahí salen la comparación con la corrida anterior, el calendario de
-rebalanceo y el seguimiento). Ese historial se guarda además en `backend-go/history/history.json`, que **sí se versiona en git**:
+rebalanceo y el seguimiento). Ese historial se guarda además en `backend/history/history.json`, que **sí se versiona en git**:
 
 - Al terminar cualquier comando que exporta (`backtest`, `actual`, `etf`, `quant`, `export`, `pipeline`) se reescribe el
   archivo con el contenido actual de esas tres tablas (una fila por línea, para que `git diff` se lea bien). Si no hubo
@@ -432,10 +432,10 @@ rebalanceo y el seguimiento). Ese historial se guarda además en `backend-go/his
 - Al arrancar cualquier comando, si la base no tiene historial (base nueva, caché de CI perdido) se restaura desde el archivo.
   Si la base ya tiene historial, no se toca.
 
-Así se puede borrar `backend-go/data/` sin perder nada importante: solo hay que volver a descargar los precios. Para usar el
+Así se puede borrar `backend/data/` sin perder nada importante: solo hay que volver a descargar los precios. Para usar el
 historial en otro entorno basta con clonar el repositorio.
 
-### SQLite (`backend-go/data/topwx.db`)
+### SQLite (`backend/data/topwx.db`)
 
 | Tabla | Contenido |
 |---|---|
@@ -505,14 +505,14 @@ Formato: `TOP-<ÁREA>-<NNN>`.
 
 **Aviso** = se continúa con lo que haya. **Error** = la operación se corta o falla.
 
-Para buscar en el log: `grep TOP-BKT backend-go/log/topwx_backtest.log`.
+Para buscar en el log: `grep TOP-BKT backend/log/topwx_backtest.log`.
 
 | ID | Nivel | Qué significa | Qué hacer |
 |---|---|---|---|
 | `TOP-CFG-001` | Aviso | No existe el archivo de configuración | Se usan los valores por defecto. Crea config.toml o pasa --config con la ruta correcta. |
 | `TOP-CFG-002` | Error | start_date no es anterior a end_date | Corrige [backtest] start_date / end_date o backtest_years en config.toml. |
 | `TOP-CFG-003` | Aviso | El período del backtest empieza antes del histórico descargado | Sube [data] history_years (debe superar el mayor período + 1 año). |
-| `TOP-CFG-004` | Error | Sección o clave desconocida en la configuración | Casi siempre es un typo en config.toml: compáralo con backend-go/config.toml. |
+| `TOP-CFG-004` | Error | Sección o clave desconocida en la configuración | Casi siempre es un typo en config.toml: compáralo con backend/config.toml. |
 | `TOP-NET-001` | Error | Falló la descarga de la composición del índice | Revisa la conexión; se usa lo guardado en SQLite. Reintenta o usa --no-cache. |
 | `TOP-NET-002` | Aviso | Se usa la composición guardada en SQLite | Los datos pueden estar desactualizados; vuelve a correr cuando haya conexión. |
 | `TOP-NET-003` | Error | Falló la descarga de la lista actual del S&P 500 | Se usa la guardada en SQLite (puede ser vieja). Revisa la conexión. |
@@ -551,13 +551,13 @@ Para buscar en el log: `grep TOP-BKT backend-go/log/topwx_backtest.log`.
 ## Estructura y desarrollo
 
 ```
-backend-go/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, evaluador de empresas, visor, sitio estático y base SQLite
+backend/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, evaluador de empresas, visor, sitio estático y base SQLite
   config.toml         # configuración
   history/            # datos que se versionan en git: el historial
   cmd/topwx/           # línea de comandos: backtest, actual, etfq, quant, evaluator, visor, export, site, prune y pipeline
   internal/           # la lógica, un paquete por responsabilidad (internal/site genera el sitio)
   output/             # JSON de datos que lee topwx site (report.json, evaluator.json, visor.json); se crea solo
-site/                 # sitio estático generado por topwx site (no se versiona)
+frontend/             # sitio estático generado por topwx site (no se versiona)
 ```
 
 | Comando | Para qué sirve |
@@ -570,14 +570,14 @@ site/                 # sitio estático generado por topwx site (no se versiona)
 | `topwx visor` | Visor: rendimientos, riesgo y comparación contra SPY de las acciones grandes y los ETFs de mayor AUM; escribe `output/visor.json` |
 | `topwx pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + evaluador + visor + JSON + sitio estático + limpieza |
 | `topwx prune` | Limpieza de lo viejo: corridas del backtest y caché vencida (el pipeline la corre al final) |
-| `topwx site` | Genera el sitio estático en `site/` (con `--serve` también lo sirve) |
+| `topwx site` | Genera el sitio estático en `frontend/` (con `--serve` también lo sirve) |
 | `topwx export` | Escribe el JSON en `output/report.json` (lo hacen solos los comandos al terminar) |
-| `backend-go/data/`, `backend-go/log/` | Base SQLite y logs; se crean solos |
+| `backend/data/`, `backend/log/` | Base SQLite y logs; se crean solos |
 
-El detalle de los paquetes de `backend-go/internal/` (config, db, repo, yahoo, market, engine, backtest, actual, etf, etfq, quant,
-report, cleanup, pipeline...) está en [`backend-go/README.md`](backend-go/README.md).
+El detalle de los paquetes de `backend/internal/` (config, db, repo, yahoo, market, engine, backtest, actual, etf, etfq, quant,
+report, cleanup, pipeline...) está en [`backend/README.md`](backend/README.md).
 
-**Sitio (`backend-go/internal/site/`)**
+**Sitio (`backend/internal/site/`)**
 
 | Archivo | Responsabilidad |
 |---|---|
@@ -600,10 +600,10 @@ Los tests están junto al código (`site_test.go`, `pages_test.go`, `lab_test.go
 sintéticos. Los indicadores técnicos, Ledoit-Wolf y Markowitz se comparan contra valores de referencia calculados con herramientas externas.
 
 ```
-cd backend-go && go test ./...
+cd backend && go test ./...
 ```
 
-**Mantenimiento de los códigos de error.** El catálogo está en `backend-go/internal/errs`. Los IDs no se reutilizan ni se
+**Mantenimiento de los códigos de error.** El catálogo está en `backend/internal/errs`. Los IDs no se reutilizan ni se
 renumeran; todo aviso o error usa `CODIGO.Msg("texto")` o `CODIGO.Errorf(...)`, y cada código nuevo se documenta en la tabla de arriba.
 
 
@@ -612,10 +612,10 @@ renumeran; todo aviso o error usa `CODIGO.Msg("texto")` o `CODIGO.Errorf(...)`, 
 `.github/workflows/deploy.yml` corre en días hábiles después del cierre de EE. UU., a mano (`workflow_dispatch`) y en cada
 push a `main`:
 
-1. Restaura la base SQLite desde el caché de Actions (`backend-go/data`), corre los tests y el pipeline.
-2. Hace commit de `backend-go/history/history.json` si cambió (el commit del bot no
+1. Restaura la base SQLite desde el caché de Actions (`backend/data`), corre los tests y el pipeline.
+2. Hace commit de `backend/history/history.json` si cambió (el commit del bot no
    dispara otra ejecución).
-3. Publica en GitHub Pages la carpeta `site/`, que el pipeline genera con `topwx site`.
+3. Publica en GitHub Pages la carpeta `frontend/`, que el pipeline genera con `topwx site`.
 
 Requiere activar Settings > Pages > Source = **GitHub Actions**. Si el caché se pierde (GitHub lo borra tras 7 días sin
 uso), la siguiente ejecución vuelve a bajar los precios (varios minutos) y restaura el historial desde el JSON. Si el

@@ -33,8 +33,8 @@ o sin compilar: `go run ./cmd/topwx pipeline`.
 
 Todos aceptan `--config otro.toml` y `--help`. `--tests` corre `go test ./...` antes del pipeline.
 
-La base y los logs quedan en `backend-go/data/` y `backend-go/log/`; el binario compilado, en `backend-go/bin/`. Lo que se versiona
-en git vive en `backend-go/history/`: el historial (`history.json`).
+La base y los logs quedan en `backend/data/` y `backend/log/`; el binario compilado, en `backend/bin/`. Lo que se versiona
+en git vive en `backend/history/`: el historial (`history.json`).
 
 ## Estructura
 

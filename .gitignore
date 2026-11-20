@@ -1,11 +1,11 @@
 # Datos generados por el backend (se recrean con topwx pipeline)
-backend-go/data/
-backend-go/log/
-backend-go/output/
-backend-go/bin/
+backend/data/
+backend/log/
+backend/output/
+backend/bin/
 
-# Sitio estático generado por topwx site
-/site/
+# Sitio estático generado por topwx site (carpeta frontend/)
+/frontend/
 
 # Editor / sistema
 .vscode/

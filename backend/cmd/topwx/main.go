@@ -336,7 +336,7 @@ func runSite(ctx context.Context, args []string) error {
 	f.StringVar(&paths.Visor, "visor", "", "JSON del Visor (default: [visor] output del config)")
 	f.StringVar(&paths.Report, "report", "", "JSON del reporte: Top actual, ETFs y About (default: [output] frontend_data del config)")
 	f.StringVar(&paths.Evaluator, "evaluator", "", "JSON del evaluador (default: [evaluator] output del config)")
-	out := f.String("out", "../site", "Carpeta donde se escribe el sitio")
+	out := f.String("out", "../frontend", "Carpeta donde se escribe el sitio")
 	serve := f.String("serve", "", "Después de generar, sirve el sitio en esta dirección (ej. localhost:8080)")
 	if stop, err := f.parse(args); stop {
 		return err
