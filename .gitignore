@@ -4,12 +4,8 @@ backend-go/log/
 backend-go/output/
 backend-go/bin/
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/public/data/report.json
-frontend/public/data/evaluator.json
-frontend/public/data/visor.json
+# Sitio estático generado por top3 site
+/site/
 
 # Editor / sistema
 .vscode/
@@ -17,7 +13,6 @@ frontend/public/data/visor.json
 .DS_Store
 Thumbs.db
 desktop.ini
-__pycache__/
 
 # Documentación local (no se sube a GitHub)
 docs/

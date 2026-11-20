@@ -1,0 +1,78 @@
+<!-- Detalle de una empresa del evaluador: métricas por categoría, minigráficos y comparación con pares.
+     Fecha: 2026-11-19 -->
+{{define "content"}}
+{{- with .Body}}
+  <div class="head">
+    <a class="btn back" href="../evaluador.html">← Volver al listado</a>
+    <h3>
+      <a href="{{.TickerHref}}" target="_blank" rel="noopener noreferrer" title="Ver {{.Ticker}} en stockanalysis.com"><strong>{{.Ticker}}</strong></a>
+      <span class="name">{{.Name}}</span>
+      <span class="pill {{.Verdict.Level}}">{{.Verdict.Text}}</span>
+    </h3>
+    <p class="muted facts">{{.Facts}}</p>
+    {{- if .Bank}}
+    <p class="muted">Banco o aseguradora: su deuda y su caja son materia prima del negocio, así que caja, deuda y liquidez no se evalúan.</p>
+    {{- end}}
+  </div>
+
+  <div class="grid">
+    {{- range .Sections}}
+    <section class="sec{{if .Wide}} wide{{end}}" aria-labelledby="sec-{{.ID}}">
+      <div class="sec-h">
+        <h4 id="sec-{{.ID}}">{{.Title}}<span class="hint" tabindex="0" role="img" aria-label="{{.Why}}" title="{{.Why}}">?</span></h4>
+        <span class="pill {{.Pill.Level}}">{{.Pill.Text}}</span>
+      </div>
+      {{- if eq .Kind "peers"}}
+      <p class="muted intro">{{.Intro}}</p>
+      <div class="wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Métrica</th><th class="r">{{.Peers.Ticker}}</th>
+              {{- range .Peers.Heads}}<th class="r" title="{{.Name}}">{{.Ticker}}</th>{{end}}
+              <th class="r">Mediana</th><th>Vs.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{- range .Peers.Rows}}
+            <tr>
+              <td>{{.Name}}<span class="hint" tabindex="0" role="img" aria-label="{{.Why}}" title="{{.Why}}">?</span></td>
+              <td class="r me{{if .MineBest}} best{{end}}">{{.Mine}}</td>
+              {{- range .Values}}<td class="r{{if .Best}} best{{end}}">{{.Text}}</td>{{end}}
+              <td class="r">{{.Median}}</td>
+              <td><span class="pill {{.Pill.Level}}">{{.Pill.Text}}</span></td>
+            </tr>
+            {{- end}}
+          </tbody>
+        </table>
+      </div>
+      {{- else if eq .Kind "peers-none"}}
+      <p class="muted">No hay otras empresas de la misma industria o sector en este mercado para comparar.</p>
+      {{- else if eq .Kind "empty"}}
+      <p class="muted">Sin datos suficientes de Yahoo Finance.</p>
+      {{- else}}
+      <ul class="rows">
+        {{- range .Metrics}}
+        <li>
+          <div class="row">
+            <span class="mname">{{.Name}}<span class="hint" tabindex="0" role="img" aria-label="{{.Why}}" title="{{.Why}}">?</span></span>
+            <span class="mval">{{.Value}}</span>
+            <span class="pill {{.Pill.Level}}">{{.Pill.Text}}</span>
+          </div>
+          {{- if .Spark}}{{.Spark}}{{end}}
+          {{- if .HasRange}}
+          <div class="rng" role="img" aria-label="De {{.Lo}} a {{.Hi}}">
+            <div class="track"><span class="dot" style="left:{{.Left}}%"></span></div>
+            <div class="lbls"><span>{{.Lo}}</span><span>{{.Hi}}</span></div>
+          </div>
+          {{- end}}
+          {{- if .Note}}<p class="note muted">{{.Note}}</p>{{end}}
+        </li>
+        {{- end}}
+      </ul>
+      {{- end}}
+    </section>
+    {{- end}}
+  </div>
+{{end}}
+{{end}}

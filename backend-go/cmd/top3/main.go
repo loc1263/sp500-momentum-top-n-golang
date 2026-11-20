@@ -1,6 +1,8 @@
 // Command top3 es el punto de entrada único del backend: `top3 <comando> [opciones]`.
 //
-// Comandos: backtest, actual, etfq, quant, evaluator, visor, export, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
+// Comandos: backtest, actual, etfq, quant, evaluator, visor, export, site, prune y pipeline (corre todos en orden, cada uno en su propio proceso).
+//
+// Fecha: 2026-11-19
 package main
 
 import (
@@ -13,7 +15,7 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	_ "time/tzdata" // zonas horarias de los exchanges también en máquinas sin Go instalado (Windows)
+	_ "time/tzdata"
 
 	"top3/internal/actual"
 	"top3/internal/backtest"
@@ -29,15 +31,14 @@ import (
 	"top3/internal/pipeline"
 	"top3/internal/quant"
 	"top3/internal/report"
+	"top3/internal/site"
 	"top3/internal/visor"
 	"top3/internal/yahoo"
 )
 
-var commands = []string{"backtest", "actual", "etfq", "quant", "evaluator", "visor", "export", "prune", "pipeline"}
+var commands = []string{"backtest", "actual", "etfq", "quant", "evaluator", "visor", "export", "site", "prune", "pipeline"}
 
 func main() {
-	// El proceso vive pocos segundos y mueve matrices grandes: se deja crecer el heap antes de cada GC (4x en vez de 2x),
-	// con un tope blando de 2 GB para que no se dispare en máquinas chicas.
 	debug.SetGCPercent(400)
 	debug.SetMemoryLimit(2 << 30)
 	logx.ConfigureConsole()
@@ -52,7 +53,6 @@ func main() {
 	if name == "pipeline" {
 		os.Exit(pipeline.Main(args))
 	}
-	// TOP3_CPUPROFILE=archivo escribe un perfil de CPU (go tool pprof) del comando.
 	if path := os.Getenv("TOP3_CPUPROFILE"); path != "" {
 		if f, err := os.Create(path); err == nil {
 			if pprof.StartCPUProfile(f) == nil {
@@ -75,7 +75,6 @@ func contains(list []string, s string) bool {
 	return false
 }
 
-// flags es un conjunto de opciones que sabe si el usuario pasó cada una (para distinguir "0" de "no pasada").
 type flags struct {
 	*flag.FlagSet
 	config string
@@ -93,14 +92,12 @@ func newFlags(name, description string) *flags {
 	return f
 }
 
-// passed dice si la opción name se pasó en la línea de comandos.
 func (f *flags) passed(name string) bool {
 	found := false
 	f.Visit(func(fl *flag.Flag) { found = found || fl.Name == name })
 	return found
 }
 
-// parse lee los argumentos; --help sale sin error (código 0).
 func (f *flags) parse(args []string) (stop bool, err error) {
 	if err := f.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -111,7 +108,6 @@ func (f *flags) parse(args []string) (stop bool, err error) {
 	return false, nil
 }
 
-// start es el arranque de un comando: carga la configuración y abre el log `[output] <logName>`.
 func start(path string, logName func(config.Output) string) (config.Config, error) {
 	cfg, existed, err := config.Load(path)
 	if err != nil {
@@ -150,6 +146,8 @@ func run(ctx context.Context, name string, args []string) error {
 		return runVisor(ctx, args)
 	case "export":
 		return runExport(args)
+	case "site":
+		return runSite(ctx, args)
 	case "prune":
 		return runPrune(args)
 	}
@@ -316,7 +314,7 @@ func runVisor(ctx context.Context, args []string) error {
 }
 
 func runExport(args []string) error {
-	f := newFlags("export", "Exporta los resultados de SQLite a JSON para el frontend")
+	f := newFlags("export", "Exporta los resultados de SQLite a JSON para el sitio")
 	if stop, err := f.parse(args); stop {
 		return err
 	}
@@ -330,6 +328,42 @@ func runExport(args []string) error {
 	}
 	console.Println(path)
 	return nil
+}
+
+func runSite(ctx context.Context, args []string) error {
+	f := newFlags("site", "Genera el sitio estático (HTML + CSS + JS plano, sin Node) a partir de los JSON del backend")
+	paths := site.Paths{}
+	f.StringVar(&paths.Visor, "visor", "", "JSON del Visor (default: [visor] output del config)")
+	f.StringVar(&paths.Report, "report", "", "JSON del reporte: Top actual, ETFs y About (default: [output] frontend_data del config)")
+	f.StringVar(&paths.Evaluator, "evaluator", "", "JSON del evaluador (default: [evaluator] output del config)")
+	out := f.String("out", "../site", "Carpeta donde se escribe el sitio")
+	serve := f.String("serve", "", "Después de generar, sirve el sitio en esta dirección (ej. localhost:8080)")
+	if stop, err := f.parse(args); stop {
+		return err
+	}
+	cfg, _, err := config.Load(f.config)
+	if err != nil {
+		return err
+	}
+	for path, def := range map[*string]string{&paths.Visor: cfg.Visor.Output, &paths.Report: cfg.Output.FrontendData, &paths.Evaluator: cfg.Evaluator.Output} {
+		if *path == "" {
+			*path = def
+		}
+	}
+	in, err := site.LoadInputs(paths)
+	if err != nil {
+		return err
+	}
+	index, err := site.Build(in, *out)
+	if err != nil {
+		return err
+	}
+	console.Println("Sitio generado: " + index)
+	if *serve == "" {
+		return nil
+	}
+	console.Println("Sirviendo en http://" + *serve + " (Ctrl+C para detener)")
+	return site.Serve(ctx, *out, *serve)
 }
 
 func runPrune(args []string) error {

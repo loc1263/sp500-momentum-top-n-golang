@@ -1,0 +1,56 @@
+<!-- Visor de acciones y ETFs: contenido de la página (la cáscara está en layout.html); visor.js filtra, ordena y pagina las filas.
+     Fecha: 2026-11-19 -->
+{{define "content" -}}
+{{with .Body}}
+  <div class="controls">
+    <div class="seg" role="tablist" aria-label="Tipo de instrumento">
+      {{- range $i, $s := .Sections}}
+      <button type="button" role="tab" data-sec="{{$s.ID}}" aria-selected="{{eq $i 0}}"{{if eq $i 0}} class="active"{{end}}>{{$s.Label}} (<span class="n">{{len $s.Rows}}</span>)</button>
+      {{- end}}
+    </div>
+    <label class="grow">Buscar
+      <input type="search" id="q" placeholder="Ticker, nombre, sector o categoría; varios con comas">
+    </label>
+    <button type="button" class="btn" id="clear" hidden>Limpiar filtros (<span id="clear-n">0</span>)</button>
+    <button type="button" class="btn" id="csv">Descargar CSV</button>
+  </div>
+
+  <p class="muted">Rendimientos acumulados (mensuales a 21 ruedas por mes); Sharpe, beta y volatilidad a 3 años contra SPY. Verde: Sharpe &gt; 1, caída máxima ≥ −25%, distancia al máximo de 52 semanas ≥ −10%, dividendo ≥ 2% y, en ETFs, TER ≤ 0,20%; los rendimientos van en verde si son positivos y en rojo si son negativos. «Verdes» cuenta las celdas verdes de cada fila. Haga clic en un encabezado para ordenar; bajo cada uno hay un filtro (texto, mínimo y máximo, o SUPERA / NO SUPERA). Un clic en una fila la marca (otro clic la desmarca).</p>
+
+  {{range $i, $s := .Sections -}}
+  <div class="wrap" data-sec="{{$s.ID}}"{{if $i}} hidden{{end}}>
+    <table>
+      <thead>
+        <tr>
+          {{- range $j, $c := $s.Cols}}
+          <th{{if not $c.Text}} class="r"{{end}} aria-sort="none"><button type="button" class="sort" data-col="{{$j}}">{{$c.Label}}<span class="arrow"></span></button></th>
+          {{- end}}
+        </tr>
+        <tr class="filters">
+          {{- range $j, $c := $s.Cols}}
+          <th{{if not $c.Text}} class="r"{{end}}>
+            {{- if eq $c.Kind "select"}}<select data-col="{{$c.Name}}" data-key="eq" aria-label="Filtrar {{$c.Label}}"><option value="">Todos</option><option value="SUPERA">SUPERA</option><option value="NO SUPERA">NO SUPERA</option></select>
+            {{- else if eq $c.Kind "text"}}<input type="search" data-col="{{$c.Name}}" data-key="text" aria-label="Filtrar {{$c.Label}}" placeholder="Filtrar">
+            {{- else}}<span class="range-in"><input type="number" step="any" data-col="{{$c.Name}}" data-key="min" aria-label="{{$c.Label}} mín" placeholder="mín"><input type="number" step="any" data-col="{{$c.Name}}" data-key="max" aria-label="{{$c.Label}} máx" placeholder="máx"></span>
+            {{- end}}
+          </th>
+          {{- end}}
+        </tr>
+      </thead>
+      <tbody>
+        {{- range $s.Rows}}
+        <tr data-i="{{.Index}}">
+          {{- range .Cells}}<td{{if .Class}} class="{{.Class}}"{{end}}{{if .Title}} title="{{.Title}}"{{end}}>{{if .Href}}<a href="{{.Href}}" target="_blank" rel="noopener noreferrer" title="Ver {{.Text}} en stockanalysis.com"><strong>{{.Text}}</strong></a>{{else}}{{.Text}}{{end}}</td>{{end}}
+        </tr>
+        {{- end}}
+        <tr class="empty" hidden><td colspan="{{len $s.Cols}}" class="muted">Ningún instrumento coincide con la búsqueda.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+  <nav class="pager" id="pager" aria-label="Paginación de la tabla" hidden></nav>
+<script type="application/json" id="data">{{.Data}}</script>
+{{end}}
+{{- end}}
+
+{{define "scripts"}}<script src="visor.js" defer></script>{{end}}

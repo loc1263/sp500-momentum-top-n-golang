@@ -1,0 +1,71 @@
+<!-- Top actual (Home): un bloque por universo; el selector muestra uno a la vez (table.js, data-switch).
+     Fecha: 2026-11-19 -->
+{{define "content"}}
+{{- with .Body}}
+  <div class="tfilters">
+    <label>Universo
+      <select data-switch="u">{{range .Options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+    </label>
+  </div>
+  {{- range .Universe}}
+  <section data-case-of="u" data-case="{{.Key}}"{{if .Hidden}} hidden{{end}}>
+    <p class="range overview">
+      <strong>Datos al cierre del</strong> {{.AsOf}} ·
+      <strong>Plazo</strong> {{.Months}} meses ·
+      <strong>Acciones</strong> {{.PickCount}} ·
+      <strong>Peso por acción</strong> {{.Weight}}
+      {{- if .NextRebalance}} · <strong>Próximo rebalanceo</strong> {{.NextRebalance}} <span class="muted">(cada {{.Months}} meses desde la primera corrida guardada, {{.Anchor}})</span>{{end}}
+    </p>
+
+    <h2>Top {{.PickCount}} de los últimos {{.Months}} meses (modelo N-0)</h2>
+    <p class="range"><strong>Ventana de retorno:</strong> {{.From}} a {{.AsOf}} <span class="muted">({{.Months}} meses)</span></p>
+    <p class="sub">Ponderación igual, rebalanceo cada {{.Months}} meses. Cap. aprox. = precio × acciones en circulación hoy.</p>
+    {{- if .Changes}}
+    <p class="changes"><strong>Cambios vs. {{.Changes.Previous}}:</strong>
+      {{if .Changes.None}}ninguno, la selección se mantiene.{{else}}entran <span class="pos">{{.Changes.Entered}}</span> · salen <span class="neg">{{.Changes.Exited}}</span> · se mantienen {{.Changes.Kept}}{{end}}</p>
+    {{- else if .FirstRun}}
+    <p class="muted">Primera corrida guardada: todavía no hay una selección anterior para comparar.</p>
+    {{- end}}
+    <div data-table data-page-size="12">
+      <div class="wrap">
+        <table>
+          <thead><tr><th>#</th><th>Ticker</th><th class="r">Retorno {{.Months}} meses</th><th class="r">Cap. aprox. (US$ B)</th><th class="r">Precio (US$)</th><th class="r">Peso</th></tr></thead>
+          <tbody>{{template "rows" .Picks}}</tbody>
+        </table>
+      </div>
+      <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+    </div>
+
+    {{- if .Alternates}}
+    <h2>Suplentes</h2>
+    <p class="sub">Los puestos siguientes al top {{.PickCount}}, como reemplazo posible.</p>
+    <div data-table data-page-size="12">
+      <div class="wrap">
+        <table>
+          <thead><tr><th>#</th><th>Ticker</th><th class="r">Retorno {{.Months}} meses</th><th class="r">Cap. aprox. (US$ B)</th><th class="r">Precio (US$)</th></tr></thead>
+          <tbody>{{template "rows" .Alternates}}</tbody>
+        </table>
+      </div>
+      <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+    </div>
+    {{- end}}
+
+    {{- if .Tracking}}
+    <h2>Seguimiento de selecciones anteriores</h2>
+    <p class="sub">Cómo le fue a cada selección guardada desde que se eligió. Dura {{.Months}} meses; después figura como cerrada. Con pocas selecciones guardadas todavía no prueba nada.</p>
+    <div data-table data-page-size="12">
+      <div class="wrap">
+        <table>
+          <thead><tr><th>Elegida el</th><th>Medida hasta</th><th class="r">Días</th><th>Estado</th><th>Acciones</th><th class="r">Retorno (ponderación igual)</th></tr></thead>
+          <tbody>{{template "rows" .Tracking}}</tbody>
+        </table>
+      </div>
+      <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+    </div>
+    {{- end}}
+  </section>
+  {{- end}}
+{{end}}
+{{end}}
+
+{{define "scripts"}}<script src="{{.Root}}table.js" defer></script>{{end}}

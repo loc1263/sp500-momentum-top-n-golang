@@ -1,0 +1,62 @@
+<!-- Lab · N-0 vs N-1: modelo actual contra el skip-month, plazo por plazo, por mitades del período y en el tiempo.
+     Fecha: 2026-11-19 -->
+{{define "content"}}
+{{- with .Body}}
+  {{template "labbar" .Bar}}
+  {{- if .Empty}}
+  <p class="muted">Sin resultados del modelo skip-month para este universo y período. Ejecute top3 backtest --sweep (en backend-go/).</p>
+  {{- else}}
+  <div class="best">
+    <p class="line"><strong>{{.Headline}}</strong> Diferencia media del resultado típico (N-1 menos N-0): <strong class="{{.AvgClass}}">{{.AvgDiff}} anual</strong>.</p>
+    <p class="line muted">N-0 ordena por lo que subió cada acción en los últimos N meses; N-1 ignora el último mes para no premiar rebotes de corto plazo. Mismos datos, arranques y universo.</p>
+  </div>
+
+  <h2>Plazo por plazo</h2>
+  {{template "range" .Range1}}
+  <div class="wrap">
+    <table>
+      <thead>
+        <tr class="groups">
+          <th></th><th colspan="2" class="typical">Resultado típico (anual)</th><th></th><th colspan="2">Peor / mejor arranque</th><th colspan="2">Capital final típico</th><th></th>
+        </tr>
+        <tr>
+          <th>Plazo</th><th class="r typical">N-0</th><th class="r typical">N-1</th><th class="r">Diferencia</th>
+          <th class="r">N-0</th><th class="r">N-1</th><th class="r">N-0</th><th class="r">N-1</th><th>Gana</th>
+        </tr>
+      </thead>
+      <tbody>{{template "rows" .Rows}}</tbody>
+    </table>
+  </div>
+  <p class="sub note">«Típico» = mediana de los arranques posibles, con US$ {{.Capital}} iniciales. Una diferencia pequeña en «Gana» no prueba que un modelo sea mejor.</p>
+
+  {{- if .HasHalves}}
+  <h2>¿Se sostiene en el tiempo?</h2>
+  {{template "range" .Range1}}
+  <p class="sub">El período se parte en dos mitades (corte cerca del {{.Split}}). Si un modelo gana en las dos, su ventaja no depende de un solo tramo del mercado. <strong>{{.HalvesText}}</strong></p>
+  <div class="wrap">
+    <table>
+      <thead>
+        <tr class="groups"><th></th><th colspan="3">Primera mitad (anual)</th><th colspan="3">Segunda mitad (anual)</th><th></th></tr>
+        <tr><th>Plazo</th><th class="r">N-0</th><th class="r">N-1</th><th>Gana</th><th class="r">N-0</th><th class="r">N-1</th><th>Gana</th><th>Se sostiene</th></tr>
+      </thead>
+      <tbody>{{template "rows" .HalfRows}}</tbody>
+    </table>
+  </div>
+  <p class="sub note">Con períodos cortos cada mitad tiene pocos rebalanceos: mejor mirar 6 años o más.</p>
+  {{- end}}
+
+  <h2>Evolución del capital</h2>
+  <div class="toolbar">
+    <label>Plazo
+      <select data-switch="cterm">{{range .Charts}}<option value="{{.Months}}"{{if .Selected}} selected{{end}}>{{.Months}} meses</option>{{end}}</select>
+    </label>
+  </div>
+  <p class="sub">Arranque base de cada modelo (un solo caso por modelo), no el promedio.</p>
+  {{- range .Charts}}
+  <div data-case-of="cterm" data-case="{{.Months}}"{{if not .Selected}} hidden{{end}}>{{.Chart}}</div>
+  {{- end}}
+  {{- end}}
+{{end}}
+{{end}}
+
+{{define "scripts"}}<script src="{{.Root}}table.js" defer></script><script src="{{.Root}}chart.js" defer></script>{{end}}

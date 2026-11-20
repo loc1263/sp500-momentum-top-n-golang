@@ -1,0 +1,132 @@
+<!-- Modelo por score: cómo se calcula, carteras de Markowitz y ranking del S&P 500 con tres vistas de columnas (table.js).
+     Fecha: 2026-11-19 -->
+{{define "content"}}
+{{- with .Body}}
+  <p class="range overview">
+    <strong>Datos al cierre del</strong> {{.AsOf}} ·
+    <strong>Acciones rankeadas</strong> {{.Ranked}} de {{.Universe}} <span class="muted">(las del S&amp;P 500 con los tres scores)</span> ·
+    <strong>Score final</strong> 0 a 100 <span class="muted">(promedio de los scores de momentum, de salud financiera y técnico)</span>
+  </p>
+
+  <h2>Cómo se calcula</h2>
+  <div class="cards how">
+    <div class="item"><strong>Momentum</strong><p>Cuánto subió cada acción en 12 y 6 meses, sin contar el último. 100 = la mejor.</p></div>
+    <div class="item"><strong>Salud financiera</strong>
+      <p>Calidad de los últimos balances publicados, en 4 grupos de indicadores.</p>
+      <details>
+        <summary>Ver grupos</summary>
+        <ul>
+          <li><b>Rentabilidad:</b> ROE, ROA y márgenes.</li>
+          <li><b>Solvencia:</b> deuda/patrimonio, deuda neta/EBITDA, caja/deuda.</li>
+          <li><b>Liquidez:</b> liquidez corriente y prueba ácida.</li>
+          <li><b>Caja:</b> flujo libre y operativo, conversión de utilidad y años con flujo positivo. Pesa el doble.</li>
+        </ul>
+        <p>Bancos y aseguradoras se miden solo con rentabilidad.</p>
+      </details>
+    </div>
+    <div class="item"><strong>Técnico</strong>
+      <p>Estado del precio y el volumen, en 4 grupos de indicadores.</p>
+      <details>
+        <summary>Ver grupos</summary>
+        <ul>
+          <li><b>Tendencia:</b> medias móviles de 20, 50 y 200 ruedas, ADX.</li>
+          <li><b>Impulso:</b> MACD, RSI, estocástico, Bollinger.</li>
+          <li><b>Volumen:</b> OBV y MFI.</li>
+          <li><b>Posición:</b> lugar en el rango de 52 semanas.</li>
+        </ul>
+        <p>RSI, estocástico y MFI premian la zona alcista y penalizan la sobrecompra.</p>
+      </details>
+    </div>
+    <div class="item"><strong>Score final</strong><p>Promedio de los tres{{.WeightsNote}}. Markowitz se calcula sobre las {{.TopN}} primeras.</p></div>
+  </div>
+
+  <h2>Las {{.TopN}} mejores y sus pesos (Markowitz)</h2>
+  <p class="sub">{{.Constraints}}</p>
+  <details class="more">
+    <summary>Cómo se estiman retorno y riesgo</summary>
+    <p>{{.Estimation}}</p>
+  </details>
+  {{- if .RelaxedNote}}<p class="best">{{.RelaxedNote}}</p>{{end}}
+  {{- if .NoMaxReturnNote}}<p class="best">{{.NoMaxReturnNote}}</p>{{end}}
+  <div class="wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ticker</th><th>Empresa</th><th>Sector</th>
+          <th class="r">Score<span class="hint" tabindex="0" role="img" title="Score final, de 0 a 100: promedio de los scores de momentum, salud financiera y técnico.">?</span></th>
+          <th class="r">Retorno esp.<span class="hint" tabindex="0" role="img" title="Retorno anual esperado de la acción: mezcla su retorno de 12 meses con un retorno de largo plazo.">?</span></th>
+          <th class="r">Vol. anual<span class="hint" tabindex="0" role="img" title="Volatilidad anual: cuánto oscila el precio en un año. Más alta = más riesgo.">?</span></th>
+          {{- range .MkHead}}<th class="r">{{.Label}}{{if .Help}}<span class="hint" tabindex="0" role="img" title="{{.Help}}">?</span>{{end}}</th>{{end}}
+        </tr>
+      </thead>
+      <tbody>
+        {{- range .MkRows}}
+        <tr>
+          <td><a href="{{.Href}}" target="_blank" rel="noopener noreferrer" title="Ver {{.Ticker}} en stockanalysis.com"><strong>{{.Ticker}}</strong></a></td>
+          <td>{{.Name}}</td>
+          <td class="muted"{{if .SectorTitle}} title="{{.SectorTitle}}"{{end}}>{{.Sector}}</td>
+          <td class="r"><strong>{{.Score}}</strong></td>
+          <td class="r {{.ExpClass}}">{{.ExpRet}}</td>
+          <td class="r">{{.Vol}}</td>
+          {{- range .Weights}}<td class="r {{.Class}}">{{.Text}}</td>{{end}}
+        </tr>
+        {{- end}}
+      </tbody>
+      <tfoot>
+        {{- range .MkFoot}}
+        <tr>
+          <td colspan="6">{{.Label}}{{if .Help}}<span class="hint" tabindex="0" role="img" title="{{.Help}}">?</span>{{end}}</td>
+          {{- range .Cells}}<td class="r {{.Class}}">{{.Text}}</td>{{end}}
+        </tr>
+        {{- end}}
+      </tfoot>
+    </table>
+  </div>
+
+  <h3>Peso por sector</h3>
+  <div class="wrap narrow">
+    <table>
+      <thead>
+        <tr><th>Sector</th>{{range .SectorHead}}<th class="r">{{.Label}}{{if .Help}}<span class="hint" tabindex="0" role="img" title="{{.Help}}">?</span>{{end}}</th>{{end}}</tr>
+      </thead>
+      <tbody>
+        {{- range .SectorRows}}
+        <tr><td>{{.Name}}</td>{{range .Cells}}<td class="r {{.Class}}">{{.Text}}</td>{{end}}</tr>
+        {{- end}}
+      </tbody>
+    </table>
+  </div>
+  <p class="sub note">En negrita, los sectores que llegan al tope de {{.SectorCap}}.</p>
+
+  <h2>Ranking del S&amp;P 500</h2>
+  <p class="sub">{{.RankingNote}}</p>
+  <details class="more">
+    <summary>Qué significan las columnas</summary>
+    <p>Porcentajes: ROE, márgenes, flujo de caja libre (FCF) sobre ventas, capitalización y utilidad, y distancia a las EMA. «Deuda/Patr.» = deuda sobre patrimonio; «Años FCF+» = parte de los últimos 4 años con flujo libre positivo.</p>
+  </details>
+
+  <div data-table data-page-size="12">
+    <div class="tfilters">
+      <label>Buscar <input type="search" data-search placeholder="ticker o empresa"></label>
+      <label>Sector
+        <select data-filter="sector"><option value="">Todos</option>{{range .Sectors}}<option>{{.}}</option>{{end}}</select>
+      </label>
+      <label>Detalle
+        <select data-view>{{range .Views}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+      </label>
+      <span class="muted" data-count></span>
+    </div>
+    <div class="wrap">
+      <table>
+        <thead><tr>{{template "ths" .Cols}}</tr></thead>
+        <tbody>{{template "rows" .Rows}}
+          <tr class="empty" hidden><td colspan="{{.ColSpan}}" class="muted">Ninguna acción cumple el filtro.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+  </div>
+{{end}}
+{{end}}
+
+{{define "scripts"}}<script src="{{.Root}}table.js" defer></script>{{end}}

@@ -1,0 +1,52 @@
+<!-- ETFs por gestora: resumen, filtros (gestora, categoría, solo con score) y tabla ordenable y paginada por table.js.
+     Fecha: 2026-11-19 -->
+{{define "content"}}
+{{- with .Body}}
+  <p class="range overview">
+    <strong>Datos al cierre del</strong> {{.Overview.AsOf}} ·
+    <strong>ETFs listados</strong> {{.Overview.Listed}} <span class="muted">(de {{.Overview.IssuerCount}} gestoras)</span> ·
+    <strong>Con score final</strong> {{.Overview.Scored}} <span class="muted">({{.Overview.Excluded}} fuera por TER o AUM)</span> ·
+    <strong>Filtro de elegibilidad</strong> {{.Overview.Eligibility}}
+    {{- if .Overview.RiskFree}} · <strong>Referencia sin riesgo</strong> {{.Overview.RiskFree}} <span class="muted">(su retorno se resta al de cada ETF)</span>{{end}}
+  </p>
+
+  <h2>ETFs por gestora</h2>
+  <p class="sub wide">{{.Intro}}</p>
+
+  <div class="wrap summary">
+    <table>
+      <thead><tr><th>Gestora</th><th class="r">ETFs listados</th><th class="r">Con momentum</th><th class="r">Con score final</th></tr></thead>
+      <tbody>
+        {{- range .Issuers}}
+        <tr><td><strong>{{.Name}}</strong></td><td class="r">{{.Funds}}</td><td class="r">{{.Ranked}}</td><td class="r">{{.Scored}}</td></tr>
+        {{- end}}
+      </tbody>
+    </table>
+  </div>
+
+  <div data-table data-page-size="12">
+    <div class="tfilters">
+      <label>Gestora
+        <select data-filter="issuer"><option value="">Todas</option>{{range .IssuerNames}}<option>{{.}}</option>{{end}}</select>
+      </label>
+      <label>Categoría
+        <select data-filter="category"><option value="">Todas</option>{{range .Categories}}<option>{{.}}</option>{{end}}</select>
+      </label>
+      <label class="check"><input type="checkbox" data-filter-bool="scored" checked> Solo con score final</label>
+      <span class="muted" data-count></span>
+    </div>
+    <div class="wrap">
+      <table>
+        <thead><tr>{{template "ths" .Cols}}</tr></thead>
+        <tbody>{{template "rows" .Rows}}
+          <tr class="empty" hidden><td colspan="{{.ColSpan}}" class="muted">Ningún ETF cumple el filtro.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+  </div>
+  <p class="muted note">{{.NotRanked}} ETFs más quedaron fuera por no tener historia suficiente para el plazo más largo, tener huecos de precios o ser de tipo efectivo. TER y AUM son los que informa Yahoo Finance hoy.</p>
+{{end}}
+{{end}}
+
+{{define "scripts"}}<script src="{{.Root}}table.js" defer></script>{{end}}
