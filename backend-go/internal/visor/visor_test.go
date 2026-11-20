@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"top/internal/config"
+	"topwx/internal/config"
 )
 
 func series(start string, values ...float64) Series {

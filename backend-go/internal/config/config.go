@@ -16,7 +16,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"top/internal/errs"
+	"topwx/internal/errs"
 )
 
 type Data struct {
@@ -160,7 +160,7 @@ func Default() Config {
 	return Config{
 		Data: Data{
 			HistoryYears:        12,
-			DBPath:              "data/top.db",
+			DBPath:              "data/topwx.db",
 			HistoricalURL:       "https://raw.githubusercontent.com/hanshof/sp500_constituents/main/sp_500_historical_components.csv",
 			WikipediaURL:        "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
 			WikipediaChangesURL: "https://en.wikipedia.org/wiki/Historical_components_of_the_S%26P_500",
@@ -190,10 +190,10 @@ func Default() Config {
 		Simulation: Simulation{Months: []int{3, 4, 6, 8, 12}},
 		Output: Output{
 			Dir: "output", KeepDays: 7, BacktestSubdir: "backtest", ActualSubdir: "actual",
-			BacktestPrefix: "top_backtest", SweepPrefix: "top_sweep", OffsetsPrefix: "top_offsets",
-			ActualPrefix: "top_actual", LogDir: "log",
-			BacktestLog: "top_backtest.log", ActualLog: "top_actual.log", EtfqLog: "top_etfq.log",
-			QuantLog: "top_quant.log", EvaluatorLog: "top_evaluator.log", VisorLog: "top_visor.log", ExportLog: "export_frontend.log", PruneLog: "top_prune.log",
+			BacktestPrefix: "topwx_backtest", SweepPrefix: "topwx_sweep", OffsetsPrefix: "topwx_offsets",
+			ActualPrefix: "topwx_actual", LogDir: "log",
+			BacktestLog: "topwx_backtest.log", ActualLog: "topwx_actual.log", EtfqLog: "topwx_etfq.log",
+			QuantLog: "topwx_quant.log", EvaluatorLog: "topwx_evaluator.log", VisorLog: "topwx_visor.log", ExportLog: "export_frontend.log", PruneLog: "topwx_prune.log",
 			FrontendData: "output/report.json",
 			HistoryFile:  "history/history.json",
 		},

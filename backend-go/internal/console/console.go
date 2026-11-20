@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"top/internal/dateutil"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/model"
-	"top/internal/numfmt"
-	"top/internal/tables"
-	"top/internal/termfmt"
+	"topwx/internal/dateutil"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/model"
+	"topwx/internal/numfmt"
+	"topwx/internal/tables"
+	"topwx/internal/termfmt"
 )
 
 var Out io.Writer = os.Stdout

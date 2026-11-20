@@ -11,7 +11,7 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top/internal/yahoo"
+	"topwx/internal/yahoo"
 )
 
 var usExchanges = map[string]bool{"NMS": true, "NGM": true, "NCM": true, "NYQ": true, "ASE": true, "PCX": true, "BTS": true}

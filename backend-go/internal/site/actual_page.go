@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"top/internal/report"
+	"topwx/internal/report"
 )
 
 type actualPage struct {

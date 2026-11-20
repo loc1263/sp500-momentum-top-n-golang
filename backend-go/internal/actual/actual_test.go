@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"top/internal/config"
-	"top/internal/dateutil"
-	"top/internal/db"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/model"
-	"top/internal/repo"
+	"topwx/internal/config"
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/model"
+	"topwx/internal/repo"
 )
 
 func makePrices(days, n int) *model.Prices {

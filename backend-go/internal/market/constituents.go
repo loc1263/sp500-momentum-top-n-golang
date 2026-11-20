@@ -15,11 +15,11 @@ import (
 	"strings"
 	"time"
 
-	"top/internal/config"
-	"top/internal/db"
-	"top/internal/errs"
-	"top/internal/logx"
-	"top/internal/repo"
+	"topwx/internal/config"
+	"topwx/internal/db"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
+	"topwx/internal/repo"
 )
 
 func ParseTickers(s string) []string {

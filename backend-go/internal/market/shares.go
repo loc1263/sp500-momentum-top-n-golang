@@ -13,13 +13,13 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top/internal/config"
-	"top/internal/dateutil"
-	"top/internal/db"
-	"top/internal/errs"
-	"top/internal/logx"
-	"top/internal/model"
-	"top/internal/repo"
+	"topwx/internal/config"
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
+	"topwx/internal/model"
+	"topwx/internal/repo"
 )
 
 func (dl *Downloader) FetchShares(ctx context.Context, tickers []string) map[string]float64 {

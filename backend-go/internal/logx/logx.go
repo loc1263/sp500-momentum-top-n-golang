@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"top/internal/errs"
-	"top/internal/termfmt"
+	"topwx/internal/errs"
+	"topwx/internal/termfmt"
 )
 
 const (
@@ -32,8 +32,8 @@ const (
 var levelNames = map[int]string{Debug: "DEBUG", Info: "INFO", Warning: "WARNING", Error: "ERROR"}
 
 const (
-	SummaryFileEnv = "TOP_SUMMARY_FILE"
-	StepEnv        = "TOP_STEP"
+	SummaryFileEnv = "TOPWX_SUMMARY_FILE"
+	StepEnv        = "TOPWX_STEP"
 )
 
 var (

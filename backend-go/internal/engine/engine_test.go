@@ -11,12 +11,12 @@ import (
 	"strings"
 	"testing"
 
-	"top/internal/dateutil"
-	"top/internal/errs"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/model"
-	"top/internal/testutil"
+	"topwx/internal/dateutil"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/model"
+	"topwx/internal/testutil"
 )
 
 func run(t *testing.T, cons Members, p *model.Prices, start, end string, params Params) (model.Result, error) {

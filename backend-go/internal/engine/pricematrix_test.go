@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"top/internal/dateutil"
-	"top/internal/model"
-	"top/internal/testutil"
+	"topwx/internal/dateutil"
+	"topwx/internal/model"
+	"topwx/internal/testutil"
 )
 
 func messy(days, tickers int, seed int64) *model.Prices {

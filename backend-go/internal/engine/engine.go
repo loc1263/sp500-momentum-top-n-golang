@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"top/internal/dateutil"
-	"top/internal/errs"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/model"
-	"top/internal/numfmt"
+	"topwx/internal/dateutil"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/model"
+	"topwx/internal/numfmt"
 )
 
 const MinTickers = 10

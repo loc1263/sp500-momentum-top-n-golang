@@ -1,4 +1,4 @@
-// Package report arma el JSON que lee el sitio (top site) (Top actual + backtest + ETFs + modelo por score) con los últimos
+// Package report arma el JSON que lee el sitio (topwx site) (Top actual + backtest + ETFs + modelo por score) con los últimos
 // resultados guardados en SQLite.
 //
 // Fecha: 2026-11-19
@@ -14,15 +14,15 @@ import (
 	"sort"
 	"time"
 
-	"top/internal/actual"
-	"top/internal/config"
-	"top/internal/dateutil"
-	"top/internal/db"
-	"top/internal/history"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/model"
-	"top/internal/repo"
+	"topwx/internal/actual"
+	"topwx/internal/config"
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/history"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/model"
+	"topwx/internal/repo"
 )
 
 type EquityPoint struct {

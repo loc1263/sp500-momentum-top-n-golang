@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"top/internal/visor"
+	"topwx/internal/visor"
 )
 
 var textCols = map[string]bool{"ticker": true, "nombre": true, "sector": true, "categoria": true, "vs_spy": true}

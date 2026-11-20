@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"top/internal/config"
-	"top/internal/db"
+	"topwx/internal/config"
+	"topwx/internal/db"
 )
 
 func testConfig(t *testing.T) config.Config {

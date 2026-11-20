@@ -22,11 +22,11 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top/internal/config"
-	"top/internal/dateutil"
-	"top/internal/db"
-	"top/internal/repo"
-	"top/internal/yahoo"
+	"topwx/internal/config"
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/repo"
+	"topwx/internal/yahoo"
 )
 
 func openTemp(t *testing.T) *sql.DB {

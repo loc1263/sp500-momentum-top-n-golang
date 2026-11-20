@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"top/internal/report"
+	"topwx/internal/report"
 )
 
 var labViews = []struct{ ID, Label, Title string }{

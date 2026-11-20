@@ -16,10 +16,10 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top/internal/config"
-	"top/internal/model"
-	"top/internal/repo"
-	"top/internal/testutil"
+	"topwx/internal/config"
+	"topwx/internal/model"
+	"topwx/internal/repo"
+	"topwx/internal/testutil"
 )
 
 func syntheticPrices(n, days int, seed int64) *model.Prices {

@@ -13,9 +13,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"top/internal/config"
-	"top/internal/db"
-	"top/internal/logx"
+	"topwx/internal/config"
+	"topwx/internal/db"
+	"topwx/internal/logx"
 )
 
 const version = 1

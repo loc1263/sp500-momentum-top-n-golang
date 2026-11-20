@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"math"
 
-	"top/internal/config"
-	"top/internal/logx"
+	"topwx/internal/config"
+	"topwx/internal/logx"
 )
 
 const (

@@ -8,7 +8,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	"top/internal/db"
+	"topwx/internal/db"
 )
 
 func SaveLatestQuant(d *sql.DB, runAt, asOf string, payload json.RawMessage) error {

@@ -12,15 +12,15 @@ import (
 	"strings"
 	"testing"
 
-	"top/internal/config"
-	"top/internal/dateutil"
-	"top/internal/db"
-	"top/internal/engine"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/model"
-	"top/internal/repo"
-	"top/internal/testutil"
+	"topwx/internal/config"
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/engine"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/model"
+	"topwx/internal/repo"
+	"topwx/internal/testutil"
 )
 
 func newContext(t *testing.T, start, end string) (*Context, *sql.DB) {

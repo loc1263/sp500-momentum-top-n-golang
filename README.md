@@ -19,7 +19,7 @@ La barra de pestañas tiene cinco grupos: **Momentum** (Top actual), **ETFs**, *
 - **Modelo por score (EEUU)**: score de momentum, de salud financiera y técnico para cada acción del S&P 500, y Markowitz sobre las mejores.
 - **Evaluador de empresas**: análisis fundamental propio de cada acción del S&P 500 (rentabilidad, crecimiento, caja, deuda, valoración, tendencia y comparación con competidores), con un veredicto por categoría. Es independiente de los scores.
 - **Visor**: rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, caída máxima y comparación contra SPY de las acciones de EE. UU. con capitalización mayor a 100 B y de los 300 ETFs de mayor AUM, con búsqueda, filtros y orden por columna, fila marcada con un clic y descarga en CSV.
-- **Lab** (página aparte, `lab.html`, generada por `top site`): el laboratorio de backtest de la estrategia de momentum.
+- **Lab** (página aparte, `lab.html`, generada por `topwx site`): el laboratorio de backtest de la estrategia de momentum.
   - **Backtest** Point-in-Time, con curva de capital y selecciones en cada rebalanceo.
   - **Plazos y sensibilidad**: compara plazos de rebalanceo y mide cuánto depende el resultado del mes de arranque.
   - **N-0 vs. N-1**: el modelo de siempre frente a una variante que ignora el último mes al rankear.
@@ -42,7 +42,7 @@ cd sp500-momentum-top-n-golang/backend-go
 **1. Generar los datos y el sitio** (la primera vez tarda varios minutos; luego solo actualiza lo que falta)
 
 ```
-go run ./cmd/top pipeline
+go run ./cmd/topwx pipeline
 ```
 
 El pipeline termina generando el sitio en `site/` (en la raíz del repositorio). Con `--skip-site` no lo genera.
@@ -50,18 +50,18 @@ El pipeline termina generando el sitio en `site/` (en la raíz del repositorio).
 **2. Abrir la web**
 
 ```
-go run ./cmd/top site --serve localhost:8080
+go run ./cmd/topwx site --serve localhost:8080
 ```
 
 Luego abra **http://localhost:8080** (si el navegador no abre `localhost`, pruebe `127.0.0.1:8080`). Para detenerlo, `Ctrl+C`.
-Sin `--serve`, `top site` solo regenera `site/` a partir de los JSON de `backend-go/output/`, sin volver a descargar nada.
+Sin `--serve`, `topwx site` solo regenera `site/` a partir de los JSON de `backend-go/output/`, sin volver a descargar nada.
 Para actualizar los resultados, repita el paso 1 y recargue la página.
 
 ## Problemas frecuentes
 
 | Síntoma | Solución |
 |---|---|
-| Una página dice «No se pudo cargar el JSON...» o «Sin Top actual» | Falta el paso 1: ejecute `go run ./cmd/top pipeline` en `backend-go/` y vuelva a generar el sitio |
+| Una página dice «No se pudo cargar el JSON...» o «Sin Top actual» | Falta el paso 1: ejecute `go run ./cmd/topwx pipeline` en `backend-go/` y vuelva a generar el sitio |
 | El navegador no abre `localhost` | Use `http://127.0.0.1:8080` o elija otro puerto con `--serve localhost:3000` |
 | Errores `TOP-NET-...` durante la descarga | Suelen ser límites de Yahoo Finance o de red; reintente más tarde |
 

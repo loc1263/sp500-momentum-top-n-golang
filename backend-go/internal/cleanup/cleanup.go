@@ -18,10 +18,10 @@ import (
 	"strings"
 	"time"
 
-	"top/internal/config"
-	"top/internal/db"
-	"top/internal/logx"
-	"top/internal/repo"
+	"topwx/internal/config"
+	"topwx/internal/db"
+	"topwx/internal/logx"
+	"topwx/internal/repo"
 )
 
 var fileDay = regexp.MustCompile(`_(\d{8})\.html$`)

@@ -20,16 +20,16 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top/internal/config"
-	"top/internal/console"
-	"top/internal/dateutil"
-	"top/internal/db"
-	"top/internal/errs"
-	"top/internal/etf"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/repo"
-	"top/internal/yahoo"
+	"topwx/internal/config"
+	"topwx/internal/console"
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/errs"
+	"topwx/internal/etf"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/repo"
+	"topwx/internal/yahoo"
 )
 
 const NoCategory = "Sin categoría"

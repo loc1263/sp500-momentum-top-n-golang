@@ -13,8 +13,8 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"top/internal/errs"
-	"top/internal/logx"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
 )
 
 type Migration struct {

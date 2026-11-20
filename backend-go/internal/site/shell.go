@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"top/internal/report"
+	"topwx/internal/report"
 )
 
 const (

@@ -1,11 +1,11 @@
-# Configuración de top (top <comando>)
+# Configuración de topwx (topwx <comando>)
 
 [data]
 # Años de histórico a descargar (constituyentes + precios). Debe superar el mayor período de
 # periods_years más el mayor plazo en meses (10 años de backtest + 12 meses de ranking = 11 años).
 history_years = 12
 # Base SQLite donde se guarda todo (datos descargados y resultados)
-db_path = "data/top.db"
+db_path = "data/topwx.db"
 # CSV con la composición histórica del S&P 500
 historical_url = "https://raw.githubusercontent.com/hanshof/sp500_constituents/main/sp_500_historical_components.csv"
 # Wikipedia: lista actual del S&P 500 y tabla de altas/bajas del índice
@@ -71,23 +71,23 @@ min_cap_billions = 10
 sweep_min_cap_billions = [0, 10, 200]
 
 [output]
-# Carpeta de los reportes HTML (nombre: top_backtest_YYYYMMDD.html / top_sweep_YYYYMMDD.html)
+# Carpeta de los reportes HTML (nombre: topwx_backtest_YYYYMMDD.html / topwx_sweep_YYYYMMDD.html)
 dir = "output"
-# Días de reportes HTML que se conservan (los más viejos se borran al final del pipeline o con `top prune`)
+# Días de reportes HTML que se conservan (los más viejos se borran al final del pipeline o con `topwx prune`)
 keep_days = 7
 # Subcarpetas dentro de dir y prefijos de archivo (se les agrega el sufijo de universo y _YYYYMMDD.html)
 backtest_subdir = "backtest"
 actual_subdir = "actual"
-backtest_prefix = "top_backtest"
-sweep_prefix = "top_sweep"
-offsets_prefix = "top_offsets"
-actual_prefix = "top_actual"
+backtest_prefix = "topwx_backtest"
+sweep_prefix = "topwx_sweep"
+offsets_prefix = "topwx_offsets"
+actual_prefix = "topwx_actual"
 # Logs (nivel DEBUG, se sobrescriben en cada corrida)
 log_dir = "log"
-backtest_log = "top_backtest.log"
-actual_log = "top_actual.log"
+backtest_log = "topwx_backtest.log"
+actual_log = "topwx_actual.log"
 export_log = "export_frontend.log"
-# JSON con los resultados del día (Top actual, ETFs, modelo por score y backtest); lo lee top site
+# JSON con los resultados del día (Top actual, ETFs, modelo por score y backtest); lo lee topwx site
 frontend_data = "output/report.json"
 # Historial del Top actual y de ETFs (se versiona en git). La base SQLite es solo caché: si no tiene historial, se restaura de aquí
 history_file = "history/history.json"
@@ -98,7 +98,7 @@ history_file = "history/history.json"
 months = [2, 4, 6, 8, 10, 12]
 
 [etfq]
-# ETFs por gestora (top etfq): momentum y calidad (TER y AUM). Todo viene de Yahoo Finance.
+# ETFs por gestora (topwx etfq): momentum y calidad (TER y AUM). Todo viene de Yahoo Finance.
 # Score de momentum: plazos en meses, referencia libre de riesgo (se resta al retorno) y volatilidad anual mínima (por debajo,
 # el ETF es de tipo efectivo y no rankea)
 horizons_months = [3, 6, 12]
@@ -134,7 +134,7 @@ name = "Schwab ETFs"
 label = "Schwab"
 
 [quant]
-# Modelo por score (top quant): score de momentum, de salud financiera y técnico de las acciones del S&P 500, su promedio
+# Modelo por score (topwx quant): score de momentum, de salud financiera y técnico de las acciones del S&P 500, su promedio
 # como score final y Markowitz sobre las mejores. No hace backtest.
 # Peso de cada score en el final: momentum, salud financiera y técnico (1, 1, 1 = promedio simple)
 weights = [1, 1, 1]
@@ -161,10 +161,10 @@ equity_premium = 0.05
 fundamentals_ttl_days = 7
 
 [evaluator]
-# Evaluador de empresas (top evaluator): análisis fundamental propio de cada acción del S&P 500 (rentabilidad,
+# Evaluador de empresas (topwx evaluator): análisis fundamental propio de cada acción del S&P 500 (rentabilidad,
 # crecimiento, caja, deuda y liquidez, valoración, tendencia y comparación con competidores). Es independiente de los scores:
 # solo toma de los otros modelos las listas de tickers. Los datos salen de Yahoo Finance.
-# JSON que lee top site
+# JSON que lee topwx site
 output = "output/evaluator.json"
 # Universo a evaluar
 sp500 = true
@@ -174,9 +174,9 @@ peers = 3
 min_coverage = 0.5
 
 [visor]
-# Visor (top visor): rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, caída máxima y comparación contra SPY de las
+# Visor (topwx visor): rendimientos de 1 a 12 meses y de 1 a 5 años, Sharpe, beta, caída máxima y comparación contra SPY de las
 # acciones grandes de EE. UU. y de los ETFs de mayor AUM. Arma su propio universo con el screener de Yahoo Finance.
-# JSON que lee top site
+# JSON que lee topwx site
 output = "output/visor.json"
 # ETFs que siempre se incluyen (aunque sean apalancados o estén fuera del top)
 tickers = ["SPY", "QQQ"]

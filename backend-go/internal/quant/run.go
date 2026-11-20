@@ -12,16 +12,16 @@ import (
 	"sort"
 	"time"
 
-	"top/internal/config"
-	"top/internal/dateutil"
-	"top/internal/db"
-	"top/internal/errs"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/model"
-	"top/internal/repo"
-	"top/internal/stats"
-	"top/internal/yahoo"
+	"topwx/internal/config"
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/model"
+	"topwx/internal/repo"
+	"topwx/internal/stats"
+	"topwx/internal/yahoo"
 )
 
 type Num float64

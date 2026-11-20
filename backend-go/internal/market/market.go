@@ -9,10 +9,10 @@ import (
 	"database/sql"
 	"time"
 
-	"top/internal/config"
-	"top/internal/dateutil"
-	"top/internal/logx"
-	"top/internal/model"
+	"topwx/internal/config"
+	"topwx/internal/dateutil"
+	"topwx/internal/logx"
+	"topwx/internal/model"
 )
 
 type Data struct {

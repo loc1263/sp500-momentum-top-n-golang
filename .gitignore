@@ -1,10 +1,10 @@
-# Datos generados por el backend (se recrean con top pipeline)
+# Datos generados por el backend (se recrean con topwx pipeline)
 backend-go/data/
 backend-go/log/
 backend-go/output/
 backend-go/bin/
 
-# Sitio estático generado por top site
+# Sitio estático generado por topwx site
 /site/
 
 # Editor / sistema

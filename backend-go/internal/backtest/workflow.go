@@ -12,17 +12,17 @@ import (
 	"sort"
 	"time"
 
-	"top/internal/config"
-	"top/internal/console"
-	"top/internal/dateutil"
-	"top/internal/db"
-	"top/internal/engine"
-	"top/internal/errs"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/model"
-	"top/internal/repo"
-	"top/internal/yahoo"
+	"topwx/internal/config"
+	"topwx/internal/console"
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/engine"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/model"
+	"topwx/internal/repo"
+	"topwx/internal/yahoo"
 )
 
 type Job struct {

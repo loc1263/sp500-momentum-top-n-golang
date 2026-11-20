@@ -13,13 +13,13 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top/internal/dateutil"
-	"top/internal/db"
-	"top/internal/errs"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/repo"
-	"top/internal/yahoo"
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/repo"
+	"topwx/internal/yahoo"
 )
 
 const HistoryDays = 460

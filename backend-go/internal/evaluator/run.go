@@ -19,12 +19,12 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top/internal/config"
-	"top/internal/db"
-	"top/internal/errs"
-	"top/internal/logx"
-	"top/internal/market"
-	"top/internal/yahoo"
+	"topwx/internal/config"
+	"topwx/internal/db"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/yahoo"
 )
 
 const SP500 = "sp500"

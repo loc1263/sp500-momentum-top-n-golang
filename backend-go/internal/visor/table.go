@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"top/internal/config"
+	"topwx/internal/config"
 )
 
 const (

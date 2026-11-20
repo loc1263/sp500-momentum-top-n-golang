@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"top/internal/visor"
+	"topwx/internal/visor"
 )
 
 //go:embed templates/*.html static/*

@@ -11,8 +11,8 @@ import (
 	"math"
 	"sort"
 
-	"top/internal/model"
-	"top/internal/stats"
+	"topwx/internal/model"
+	"topwx/internal/stats"
 )
 
 const (

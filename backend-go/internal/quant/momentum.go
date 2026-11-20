@@ -5,8 +5,8 @@
 package quant
 
 import (
-	"top/internal/model"
-	"top/internal/stats"
+	"topwx/internal/model"
+	"topwx/internal/stats"
 )
 
 const Month = 21

@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"top/internal/db"
-	"top/internal/logx"
-	"top/internal/model"
+	"topwx/internal/db"
+	"topwx/internal/logx"
+	"topwx/internal/model"
 )
 
 type RunRow struct {

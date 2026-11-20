@@ -18,10 +18,10 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"top/internal/config"
-	"top/internal/errs"
-	"top/internal/logx"
-	"top/internal/yahoo"
+	"topwx/internal/config"
+	"topwx/internal/errs"
+	"topwx/internal/logx"
+	"topwx/internal/yahoo"
 )
 
 const RefTicker = "SPY"

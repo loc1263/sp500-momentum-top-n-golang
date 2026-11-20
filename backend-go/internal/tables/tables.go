@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"top/internal/dateutil"
-	"top/internal/model"
-	"top/internal/numfmt"
+	"topwx/internal/dateutil"
+	"topwx/internal/model"
+	"topwx/internal/numfmt"
 )
 
 type Table struct {

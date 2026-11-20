@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"top/internal/db"
+	"topwx/internal/db"
 )
 
 func openTemp(t *testing.T) *sql.DB {
