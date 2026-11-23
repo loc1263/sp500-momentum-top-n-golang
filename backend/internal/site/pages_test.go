@@ -6,6 +6,8 @@
 package site
 
 import (
+	"archive/zip"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -101,7 +103,7 @@ func buildAll(t *testing.T) string {
 
 func TestBuildPaginas(t *testing.T) {
 	out := buildAll(t)
-	for _, f := range []string{"index.html", "visor.html", "etfq.html", "evaluador.html", "empresa.html", "empresas.js", "about.html", "site.css", "site.js", "table.js", "visor.js", "alpine.min.js", "empresa.js"} {
+	for _, f := range []string{"index.html", "visor.html", "etfq.html", "evaluador.html", "empresa.html", "empresas.js", "evaluador.xlsx", "about.html", "site.css", "site.js", "table.js", "visor.js", "alpine.min.js", "empresa.js"} {
 		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(f))); err != nil {
 			t.Errorf("falta %s: %v", f, err)
 		}
@@ -133,6 +135,31 @@ func TestBuildPaginas(t *testing.T) {
 		`data-href="empresa.html#BRK-B"`, `data-q="brk-b berkshire &lt;hathaway&gt;"`, `<span class="dotv good"`, `<span class="pill good">Bien</span>`, "1,0 B"[:0]+"1.000 B USD",
 		"Pares", "2 de S&amp;P 500"[:0]+"2 de S&amp;P 500", `<option value="good">Bien</option>`,
 		"Sólida y barata", `data-filter-bool="solid"`, `data-filter-bool="cheap"`, `data-f-solid="0"`, `data-f-cheap="0"`, `<td class="muted" data-v="3">—</td>`)
+
+	wantAll(t, "evaluador.html", read(t, out, "evaluador.html"), `href="evaluador.xlsx"`, `download="evaluador-2026-11-18.xlsx"`, "Exportar Excel")
+	book := read(t, out, "evaluador.xlsx")
+	zr, err := zip.NewReader(strings.NewReader(book), int64(len(book)))
+	if err != nil {
+		t.Fatalf("evaluador.xlsx no es un zip válido: %v", err)
+	}
+	var sheet string
+	for _, f := range zr.File {
+		if f.Name == "xl/worksheets/sheet1.xml" {
+			rc, _ := f.Open()
+			b, _ := io.ReadAll(rc)
+			rc.Close()
+			sheet = string(b)
+		}
+	}
+	wantAll(t, "evaluador.xlsx", sheet, `<dimension ref="A1:`, "Berkshire &lt;Hathaway&gt;", "<v>18.2</v>", "ZZZ", "Rentabilidad · ROE (%)")
+	for _, f := range zr.File {
+		if f.Name == "xl/styles.xml" {
+			rc, _ := f.Open()
+			b, _ := io.ReadAll(rc)
+			rc.Close()
+			wantAll(t, "evaluador.xlsx (estilos)", string(b), "FFC6E0B4") // encabezado de «Veredicto · Rentabilidad» en verde claro
+		}
+	}
 
 	pagina := read(t, out, "empresa.html")
 	wantAll(t, "empresa.html", pagina, `href="site.css"`, `href="evaluador.html"`, `src="empresas.js"`, `src="alpine.min.js"`, `x-data="empresa"`)

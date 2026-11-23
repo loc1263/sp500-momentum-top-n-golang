@@ -66,6 +66,9 @@ func price(p *float64, currency string) string {
 	return s
 }
 
+// signedPct son las métricas en % que muestran el signo («+2,7 %»): potencial al precio objetivo y tendencia del precio.
+var signedPct = map[string]bool{"target_upside": true, "sma200": true, "ret_3m": true, "ret_6m": true}
+
 func formatMetric(m evaluator.Metric, def evaluator.MetricDef, finCurrency string) string {
 	if m.Text != "" {
 		return m.Text
@@ -76,7 +79,7 @@ func formatMetric(m evaluator.Metric, def evaluator.MetricDef, finCurrency strin
 	v := *m.Value
 	switch def.Unit {
 	case "pct":
-		if m.ID == "target_upside" {
+		if signedPct[m.ID] {
 			sign := ""
 			if v > 0 {
 				sign = "+"

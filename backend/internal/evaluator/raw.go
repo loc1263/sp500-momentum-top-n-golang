@@ -31,18 +31,19 @@ type Trend struct {
 type Raw struct {
 	Ticker, Name, Sector, Industry, Currency, FinCurrency, Rating string
 
-	Price, MarketCap, Beta, W52Low, W52High float64
-	PE, FwdPE, EPS, Dividend                float64
-	RevGrowth, EpsGrowth, ROE               float64
-	Target                                  float64
-	Revenue, NetIncome, OCF, FCF, Capex     float64
-	Debt, Cash                              float64
-	CurrentRatio, DebtToEquity              float64
-	EBITDA, EBIT, TaxRate, InvestedCapital  float64
-	GrossMargin, PB, PEG, Payout            float64
-	QRevenue, QOpIncome, QInterest, QEquity float64
-	AsOf                                    string
-	Trend                                   Trend
+	Price, MarketCap, Beta, W52Low, W52High  float64
+	PE, FwdPE, EPS, Dividend                 float64
+	RevGrowth, EpsGrowth, ROE                float64
+	Target                                   float64
+	Revenue, NetIncome, OCF, FCF, Capex      float64
+	Debt, Cash                               float64
+	CurrentRatio, DebtToEquity               float64
+	EBITDA, EBIT, TaxRate, InvestedCapital   float64
+	GrossMargin, PB, PEG, Payout             float64
+	SMA200, Ret3M, Ret6M, IdxRet3M, IdxRet6M float64
+	QRevenue, QOpIncome, QInterest, QEquity  float64
+	AsOf                                     string
+	Trend                                    Trend
 }
 
 func (r Raw) sameCurrency() bool {
@@ -92,7 +93,7 @@ func scale(v, by float64) float64 {
 	return v * by
 }
 
-func Fetch(ctx context.Context, y *yahoo.Client, ticker string) (Raw, error) {
+func Fetch(ctx context.Context, y *yahoo.Client, ticker string, bench Benchmark) (Raw, error) {
 	info, err := y.Info(ctx, ticker, gohoo.InfoPercentYield())
 	if err != nil {
 		return Raw{}, err
@@ -102,6 +103,7 @@ func Fetch(ctx context.Context, y *yahoo.Client, ticker string) (Raw, error) {
 	if isNaN(r.Price) && isNaN(r.MarketCap) {
 		return Raw{}, fmt.Errorf("sin datos de precios: %w", gohoo.ErrNotFound)
 	}
+	r.applyBars(fetchBars(ctx, y, ticker), bench)
 	return r, nil
 }
 
@@ -120,7 +122,8 @@ func BuildRaw(ticker string, info, ts map[string]any) Raw {
 		EBITDA: num(info, "ebitda"), EBIT: nan, TaxRate: nan, InvestedCapital: nan,
 		GrossMargin: scale(num(info, "grossMargins"), 100), PB: num(info, "priceToBook"), PEG: num(info, "pegRatio"),
 		Payout: scale(num(info, "payoutRatio"), 100),
-		Capex:  nan, QRevenue: nan, QOpIncome: nan, QInterest: nan, QEquity: nan,
+		SMA200: nan, Ret3M: nan, Ret6M: nan, IdxRet3M: nan, IdxRet6M: nan,
+		Capex: nan, QRevenue: nan, QOpIncome: nan, QInterest: nan, QEquity: nan,
 	}
 	if r.GrossMargin == 0 { // Yahoo informa 0 en bancos y aseguradoras, que no tienen costo de ventas
 		r.GrossMargin = nan

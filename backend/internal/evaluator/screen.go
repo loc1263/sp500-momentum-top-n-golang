@@ -11,20 +11,23 @@ var cheapMetrics = []string{"pe", "ev_ebitda", "ev_fcf"}
 
 // Screen dice si la empresa es sólida financieramente y si es barata.
 //
-//   - Sólida: Rentabilidad, Caja y Deuda y liquidez en «Bien». Los bancos y aseguradoras no tienen Deuda ni Caja, así que no califican.
+//   - Sólida: Rentabilidad y Caja en «Bien», y solvencia en «Bien»: deuda neta/EBITDA hasta 2× (o caja neta) y, si hay dato, cobertura de
+//     intereses de 8× o más. No se usa el veredicto de Deuda y liquidez: deuda/patrimonio se distorsiona con las recompras y la liquidez
+//     corriente bajo 1 es normal en redes de pago como Visa y Mastercard. Los bancos y aseguradoras no tienen EBITDA, así que no califican.
 //   - Barata: al menos dos de P/E, EV/EBITDA y EV/FCF con dato y ninguno en «Caro» (ni sin utilidad, sin caja libre).
 func Screen(c Company) (solid, cheap bool) {
 	verdicts := map[string]Level{}
 	levels := map[string]Level{}
 	for _, k := range c.Categories {
 		verdicts[k.ID] = k.Verdict
-		if k.ID == "val" {
+		if k.ID == "val" || k.ID == "debt" {
 			for _, m := range k.Metrics {
 				levels[m.ID] = m.Level
 			}
 		}
 	}
-	solid = verdicts["prof"] == Good && verdicts["cash"] == Good && verdicts["debt"] == Good
+	solvent := levels["net_debt_ebitda"] == Good && (levels["interest_cover"] == Good || levels["interest_cover"] == NA)
+	solid = verdicts["prof"] == Good && verdicts["cash"] == Good && solvent
 
 	have, anyBad := 0, false
 	for _, id := range cheapMetrics {

@@ -348,7 +348,7 @@ func leverage(r Raw) []Metric {
 	}
 }
 
-// valuationMetrics: P/E, Forward P/E, potencial hasta el precio objetivo, posición en el rango de 52 semanas, beta, dividendo y opinión.
+// valuationMetrics: múltiplos de valoración, tendencia del precio (momentum.go), potencial hasta el precio objetivo, posición en el rango de 52 semanas, beta, dividendo y opinión.
 func valuationMetrics(r Raw) []Metric {
 	pe := peOf(r)
 	upside := nan
@@ -405,7 +405,9 @@ func valuationMetrics(r Raw) []Metric {
 	if r.Rating != "" {
 		ratingM = Metric{ID: "rating", Level: Info, Text: r.Rating}
 	}
-	return []Metric{peM, fpeM, evEbitdaM, evFcfM, pegM, psM, pbM, upM, posM, betaM, divM, ratingM}
+	out := []Metric{peM, fpeM, evEbitdaM, evFcfM, pegM, psM, pbM}
+	out = append(out, trendMetrics(r)...)
+	return append(out, upM, posM, betaM, divM, ratingM)
 }
 
 func ifOK(v float64, f func() Level) Level {

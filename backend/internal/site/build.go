@@ -157,6 +157,13 @@ func (b *builder) evaluator(p *evaluator.Payload) error {
 	if err := b.write("evaluador.html", "evaluador", "evaluador", newEvaluatorList(*p)); err != nil {
 		return err
 	}
+	book, err := evaluatorXLSX(*p)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(b.out, xlsxFile), book, 0o644); err != nil {
+		return err
+	}
 	return b.companies(p)
 }
 

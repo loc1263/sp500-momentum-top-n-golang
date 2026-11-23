@@ -93,7 +93,7 @@ func shortTitle(t string) string {
 	return strings.NewReplacer(" (5 años)", "", "Vs. competidores", "Pares").Replace(t)
 }
 
-const screenHelp = "Sólida: Rentabilidad, Caja y Deuda y liquidez en «Bien». Barata: al menos dos de P/E, EV/EBITDA y EV/FCF con dato y ninguno en «Caro». Es un filtro para revisar, no una recomendación."
+const screenHelp = "Sólida: Rentabilidad y Caja en «Bien», deuda neta/EBITDA hasta 2× (o caja neta) y cobertura de intereses de 8× o más. Barata: al menos dos de P/E, EV/EBITDA y EV/FCF con dato y ninguno en «Caro». Es un filtro para revisar, no una recomendación."
 
 // screenCell es la celda de la columna «Sólida y barata»; V ordena primero las que cumplen las dos condiciones.
 func screenCell(solid, cheap bool) cellView {

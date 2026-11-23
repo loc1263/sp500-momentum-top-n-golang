@@ -11,6 +11,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/loc1263/gohoo"
 
 	"topwx/internal/config"
 )
@@ -18,11 +21,12 @@ import (
 func healthy() Raw {
 	r := emptyRaw()
 	r.Ticker, r.Name, r.Sector, r.Industry, r.Currency, r.FinCurrency = "OK", "Ok Corp", "Tech", "Software", "USD", "USD"
-	r.Price, r.MarketCap, r.Beta, r.W52Low, r.W52High = 100, 300e9, 0.9, 80, 120
+	r.Price, r.MarketCap, r.Beta, r.W52Low, r.W52High = 100, 300e9, 0.9, 80, 110
 	r.PE, r.FwdPE, r.EPS, r.Dividend = 12, 10, 8, 1.5
 	r.RevGrowth, r.EpsGrowth, r.ROE, r.Target = 12, 15, 20, 130
 	r.Revenue, r.NetIncome, r.OCF, r.FCF, r.Capex, r.Debt, r.Cash = 100e9, 20e9, 30e9, 25e9, 5e9, 10e9, 40e9
 	r.CurrentRatio = 2
+	r.SMA200, r.Ret3M, r.Ret6M, r.IdxRet3M, r.IdxRet6M = 90, 8, 12, 5, 6
 	r.QRevenue, r.QOpIncome, r.QInterest, r.QEquity = 25e9, 7e9, 0.2e9, 50e9
 	r.Rating, r.AsOf = "Buy", "2026-09-30"
 	r.Trend = Trend{
@@ -40,7 +44,7 @@ func emptyRaw() Raw {
 	r := Raw{}
 	for _, p := range []*float64{&r.Price, &r.MarketCap, &r.Beta, &r.W52Low, &r.W52High, &r.PE, &r.FwdPE, &r.EPS, &r.Dividend,
 		&r.RevGrowth, &r.EpsGrowth, &r.ROE, &r.Target, &r.Revenue, &r.NetIncome, &r.OCF, &r.FCF, &r.Capex, &r.Debt, &r.Cash,
-		&r.CurrentRatio, &r.DebtToEquity, &r.EBITDA, &r.EBIT, &r.TaxRate, &r.InvestedCapital, &r.GrossMargin, &r.PB, &r.PEG, &r.Payout, &r.QRevenue, &r.QOpIncome, &r.QInterest, &r.QEquity} {
+		&r.CurrentRatio, &r.DebtToEquity, &r.EBITDA, &r.EBIT, &r.TaxRate, &r.InvestedCapital, &r.GrossMargin, &r.PB, &r.PEG, &r.Payout, &r.SMA200, &r.Ret3M, &r.Ret6M, &r.IdxRet3M, &r.IdxRet6M, &r.QRevenue, &r.QOpIncome, &r.QInterest, &r.QEquity} {
 		*p = nan
 	}
 	return r
@@ -95,7 +99,7 @@ func TestHealthyCompanyIsGood(t *testing.T) {
 	near(t, metric(c, "interest_cover").Value, 35)
 	near(t, metric(c, "debt_equity").Value, 0.2)
 	near(t, metric(c, "target_upside").Value, 30)
-	near(t, metric(c, "range_52w").Value, 50)
+	near(t, metric(c, "range_52w").Value, 20.0/30*100)
 }
 
 func TestMissingDataIsNA(t *testing.T) {
@@ -372,6 +376,11 @@ func TestBuildRawZeroGrossMarginIsMissing(t *testing.T) {
 }
 
 func TestScreenSolidAndCheap(t *testing.T) {
+	healthy := func() Raw {
+		r := healthy()
+		r.EBITDA = 30e9
+		return r
+	}
 	solid, cheap := Screen(Analyze(healthy(), SP500))
 	if !solid || !cheap {
 		t.Errorf("empresa sana y barata: sólida=%v barata=%v", solid, cheap)
@@ -390,15 +399,118 @@ func TestScreenSolidAndCheap(t *testing.T) {
 	}
 
 	r = healthy()
-	r.Debt, r.Cash, r.OCF = 200e9, 10e9, 30e9
+	r.Debt, r.Cash, r.OCF = 200e9, 10e9, 30e9 // deuda neta 6,3 veces el EBITDA
 	if solid, _ := Screen(Analyze(r, SP500)); solid {
 		t.Error("con deuda pesada no es sólida")
+	}
+
+	r = healthy()
+	r.QInterest = 5e9 // el resultado operativo (7 mil millones) cubre los intereses solo 1,4 veces
+	if solid, _ := Screen(Analyze(r, SP500)); solid {
+		t.Error("con poca cobertura de intereses no es sólida")
+	}
+
+	// Como Visa o Mastercard: liquidez corriente bajo 1 y deuda/patrimonio alto, pero deuda neta y cobertura holgadas.
+	r = healthy()
+	r.CurrentRatio, r.DebtToEquity, r.QEquity = 0.9, 350, 10e9
+	if c := Analyze(r, SP500); cat(c, "debt").Verdict == Good {
+		t.Fatalf("el caso debe tener Deuda y liquidez fuera de «Bien»: %+v", cat(c, "debt"))
+	}
+	if solid, _ := Screen(Analyze(r, SP500)); !solid {
+		t.Error("liquidez corriente baja y deuda/patrimonio alto no impiden ser sólida si la deuda neta y la cobertura son holgadas")
+	}
+
+	r = healthy()
+	r.EBITDA = nan
+	if solid, _ := Screen(Analyze(r, SP500)); solid {
+		t.Error("sin EBITDA no se puede medir la solvencia")
 	}
 
 	b := healthy()
 	b.Sector, b.CurrentRatio = financialSector, nan
 	if solid, _ := Screen(Analyze(b, SP500)); solid {
 		t.Error("un banco no tiene sección de deuda y no califica como sólido")
+	}
+}
+
+func TestPriceTrendMetrics(t *testing.T) {
+	c := Analyze(healthy(), SP500)
+	// Precio 100 contra SMA 200 de 90; máximo de 52 semanas 110.
+	near(t, metric(c, "sma200").Value, (100.0/90-1)*100)
+	if m := metric(c, "sma200"); m.Level != Good || m.Label != "Sobre la SMA 200" {
+		t.Errorf("sma200: %+v", m)
+	}
+	for _, id := range []string{"ret_3m", "ret_6m"} {
+		if m := metric(c, id); m.Level != Good || m.Label != "Positivo" || m.Note == "" {
+			t.Errorf("%s: %+v", id, m)
+		}
+	}
+	near(t, metric(c, "off_high").Value, 10.0/110*100)
+	if m := metric(c, "off_high"); m.Level != Good || m.Label != "Cerca del máximo" {
+		t.Errorf("off_high: %+v", m)
+	}
+
+	r := healthy()
+	r.SMA200 = 120
+	r.W52High = 125
+	c = Analyze(r, SP500)
+	if m := metric(c, "sma200"); m.Level != Bad || m.Label != "Bajo la SMA 200" {
+		t.Errorf("bajo la media: %+v", m)
+	}
+	if m := metric(c, "off_high"); m.Level != Bad || m.Label != "Lejos del máximo" {
+		t.Errorf("20 %% bajo el máximo: %+v", m)
+	}
+	r.W52High = 115 // 13 % bajo el máximo
+	if m := metric(Analyze(r, SP500), "off_high"); m.Level != Warn {
+		t.Errorf("13 %% bajo el máximo es atención: %+v", m)
+	}
+}
+
+func TestReturnLevel(t *testing.T) {
+	for _, tc := range []struct {
+		ret, idx float64
+		level    Level
+		label    string
+	}{
+		{8, 5, Good, "Positivo"},
+		{3, 5, Warn, "Bajo el índice"},
+		{-2, -5, Warn, "Mejor que el índice"},
+		{-8, -5, Bad, "Negativo"},
+		{4, nan, Good, "Positivo"},
+		{-4, nan, Bad, "Negativo"},
+		{nan, 5, NA, ""},
+	} {
+		if l, lb := returnLevel(tc.ret, tc.idx); l != tc.level || lb != tc.label {
+			t.Errorf("rendimiento %v contra índice %v: %s %q, quiero %s %q", tc.ret, tc.idx, l, lb, tc.level, tc.label)
+		}
+	}
+}
+
+func TestBarsIndicators(t *testing.T) {
+	day := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+	var bars []gohoo.Bar
+	for i := 0; i < 260; i++ {
+		bars = append(bars, gohoo.Bar{Time: day.AddDate(0, 0, i), Close: 100 + float64(i)})
+	}
+	last := bars[len(bars)-1] // cierre 359
+	// SMA de los últimos 200 cierres: de 160 a 359 → 259,5.
+	near(t, &[]float64{sma(bars, 200)}[0], 259.5)
+	if !isNaN(sma(bars[:150], 200)) {
+		t.Error("con menos de 200 ruedas no hay SMA 200")
+	}
+	// Hace 3 meses desde 2026-09-18 es 2026-06-18, el día 167 (cierre 267).
+	want := (last.Close/267 - 1) * 100
+	near(t, &[]float64{returnSince(bars, 3)}[0], want)
+	if !isNaN(returnSince(bars[200:], 6)) {
+		t.Error("si el historial no llega a 6 meses atrás, no hay rendimiento")
+	}
+
+	r := emptyRaw()
+	r.applyBars(bars, Benchmark{Ret3M: 5, Ret6M: nan})
+	near(t, &r.SMA200, 259.5)
+	near(t, &r.IdxRet3M, 5)
+	if !isNaN(r.IdxRet6M) {
+		t.Error("sin índice a 6 meses debe quedar en NaN")
 	}
 }
 

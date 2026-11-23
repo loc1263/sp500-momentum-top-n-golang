@@ -98,8 +98,12 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client) (*Payload, err
 		return nil, errs.EvaTooFew.Errorf("no hay empresas que evaluar (revisa [evaluator] sp500)")
 	}
 	logx.Infof("Evaluador: descargando datos fundamentales de %d empresas...", len(ts))
+	bench := FetchBenchmark(ctx, y)
+	if isNaN(bench.Ret3M) || isNaN(bench.Ret6M) {
+		logx.Debugf("Sin historial del %s: los rendimientos se miden solo contra cero", benchmarkTicker)
+	}
 	res := gohoo.ParallelMap(ctx, ts, cfg.Data.SharesWorkers, func(ctx context.Context, t target) (Raw, error) {
-		return Fetch(ctx, y, t.ticker)
+		return Fetch(ctx, y, t.ticker, bench)
 	})
 	var cs []Company
 	missing := map[string][]string{}

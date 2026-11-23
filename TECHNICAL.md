@@ -190,11 +190,11 @@ Correr el script dos veces con los mismos datos reemplaza el resultado en lugar 
 Análisis fundamental de cada acción del **S&P 500 actual** (~500 empresas), sin backtest: una foto de hoy. Es una
 sección aparte: **no usa ni modifica** los scores, el ranking, las tablas de precios ni `fundamentals` de los otros modelos. De ellos
 toma solo las listas de tickers (el S&P 500 actual de la base). Los datos salen de Yahoo Finance
-vía `gohoo` (`quoteSummary` y `fundamentals-timeseries`: 2 requests por empresa, ~45 segundos en total) y no se guardan en SQLite:
+vía `gohoo` (`quoteSummary`, `fundamentals-timeseries` y el historial diario de 1 año: 3 requests por empresa, más uno del S&P 500; ~70 segundos en total) y no se guardan en SQLite:
 cada corrida los baja de nuevo y reemplaza el JSON.
 
 ```
-topwx evaluator             # ~45 segundos
+topwx evaluator             # ~70 segundos
 ```
 
 El resultado es `[evaluator] output` (`output/evaluator.json`, ignorado por git como `report.json`), que la página
@@ -207,7 +207,7 @@ sus métricas, nivel (`good`, `warn`, `bad`, `info`, `na`) y veredicto. Los umbr
 | Crecimiento | crecimiento de ingresos y del EPS, calidad de la utilidad (Forward P/E ÷ P/E) |
 | Caja | flujo de caja libre, su margen, cobertura del capex, rendimiento sobre la capitalización y payout (solo si paga dividendo) |
 | Deuda y liquidez | deuda neta, deuda neta/EBITDA, años de flujo operativo para pagarla, cobertura de intereses, liquidez corriente, deuda/patrimonio |
-| Valoración | P/E, Forward P/E, EV/EBITDA, EV/FCF, PEG, P/S y P/B (informativos), potencial al precio objetivo, posición en el rango de 52 semanas, beta, dividendo, consenso (las tres últimas son informativas) |
+| Valoración | P/E, Forward P/E, EV/EBITDA, EV/FCF, PEG, P/S y P/B (informativos), tendencia del precio (precio frente a la SMA 200, rendimiento de 3 y 6 meses, distancia al máximo de 52 semanas), potencial al precio objetivo, posición en el rango de 52 semanas, beta, dividendo, consenso (las tres últimas son informativas) |
 | Tendencia | ingresos, utilidad, EPS, flujo libre, margen operativo, margen bruto y deuda de hasta 5 años fiscales (CAGR o variación; Yahoo suele traer 4) |
 | Vs. competidores | las métricas clave frente a la mediana de hasta `[evaluator] peers` = 3 empresas de la misma industria (si no hay, del mismo sector) y mercado, con la capitalización más cercana |
 
@@ -218,10 +218,18 @@ sus métricas, nivel (`good`, `warn`, `bad`, `info`, `na`) y veredicto. Los umbr
 - **Umbrales de valoración**: EV/EBITDA barato bajo 10 y caro sobre 18; EV/FCF bajo 15 y sobre 30; PEG bajo 1 y sobre 2 (como el P/E: bajo 15 y sobre 30).
   Un resultado negativo es «Sin utilidad», «Sin caja libre» o «Sin crecimiento». Deuda neta/EBITDA: bajo 2× bien, sobre 3× alerta. ROIC: 15 % o más bien, bajo 10 % alerta.
   Payout: bajo 60 % bien, sobre 80 % alerta.
-- **Sólida y barata** (columna y filtros del listado, `internal/evaluator/screen.go`): *sólida* = Rentabilidad, Caja y Deuda y liquidez en «Bien»;
+- **Sólida y barata** (columna y filtros del listado, `internal/evaluator/screen.go`): *sólida* = Rentabilidad y Caja en «Bien» y solvencia en «Bien» (deuda neta/EBITDA hasta 2× o caja neta y, si hay dato, cobertura de intereses de 8× o más; no usa el veredicto de Deuda y liquidez porque deuda/patrimonio y la liquidez corriente se distorsionan en empresas que recompran acciones o en redes de pago);
   *barata* = al menos dos de P/E, EV/EBITDA y EV/FCF con dato y ninguno en «Caro». No usa el veredicto de Valoración, que también promedia beta y
   potencial al precio objetivo. Se calcula en el sitio a partir de los niveles ya guardados, así que no cambia el JSON. Los bancos no califican como
-  sólidos (sin sección de deuda). Es un filtro para revisar, no una recomendación.
+  sólidos (sin EBITDA). Es un filtro para revisar, no una recomendación.
+- **Exportar Excel** (botón del listado, `evaluador.xlsx`): todas las empresas y todas las métricas, sin aplicar los filtros de la página. Cada valor lleva el color
+  de su nivel (verde, amarillo, rojo; las informativas y sin dato quedan sin color) y los números van como números con su formato, para ordenarlos y filtrarlos.
+  Lo arma `internal/site/evaluator_xlsx.go` con `internal/xlsx` al generar el sitio, así que se actualiza solo con `topwx site` o el pipeline.
+- **Tendencia del precio** (`internal/evaluator/momentum.go`, en Valoración; sale del historial diario de 1 año): precio sobre su SMA 200 es «Bien» y bajo ella «Alerta».
+  Rendimiento de 3 y 6 meses: «Bien» si es positivo y no queda bajo el S&P 500 en el mismo plazo; «Atención» si cumple solo una de las dos cosas (sube menos que el
+  índice, o cae menos que él); «Alerta» si cae y además rinde menos que el índice. Distancia al máximo de 52 semanas: hasta 10 % «Bien», hasta 15 % «Atención», más «Alerta».
+  Estas métricas también cuentan en el veredicto de Valoración, y miden el precio y no si la empresa es barata: la columna «Sólida y barata» no las usa.
+  Sin historial del S&P 500, el rendimiento solo se compara con cero.
 - **ROE**: sobre 60 % queda en «Atención» con la etiqueta «Muy alto», porque suele ser un patrimonio muy pequeño (recompras o pérdidas) y no eficiencia.
 - **Veredicto**: «Bien» si el promedio de los niveles es alto (≥ 1,5 sobre 2) y ninguno es alerta, «Alerta» si es bajo (< 0,9). El
   general aplica la misma regla a los veredictos de las categorías. Las métricas informativas y sin datos no cuentan.
@@ -602,7 +610,7 @@ report, cleanup, pipeline...) está en [`backend/README.md`](backend/README.md).
 | `actual_page.go`, `templates/actual.html` | Top actual (Home): un bloque por universo con selector, cambios, suplentes y seguimiento |
 | `etfq_page.go`, `templates/etfq.html` | ETFs por gestora: resumen, filtros y tabla de todos los ETFs |
 | `quant_page.go`, `templates/quant.html` | Modelo por score: cómo se calcula, Markowitz y ranking con tres vistas de columnas |
-| `evaluator_page.go`, `evalfmt.go`, `templates/evaluador.html`, `empresa.html`, `static/empresa.js` | Evaluador: listado en Go y una sola página de empresa (`empresa.html#<TICKER>`) que Alpine pinta con los datos de `empresas.js` (minigráficos SVG y pares ya formateados por Go) |
+| `evaluator_page.go`, `evaluator_xlsx.go`, `evalfmt.go`, `templates/evaluador.html`, `empresa.html`, `static/empresa.js` | Evaluador: listado en Go y una sola página de empresa (`empresa.html#<TICKER>`) que Alpine pinta con los datos de `empresas.js` (minigráficos SVG y pares ya formateados por Go) |
 | `lab_page.go`, `chart.go`, `templates/lab_*.html`, `static/lab.js`, `static/chart.js` | Lab: tres páginas (`lab-<vista>.html`) que Alpine pinta con `lab-datos.js` (una entrada por universo y período, elegida con el hash `#<universo>-<años>`); gráficos SVG con cursor y valores |
 | `about_page.go`, `templates/about.html` | About: qué se muestra, conceptos, fuentes y límites |
 | `format.go`, `table.go` | Formato es-AR (porcentajes, dinero, miles) y las piezas comunes de las tablas (encabezados, filas, celdas, clases de color) |
