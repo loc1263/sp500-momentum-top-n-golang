@@ -251,7 +251,7 @@ historial de 6 años (con dividendos) de cada instrumento y reemplaza el JSON (~
 topwx visor
 ```
 
-El resultado es `[visor] output` (`output/visor.json`, ignorado por git), con una tabla por tipo (`acciones` y `etf`):
+El resultado es `[visor] output` (`output/visor.json`, ignorado por git), con una tabla por tipo (`acciones`, `etf` y `veteranas`):
 columnas, filas (`null` = sin dato) y cómo se formatea y se colorea cada columna; el sitio solo la dibuja.
 
 | Columna | Cálculo |
@@ -264,6 +264,16 @@ columnas, filas (`null` = sin dato) y cómo se formatea y se colorea cada column
 | `dividend_yield` | dividendos de los últimos 365 días ÷ último cierre |
 | `verdes` | cantidad de celdas verdes de la fila (mismas reglas que el color de la tabla, definidas en `internal/visor/table.go`) |
 
+- **Más de 50 años** (`veteranas`): acciones de EE. UU. con capitalización mayor a `[visor] veteran_cap_min_billions` (5 B) de empresas
+  fundadas hace al menos `[visor] veteran_years` (50) años. Yahoo no tiene un campo de fundación: el año sale del resumen del negocio
+  (`longBusinessSummary`) buscando «founded / established in AAAA» y, si no hay, «incorporated / organized / formed in AAAA»
+  (`visor.FoundedYear`); si el resumen no lo dice, la empresa no aparece. «Incorporated» es la constitución legal y a veces no
+  coincide con la fundación. Como pedir el `Info` de miles de acciones topa con el límite de Yahoo y el año no cambia, se guarda en
+  `[visor] veteran_cache` (`data/founded.json`, que el workflow restaura entre corridas) y cada corrida solo consulta las que faltan;
+  las que Yahoo no contesta se reintentan en la siguiente (la primera corrida es lenta). Columnas: `ticker`, `nombre`, `sector`,
+  `fundada` (año), `anio_AAAA` (rendimiento % de cada uno de los últimos 5 años calendario completos: cierre de diciembre contra el de
+  diciembre anterior, sin el año en curso), `ytd` (rendimiento del año en curso), `anualizado_5a` y `acumulado_5a` (esos cinco rendimientos compuestos y su media
+  geométrica anual; `null` si falta alguno) y `market_cap_B`. No tiene `verdes` ni comparación contra SPY.
 - **Color**: los rendimientos, `vs_ma200` y los relativos son verdes si son > 0 y rojos si son < 0. Verde también: Sharpe > 1, caída
   máxima ≥ −25%, distancia al máximo ≥ −10%, dividendo ≥ 2% y TER ≤ 0,20% (solo ETFs).
 - **Apalancados**: se descartan los ETFs apalancados e inversos del universo (por nombre y categoría, `visor.IsLeveraged`), salvo los de

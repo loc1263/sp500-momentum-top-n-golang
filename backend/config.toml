@@ -171,6 +171,12 @@ tickers = ["SPY", "QQQ"]
 # Acciones: capitalización mínima (super large cap) y desde la que se llama mega cap, en miles de millones de US$
 cap_min_billions = 100
 cap_mega_billions = 200
+# Sección «Más de 50 años»: acciones de EE. UU. fundadas hace al menos estos años (el año sale del resumen del negocio en Yahoo; si el
+# resumen no lo dice, la empresa queda fuera) y con capitalización mínima en miles de millones de US$
+veteran_years = 50
+veteran_cap_min_billions = 5
+# Caché del año de fundación por ticker (no cambia): evita pedir miles de Info a Yahoo en cada corrida
+veteran_cache = "data/founded.json"
 # ETFs del universo: cantidad (los de mayor AUM), AUM mínimo en millones de US$ y si se incluyen los apalancados e inversos
 etf_top = 300
 etf_aum_min_millions = 500

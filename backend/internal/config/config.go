@@ -123,6 +123,9 @@ type Visor struct {
 	Tickers           []string `toml:"tickers" json:"tickers"`
 	CapMinBillions    float64  `toml:"cap_min_billions" json:"cap_min_billions"`
 	CapMegaBillions   float64  `toml:"cap_mega_billions" json:"cap_mega_billions"`
+	VeteranYears      int      `toml:"veteran_years" json:"veteran_years"`
+	VeteranCapMinB    float64  `toml:"veteran_cap_min_billions" json:"veteran_cap_min_billions"`
+	VeteranCache      string   `toml:"veteran_cache" json:"veteran_cache"`
 	EtfTop            int      `toml:"etf_top" json:"etf_top"`
 	EtfAumMinMillions float64  `toml:"etf_aum_min_millions" json:"etf_aum_min_millions"`
 	IncludeLeveraged  bool     `toml:"include_leveraged" json:"include_leveraged"`
@@ -203,6 +206,7 @@ func Default() Config {
 		Evaluator: Evaluator{Output: "output/evaluator.json", Peers: 3, Sp500: true, MinCoverage: 0.5},
 		Visor: Visor{
 			Output: "output/visor.json", Tickers: []string{"SPY", "QQQ"}, CapMinBillions: 100, CapMegaBillions: 200,
+			VeteranYears: 50, VeteranCapMinB: 5, VeteranCache: "data/founded.json",
 			EtfTop: 300, EtfAumMinMillions: 500, Rf: 3, MinCoverage: 0.5,
 		},
 		Universe: Universe{MinCapBillions: 10, SweepMinCapBillions: []float64{0, 10, 200}},

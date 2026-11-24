@@ -16,6 +16,7 @@
   </div>
 
   <p class="muted">Rendimientos acumulados (mensuales a 21 ruedas por mes); Sharpe, beta y volatilidad a 3 años contra SPY. Verde: Sharpe &gt; 1, caída máxima ≥ −25%, distancia al máximo de 52 semanas ≥ −10%, dividendo ≥ 2% y, en ETFs, TER ≤ 0,20%; los rendimientos van en verde si son positivos y en rojo si son negativos. «Verdes» cuenta las celdas verdes de cada fila. Haga clic en un encabezado para ordenar; bajo cada uno hay un filtro (texto, mínimo y máximo, o SUPERA / NO SUPERA). Un clic en una fila la marca (otro clic la desmarca).</p>
+  <p class="muted">«Más de 50 años»: acciones de EE. UU. de empresas fundadas hace más de 50 años (el año sale del resumen del negocio de Yahoo, «founded in…» o «incorporated in…»; si el resumen no lo dice, la empresa no aparece). Los años son calendario completos (cierre de diciembre contra el de diciembre anterior); el acumulado y el anualizado a 5 años componen esos cinco rendimientos anuales.</p>
 
   {{range $i, $s := .Sections -}}
   <div class="wrap" data-sec="{{$s.ID}}"{{if $i}} hidden{{end}}>

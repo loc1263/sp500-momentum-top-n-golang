@@ -22,7 +22,8 @@ var labels = map[string]string{
 	"ticker": "Ticker", "nombre": "Nombre", "sector": "Sector", "categoria": "Categoría", "market_cap_B": "Cap. (B)", "aum_B": "AUM (B)",
 	"expense_ratio": "TER %", "sharpe": "Sharpe", "beta": "Beta", "max_drawdown": "Máx. caída 5a", "dist_max52": "Dist. máx 52s",
 	"vs_ma200": "vs MA200", "rel_spy_1y": "vs SPY 1a", "rel_spy_3y": "vs SPY 3a", "dividend_yield": "Dividendo", "ytd": "YTD", "ytd_spy": "YTD SPY",
-	"ytd_vs_spy": "YTD vs SPY", "vs_spy": "vs SPY", "verdes": "Verdes",
+	"ytd_vs_spy": "YTD vs SPY", "vs_spy": "vs SPY", "verdes": "Verdes", "fundada": "Fundada", "anualizado_5a": "Anualizado 5a",
+	"acumulado_5a": "Acumulado 5a",
 }
 
 var retCol = regexp.MustCompile(`^ret_(\d+)([my])$`)
@@ -33,6 +34,9 @@ func label(col string) string {
 			return m[1] + "a"
 		}
 		return m[1] + "m"
+	}
+	if year, ok := strings.CutPrefix(col, "anio_"); ok {
+		return year
 	}
 	if l, ok := labels[col]; ok {
 		return l

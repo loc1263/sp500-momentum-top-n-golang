@@ -238,3 +238,96 @@ func TestWriteEscribeJSONValido(t *testing.T) {
 		t.Errorf("contenido inesperado: %+v", back.Sections)
 	}
 }
+
+func TestCalendarReturnsUsaElUltimoCierreDeCadaAnioYOmiteElActual(t *testing.T) {
+	s := Series{
+		Dates: []string{"2022-06-01", "2022-12-30", "2023-12-29", "2024-12-31", "2025-03-03"},
+		Close: []float64{90, 100, 110, 132, 150},
+	}
+	got := CalendarReturns(s)
+	if len(got) != 2 || math.Abs(got[2023]-10) > 1e-9 || math.Abs(got[2024]-20) > 1e-9 {
+		t.Errorf("rendimientos calendario = %v, quiero {2023: 10, 2024: 20}", got)
+	}
+	if len(CalendarReturns(Series{})) != 0 {
+		t.Error("sin datos no hay rendimientos")
+	}
+}
+
+func TestCompoundReturns(t *testing.T) {
+	cum, ann := CompoundReturns(map[int]float64{2023: 10, 2024: 20}, 2023, 2024)
+	near(t, "acumulado", cum, 32)
+	near(t, "anualizado", ann, (math.Sqrt(1.32)-1)*100)
+	if c, a := CompoundReturns(map[int]float64{2024: 20}, 2023, 2024); c != nil || a != nil {
+		t.Error("si falta un año no se acumula")
+	}
+}
+
+func TestFilterVeteransExigeAntiguedadYAnioConocido(t *testing.T) {
+	now := time.Date(2026, 11, 23, 0, 0, 0, 0, time.UTC)
+	statics := map[string]Static{"OLD": {Founded: 1886}, "EDGE": {Founded: 1976}, "NEW": {Founded: 1977}, "NODATE": {}, "WFC-PC": {Founded: 1852}, "BF-A": {Founded: 1870}}
+	kept, order := filterVeterans(statics, []string{"OLD", "EDGE", "NEW", "NODATE", "WFC-PC", "BF-A"}, 50, now)
+	if len(order) != 3 || order[0] != "OLD" || order[1] != "EDGE" || order[2] != "BF-A" || len(kept) != 3 {
+		t.Errorf("veteranas = %v, quiero [OLD EDGE BF-A] (sin preferentes)", order)
+	}
+}
+
+func TestFoundedYear(t *testing.T) {
+	cases := map[string]int{
+		"The Coca-Cola Company ... was founded in 1886 and is based in Atlanta.":                 1886,
+		"International Business Machines Corporation was incorporated in 1911 and is in Armonk.": 1911,
+		"Texas Instruments Incorporated was founded in 1930 and is headquartered in Dallas.":     1930,
+		"It was incorporated in Delaware in 1892. Later it was founded in 1950.":                 1950,
+		"Acme Incorporated sells widgets. It acquired Beta in 1998.":                             0,
+		"Sin ningún año.": 0,
+		"The company was founded in 1784. It was incorporated in 1950.": 1784,
+	}
+	for in, want := range cases {
+		if got := FoundedYear(in); got != want {
+			t.Errorf("FoundedYear(%q) = %d, quiero %d", in, got, want)
+		}
+	}
+}
+
+func TestBuildVeteranasMuestraAniosAnualizadoYAcumulado(t *testing.T) {
+	ref := Ref{LastYear: 2025, YTD: 8}
+	cal := map[int]float64{2021: 10, 2022: -10, 2023: 20, 2024: 5, 2025: 15}
+	old := instrument("OLD", func(i *Instrument) {
+		i.Sector, i.CalYears, i.MarketCap, i.Founded = "Industrials", cal, f(300e9), 1886
+	})
+	partial := instrument("PART", func(i *Instrument) { i.CalYears = map[int]float64{2025: 15} })
+	small := instrument("SMALL", func(i *Instrument) { i.MarketCap = f(0.5e9) })
+	sec := Build(Profiles[2], []Instrument{partial, old, small}, ref, config.Default().Visor, nil)
+	want := []string{"ticker", "nombre", "sector", "fundada", "anio_2021", "anio_2022", "anio_2023", "anio_2024", "anio_2025", "ytd", "anualizado_5a", "acumulado_5a", "market_cap_B"}
+	if len(sec.Cols) != len(want) {
+		t.Fatalf("columnas = %v", sec.Cols)
+	}
+	for i, c := range want {
+		if sec.Cols[i] != c {
+			t.Fatalf("columna %d = %s, quiero %s", i, sec.Cols[i], c)
+		}
+	}
+	if len(sec.Rows) != 2 || sec.Rows[0][0] != "OLD" {
+		t.Fatalf("filas = %v, quiero OLD y PART (SMALL queda bajo la capitalización mínima)", sec.Rows)
+	}
+	row := sec.Rows[0]
+	if row[col(sec, "fundada")] != 1886 || row[col(sec, "sector")] != "Industrials" {
+		t.Errorf("fundada / sector inesperados: %v", row)
+	}
+	if row[col(sec, "ytd")] != 12.0 {
+		t.Errorf("ytd = %v, quiero 12", row[col(sec, "ytd")])
+	}
+	growth := 1.10 * 0.90 * 1.20 * 1.05 * 1.15
+	if got := row[col(sec, "acumulado_5a")].(float64); math.Abs(got-(growth-1)*100) > 1e-9 {
+		t.Errorf("acumulado = %v", got)
+	}
+	if got := row[col(sec, "anualizado_5a")].(float64); math.Abs(got-(math.Pow(growth, 0.2)-1)*100) > 1e-9 {
+		t.Errorf("anualizado = %v", got)
+	}
+	part := sec.Rows[1]
+	if part[col(sec, "anio_2024")] != nil || part[col(sec, "acumulado_5a")] != nil || part[col(sec, "anualizado_5a")] != nil {
+		t.Errorf("con años faltantes no se acumula: %v", part)
+	}
+	if !IsSignCol("anio_2025") || !IsSignCol("acumulado_5a") || Format("anualizado_5a") != "pct" || IsSignCol("fundada") {
+		t.Error("las columnas de veteranas deben ser de signo y en %, salvo «fundada»")
+	}
+}

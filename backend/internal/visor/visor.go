@@ -66,6 +66,9 @@ func fetch(ctx context.Context, y *yahoo.Client, ticker string) (fetched, error)
 
 func universe(ctx context.Context, cfg config.Config, y *yahoo.Client, p Profile) (map[string]Static, []string, error) {
 	v := cfg.Visor
+	if p.IsVeteran() {
+		return VeteranUniverse(ctx, y, v.VeteranCapMinB*1e9, v.VeteranYears, cfg.Data.SharesWorkers, v.VeteranCache, time.Now())
+	}
 	if !p.IsETF() {
 		return StockUniverse(ctx, y, v.CapMinBillions*1e9)
 	}
@@ -177,7 +180,7 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client) (*Payload, err
 	if spyYTD == nil {
 		return nil, errs.VisNoRef.Errorf("el historial de %s no llega al año anterior", RefTicker)
 	}
-	ref := Ref{YTD: *spyYTD, Rets: map[int]*float64{}}
+	ref := Ref{LastYear: time.Now().Year() - 1, YTD: *spyYTD, Rets: map[int]*float64{}}
 	for _, yr := range RelYears {
 		ref.Rets[yr] = PeriodReturn(spy.Close, TradingDays*yr)
 	}

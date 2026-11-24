@@ -6,11 +6,18 @@ package visor
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/loc1263/gohoo"
 
+	"topwx/internal/errs"
+	"topwx/internal/logx"
 	"topwx/internal/yahoo"
 )
 
@@ -21,6 +28,8 @@ type Static struct {
 	MarketCap    *float64
 	AUM          *float64
 	ExpenseRatio *float64
+	// Founded es el año de fundación de la empresa (0 si no se pudo leer).
+	Founded int
 }
 
 func StaticOf(symbol, longName, shortName string, marketCap float64, raw map[string]any) Static {
@@ -77,6 +86,114 @@ func screen(ctx context.Context, y *yahoo.Client, q gohoo.Query, quoteType, sort
 func StockUniverse(ctx context.Context, y *yahoo.Client, capMin float64) (map[string]Static, []string, error) {
 	q := gohoo.And(gohoo.Eq("region", "us"), gohoo.Gt("intradaymarketcap", capMin))
 	return screen(ctx, y, q, "EQUITY", "intradaymarketcap", 0)
+}
+
+// VeteranUniverse son las acciones de EE. UU. con capitalización mayor a capMin fundadas hace al menos years años al año de now.
+// Yahoo no tiene un campo de fundación: el año sale del resumen del negocio (FoundedYear). Como pedir el Info de miles de acciones
+// topa con el límite de Yahoo y el año no cambia, se guarda en cachePath y cada corrida solo consulta las acciones que faltan; las
+// que Yahoo no contesta quedan fuera hoy y se reintentan en la próxima corrida. Las cuyo resumen no dice el año también quedan fuera.
+func VeteranUniverse(ctx context.Context, y *yahoo.Client, capMin float64, years, workers int, cachePath string, now time.Time) (map[string]Static, []string, error) {
+	statics, order, err := StockUniverse(ctx, y, capMin)
+	if err != nil {
+		return nil, nil, err
+	}
+	cache := loadFoundedCache(cachePath)
+	var todo []string
+	for _, t := range order {
+		if _, ok := cache[t]; !ok {
+			todo = append(todo, t)
+		}
+	}
+	if len(todo) > 0 {
+		logx.Infof("Visor: leyendo el año de fundación de %d acciones (%d ya estaban en el caché)...", len(todo), len(order)-len(todo))
+		res := gohoo.ParallelMap(ctx, todo, workers, func(ctx context.Context, t string) (int, error) {
+			info, err := y.Info(ctx, t)
+			if err != nil {
+				return 0, err
+			}
+			return FoundedYear(gohoo.AsString(info["longBusinessSummary"])), nil
+		})
+		failed := 0
+		for i, r := range res {
+			if r.Err != nil {
+				failed++
+				continue
+			}
+			cache[todo[i]] = r.Value
+		}
+		if failed > 0 {
+			logx.Warnf(errs.VisNoData.Msg("Más de 50 años: Yahoo no contestó el año de fundación de %d de %d acciones; se reintenta en la próxima corrida"), failed, len(todo))
+		}
+		if err := saveFoundedCache(cachePath, cache); err != nil {
+			logx.Warnf("Visor: no se pudo guardar el caché de años de fundación en %s: %v", cachePath, err)
+		}
+	}
+	for _, t := range order {
+		st := statics[t]
+		st.Founded = cache[t]
+		statics[t] = st
+	}
+	statics, order = filterVeterans(statics, order, years, now)
+	return statics, order, nil
+}
+
+func loadFoundedCache(path string) map[string]int {
+	cache := map[string]int{}
+	if raw, err := os.ReadFile(path); err == nil {
+		if err := json.Unmarshal(raw, &cache); err != nil {
+			logx.Warnf("Visor: el caché de años de fundación %s no se pudo leer (%v); se rehace", path, err)
+			cache = map[string]int{}
+		}
+	}
+	return cache
+}
+
+func saveFoundedCache(path string, cache map[string]int) error {
+	raw, err := json.Marshal(cache)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, raw, 0o644)
+}
+
+func filterVeterans(statics map[string]Static, order []string, years int, now time.Time) (map[string]Static, []string) {
+	limit := now.Year() - years
+	kept := map[string]Static{}
+	var out []string
+	for _, t := range order {
+		if preferredRe.MatchString(t) {
+			continue
+		}
+		if f := statics[t].Founded; f > 0 && f <= limit {
+			kept[t] = statics[t]
+			out = append(out, t)
+		}
+	}
+	return kept, out
+}
+
+// preferredRe reconoce los tickers de acciones preferentes (WFC-PC, PCG-PI): no son la empresa común y repiten su historia.
+var preferredRe = regexp.MustCompile(`-P[A-Z]?$`)
+
+var (
+	foundedRe = regexp.MustCompile(`\b(founded|established)\b[^.]{0,40}?\b(1[6-9]\d\d|20\d\d)\b`)
+	incorpRe  = regexp.MustCompile(`\b(incorporated|organized|formed)\b[^.]{0,40}?\b(1[6-9]\d\d|20\d\d)\b`)
+)
+
+// FoundedYear saca el año de fundación del resumen del negocio de Yahoo («founded in 1886», «incorporated in 1911»...). Prefiere
+// «founded» / «established» sobre «incorporated», y devuelve 0 si no encuentra ninguno. Los verbos se buscan en minúscula para no
+// confundirlos con «Incorporated» del nombre de la empresa.
+func FoundedYear(summary string) int {
+	for _, re := range []*regexp.Regexp{foundedRe, incorpRe} {
+		if m := re.FindStringSubmatch(summary); m != nil {
+			y, _ := strconv.Atoi(m[2])
+			return y
+		}
+	}
+	return 0
 }
 
 func ETFUniverse(ctx context.Context, y *yahoo.Client, top int, aumMin float64) (map[string]Static, []string, error) {

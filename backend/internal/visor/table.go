@@ -13,17 +13,22 @@ import (
 )
 
 const (
-	Stocks = "acciones"
-	ETFs   = "etf"
+	Stocks   = "acciones"
+	ETFs     = "etf"
+	Veterans = "veteranas"
+
+	// CalYearsShown son los años calendario que muestra la sección de veteranas (y sobre los que se acumula y anualiza).
+	CalYearsShown = 5
 )
 
 type Profile struct {
 	ID, Label string
 }
 
-func (p Profile) IsETF() bool { return p.ID == ETFs }
+func (p Profile) IsETF() bool     { return p.ID == ETFs }
+func (p Profile) IsVeteran() bool { return p.ID == Veterans }
 
-var Profiles = []Profile{{Stocks, "Acciones"}, {ETFs, "ETF"}}
+var Profiles = []Profile{{Stocks, "Acciones"}, {ETFs, "ETF"}, {Veterans, "Más de 50 años"}}
 
 type Rule struct {
 	Op    string
@@ -44,12 +49,12 @@ const (
 )
 
 func IsSignCol(col string) bool {
-	return (strings.HasPrefix(col, "ret_") || strings.HasPrefix(col, "ytd") || strings.HasPrefix(col, "rel_spy")) && col != "ytd_spy" || col == "vs_ma200"
+	return (strings.HasPrefix(col, "ret_") || strings.HasPrefix(col, "anio_") || col == "anualizado_5a" || col == "acumulado_5a" || strings.HasPrefix(col, "ytd") || strings.HasPrefix(col, "rel_spy")) && col != "ytd_spy" || col == "vs_ma200"
 }
 
 func Format(col string) string {
 	switch {
-	case strings.HasPrefix(col, "ret_"), strings.HasPrefix(col, "ytd"), strings.HasPrefix(col, "rel_spy"),
+	case strings.HasPrefix(col, "ret_"), strings.HasPrefix(col, "anio_"), col == "anualizado_5a", col == "acumulado_5a", strings.HasPrefix(col, "ytd"), strings.HasPrefix(col, "rel_spy"),
 		col == "max_drawdown", col == "dist_max52", col == "vs_ma200", col == "dividend_yield":
 		return "pct"
 	case col == "sharpe", col == "beta", col == "expense_ratio":
@@ -81,8 +86,10 @@ type Instrument struct {
 }
 
 type Ref struct {
-	YTD  float64
-	Rets map[int]*float64
+	// LastYear es el último año calendario completo (el de las columnas «anio_» de las veteranas).
+	LastYear int
+	YTD      float64
+	Rets     map[int]*float64
 }
 
 type Section struct {
@@ -98,7 +105,14 @@ type Section struct {
 
 var textCols = map[string]bool{"ticker": true, "nombre": true, "sector": true, "categoria": true, "vs_spy": true}
 
-func columns(p Profile) []string {
+func columns(p Profile, ref Ref) []string {
+	if p.IsVeteran() {
+		cols := []string{"ticker", "nombre", "sector", "fundada"}
+		for y := ref.LastYear - CalYearsShown + 1; y <= ref.LastYear; y++ {
+			cols = append(cols, fmt.Sprintf("anio_%d", y))
+		}
+		return append(cols, "ytd", "anualizado_5a", "acumulado_5a", "market_cap_B")
+	}
 	cols := []string{"ticker", "nombre"}
 	if p.IsETF() {
 		cols = append(cols, "categoria", "aum_B", "expense_ratio")
@@ -119,7 +133,7 @@ func columns(p Profile) []string {
 }
 
 func Build(p Profile, ins []Instrument, ref Ref, cfg config.Visor, explicit map[string]bool) Section {
-	cols := columns(p)
+	cols := columns(p, ref)
 	sec := Section{ID: p.ID, Label: p.Label, Cols: cols, Rows: [][]any{}, Fmt: map[string]string{}, Sign: []string{}, Thr: map[string][2]any{}}
 	for i, c := range cols {
 		if f := Format(c); f != "" {
@@ -148,13 +162,19 @@ func Build(p Profile, ins []Instrument, ref Ref, cfg config.Visor, explicit map[
 			}
 			size = in.AUM
 		} else {
-			if in.MarketCap == nil || *in.MarketCap < cfg.CapMinBillions*1e9 {
+			capMin := cfg.CapMinBillions
+			if p.IsVeteran() {
+				capMin = cfg.VeteranCapMinB
+			}
+			if in.MarketCap == nil || *in.MarketCap < capMin*1e9 {
 				continue
 			}
 			size = in.MarketCap
 		}
 		v := values(p, in, ref, cfg)
-		v["verdes"] = greens(v)
+		if !p.IsVeteran() {
+			v["verdes"] = greens(v)
+		}
 		row := make([]any, len(cols))
 		for i, c := range cols {
 			row[i] = v[c]
@@ -172,7 +192,27 @@ func Build(p Profile, ins []Instrument, ref Ref, cfg config.Visor, explicit map[
 	return sec
 }
 
+func veteranValues(in Instrument, ref Ref) map[string]any {
+	v := map[string]any{"ticker": in.Ticker, "nombre": truncate(in.Name, 40), "sector": nilIfEmpty(in.Sector)}
+	if in.Founded > 0 {
+		v["fundada"] = in.Founded
+	}
+	for y := ref.LastYear - CalYearsShown + 1; y <= ref.LastYear; y++ {
+		if r, ok := in.CalYears[y]; ok {
+			v[fmt.Sprintf("anio_%d", y)] = r
+		}
+	}
+	v["ytd"] = val(in.YTD)
+	cum, ann := CompoundReturns(in.CalYears, ref.LastYear-CalYearsShown+1, ref.LastYear)
+	v["anualizado_5a"], v["acumulado_5a"] = val(ann), val(cum)
+	v["market_cap_B"] = scaled(in.MarketCap, 1e9)
+	return v
+}
+
 func values(p Profile, in Instrument, ref Ref, cfg config.Visor) map[string]any {
+	if p.IsVeteran() {
+		return veteranValues(in, ref)
+	}
 	v := map[string]any{"ticker": in.Ticker, "nombre": truncate(in.Name, 40)}
 	if p.IsETF() {
 		v["categoria"] = in.Category

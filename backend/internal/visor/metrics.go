@@ -11,6 +11,7 @@ package visor
 import (
 	"math"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/loc1263/gohoo"
@@ -83,6 +84,41 @@ func YTD(s Series) *float64 {
 	return nil
 }
 
+// CalendarReturns da el rendimiento (%) de cada año calendario completo: el último cierre del año contra el último del anterior. El
+// año en curso (el de la última fecha) no se incluye, y un año sin cierre propio o sin cierre del anterior tampoco.
+func CalendarReturns(s Series) map[int]float64 {
+	out := map[int]float64{}
+	if len(s.Close) == 0 {
+		return out
+	}
+	lastClose := map[int]float64{}
+	for i, d := range s.Dates {
+		if y, err := strconv.Atoi(d[:4]); err == nil {
+			lastClose[y] = s.Close[i]
+		}
+	}
+	current, _ := strconv.Atoi(s.Dates[len(s.Dates)-1][:4])
+	for y, c := range lastClose {
+		if prev, ok := lastClose[y-1]; ok && y < current {
+			out[y] = (c/prev - 1) * 100
+		}
+	}
+	return out
+}
+
+// CompoundReturns acumula (%) y anualiza (%) los rendimientos anuales de los años from..to; es nil si falta alguno.
+func CompoundReturns(cal map[int]float64, from, to int) (cum, annualized *float64) {
+	growth := 1.0
+	for y := from; y <= to; y++ {
+		r, ok := cal[y]
+		if !ok {
+			return nil, nil
+		}
+		growth *= 1 + r/100
+	}
+	return ptr((growth - 1) * 100), ptr((math.Pow(growth, 1/float64(to-from+1)) - 1) * 100)
+}
+
 func MaxDrawdown(p []float64) float64 {
 	worst, peak := 0.0, math.Inf(-1)
 	for _, x := range p {
@@ -103,6 +139,8 @@ type Metrics struct {
 	DistMax52   *float64
 	VsMA200     *float64
 	DivYield    *float64
+	// CalYears es el rendimiento (%) de cada año calendario completo de la serie (cierre de diciembre contra el de diciembre anterior).
+	CalYears map[int]float64
 }
 
 func Compute(s Series, divs map[string]float64, spy Returns) (m Metrics, ok bool) {
@@ -118,6 +156,7 @@ func Compute(s Series, divs map[string]float64, spy Returns) (m Metrics, ok bool
 	}
 	m.MaxDrawdown = ptr(MaxDrawdown(tail(p, TradingDays*5+1)))
 	m.DivYield = ptr(dividendYield(s, divs))
+	m.CalYears = CalendarReturns(s)
 	m.RetMonths, m.RetYears = map[int]*float64{}, map[int]*float64{}
 	for _, k := range Months {
 		m.RetMonths[k] = PeriodReturn(p, MonthDays*k)
