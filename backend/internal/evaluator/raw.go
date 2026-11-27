@@ -1,12 +1,11 @@
-// Obtiene y arma los datos crudos de una empresa desde Yahoo (series de tiempo, monedas,
-// calificaciones) para el evaluador.
+// Arma los datos crudos de una empresa (series de tiempo, monedas, calificaciones) para el evaluador a partir del caché compartido
+// de datos de Yahoo (paquete company).
 //
 // Fecha: 2026-11-19
 
 package evaluator
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -14,7 +13,7 @@ import (
 
 	"github.com/loc1263/gohoo"
 
-	"topwx/internal/yahoo"
+	"topwx/internal/company"
 )
 
 type Trend struct {
@@ -68,13 +67,6 @@ func (r Raw) withoutCashAndDebt() Raw {
 	return r
 }
 
-var timeseriesTypes = []string{
-	"annualTotalRevenue", "annualNetIncome", "annualFreeCashFlow", "annualOperatingIncome", "annualTotalDebt",
-	"quarterlyTotalRevenue", "quarterlyOperatingIncome", "quarterlyInterestExpense", "quarterlyStockholdersEquity",
-	"trailingOperatingCashFlow", "trailingFreeCashFlow", "trailingCapitalExpenditure", "trailingEBITDA", "trailingEBIT",
-	"quarterlyInvestedCapital", "quarterlyTaxRateForCalcs", "annualDilutedEPS", "annualGrossProfit",
-}
-
 const TrendYears = 5
 
 var ratings = map[string]string{"strong_buy": "Strong Buy", "buy": "Buy", "hold": "Hold", "underperform": "Sell", "sell": "Sell", "strong_sell": "Strong Sell"}
@@ -93,17 +85,13 @@ func scale(v, by float64) float64 {
 	return v * by
 }
 
-func Fetch(ctx context.Context, y *yahoo.Client, ticker string, bench Benchmark) (Raw, error) {
-	info, err := y.Info(ctx, ticker, gohoo.InfoPercentYield())
-	if err != nil {
-		return Raw{}, err
-	}
-	ts, _ := y.FundamentalsTimeseriesContext(ctx, ticker, timeseriesTypes)
-	r := BuildRaw(ticker, info, ts)
+// FromSnapshot arma los datos crudos de una empresa con sus datos fundamentales y su historial de precios de un año.
+func FromSnapshot(ticker string, snap company.Snapshot, bars []gohoo.Bar, bench Benchmark) (Raw, error) {
+	r := BuildRaw(ticker, snap.Info, snap.TS)
 	if isNaN(r.Price) && isNaN(r.MarketCap) {
 		return Raw{}, fmt.Errorf("sin datos de precios: %w", gohoo.ErrNotFound)
 	}
-	r.applyBars(fetchBars(ctx, y, ticker), bench)
+	r.applyBars(bars, bench)
 	return r, nil
 }
 

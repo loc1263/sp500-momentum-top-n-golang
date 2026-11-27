@@ -214,6 +214,21 @@ func TestNoDataTickersExpire(t *testing.T) {
 	}
 }
 
+func TestSaveOHLCVReplacesPerTickerAndTrims(t *testing.T) {
+	d := openTemp(t)
+	must(t, ReplaceOHLCV(d, []OHLCVRow{
+		{Ticker: "A", Date: "2026-01-01", Close: 1}, {Ticker: "A", Date: "2026-01-05", Close: 2},
+		{Ticker: "B", Date: "2026-01-05", Close: 9},
+	}))
+	must(t, SaveOHLCV(d, []OHLCVRow{{Ticker: "A", Date: "2026-01-06", Close: 3}}, "2026-01-03"))
+	var a, b int
+	must(t, d.QueryRow("SELECT COUNT(*) FROM ohlcv WHERE ticker = 'A'").Scan(&a))
+	must(t, d.QueryRow("SELECT COUNT(*) FROM ohlcv WHERE ticker = 'B'").Scan(&b))
+	if a != 1 || b != 1 {
+		t.Errorf("filas A=%d (quiero 1: reemplazado), B=%d (quiero 1: intacto)", a, b)
+	}
+}
+
 func TestOHLCVStoresNaNAsNull(t *testing.T) {
 	d := openTemp(t)
 	nan := math.NaN()

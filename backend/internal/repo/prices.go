@@ -222,6 +222,61 @@ func ReplaceOHLCV(d *sql.DB, rows []OHLCVRow) error {
 	})
 }
 
+// SaveOHLCV reemplaza el OHLCV de los tickers que vienen en rows (los demás quedan como estaban) y borra lo anterior a oldest.
+func SaveOHLCV(d *sql.DB, rows []OHLCVRow, oldest string) error {
+	return db.Tx(d, func(tx *sql.Tx) error {
+		del, err := tx.Prepare("DELETE FROM ohlcv WHERE ticker = ?")
+		if err != nil {
+			return err
+		}
+		defer del.Close()
+		ins, err := tx.Prepare("INSERT OR REPLACE INTO ohlcv VALUES (?, ?, ?, ?, ?, ?, ?)")
+		if err != nil {
+			return err
+		}
+		defer ins.Close()
+		cleared := map[string]bool{}
+		for _, r := range rows {
+			if !cleared[r.Ticker] {
+				cleared[r.Ticker] = true
+				if _, err := del.Exec(r.Ticker); err != nil {
+					return err
+				}
+			}
+			if _, err := ins.Exec(r.Ticker, r.Date, nullable(r.Open), nullable(r.High), nullable(r.Low), r.Close, nullable(r.Volume)); err != nil {
+				return err
+			}
+		}
+		_, err = tx.Exec("DELETE FROM ohlcv WHERE date < ?", oldest)
+		return err
+	})
+}
+
+// DayClose es el cierre de un ticker en una fecha.
+type DayClose struct {
+	Date  string
+	Close float64
+}
+
+// OHLCVCloses devuelve, por ticker, los cierres guardados desde since (inclusive) en orden de fecha.
+func OHLCVCloses(d *sql.DB, since string) (map[string][]DayClose, error) {
+	rows, err := d.Query("SELECT ticker, date, close FROM ohlcv WHERE date >= ? ORDER BY ticker, date", since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string][]DayClose{}
+	for rows.Next() {
+		var t string
+		var c DayClose
+		if err := rows.Scan(&t, &c.Date, &c.Close); err != nil {
+			return nil, err
+		}
+		out[t] = append(out[t], c)
+	}
+	return out, rows.Err()
+}
+
 type OHLCVFrames struct {
 	Open, High, Low, Close, Volume *model.Prices
 }

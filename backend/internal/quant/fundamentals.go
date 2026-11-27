@@ -7,19 +7,15 @@ package quant
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
-	"time"
 
 	"github.com/loc1263/gohoo"
 
-	"topwx/internal/dateutil"
-	"topwx/internal/db"
+	"topwx/internal/company"
 	"topwx/internal/errs"
 	"topwx/internal/logx"
-	"topwx/internal/repo"
 	"topwx/internal/stats"
 	"topwx/internal/yahoo"
 )
@@ -29,7 +25,6 @@ var Fields = []string{"shortName", "sector", "marketCap", "returnOnEquity", "ret
 	"totalDebt", "totalCash", "ebitda", "netIncomeToCommon"}
 
 const (
-	Version         = 2
 	FcfYears        = 4
 	FinancialSector = "Financial Services"
 )
@@ -59,85 +54,14 @@ type Data struct {
 	FcfHistory []*float64
 }
 
-func (d Data) MarshalJSON() ([]byte, error) {
-	m := map[string]any{"fcf_history": d.FcfHistory, "v": Version, "shortName": nilIfEmpty(d.ShortName), "sector": nilIfEmpty(d.Sector)}
-	if d.FcfHistory == nil {
-		m["fcf_history"] = []*float64{}
-	}
-	for _, k := range Fields[2:] {
-		m[k] = d.Num[k]
-	}
-	return json.Marshal(m)
-}
-
-func nilIfEmpty(s string) any {
-	if s == "" {
-		return nil
-	}
-	return s
-}
-
-func parseData(js string) (Data, bool) {
-	var raw map[string]any
-	if json.Unmarshal([]byte(js), &raw) != nil {
-		return Data{}, false
-	}
-	if v, _ := raw["v"].(float64); int(v) != Version {
-		return Data{}, false
-	}
+// dataFrom saca de los datos crudos de una empresa los campos que usa el score de salud. Falla si Yahoo no trae ningún dato de precios.
+func dataFrom(s company.Snapshot) (Data, error) {
 	d := Data{Num: map[string]*float64{}}
-	d.ShortName, _ = raw["shortName"].(string)
-	d.Sector, _ = raw["sector"].(string)
-	for _, k := range Fields[2:] {
-		if v, ok := raw[k].(float64); ok && !math.IsInf(v, 0) {
-			vv := v
-			d.Num[k] = &vv
-		}
-	}
-	if hist, ok := raw["fcf_history"].([]any); ok {
-		for _, h := range hist {
-			if v, ok := h.(float64); ok {
-				vv := v
-				d.FcfHistory = append(d.FcfHistory, &vv)
-			} else {
-				d.FcfHistory = append(d.FcfHistory, nil)
-			}
-		}
-	}
-	return d, true
-}
-
-func fcfHistory(ctx context.Context, y *yahoo.Client, ticker string) []*float64 {
-	data, err := y.FundamentalsTimeseriesContext(ctx, ticker, []string{"annualFreeCashFlow"})
-	if err != nil {
-		return nil
-	}
-	var out []*float64
-	for _, p := range gohoo.TimeseriesPoints(data, "annualFreeCashFlow") {
-		if len(out) == FcfYears {
-			break
-		}
-		if !math.IsNaN(p.Value) && !math.IsInf(p.Value, 0) {
-			v := p.Value
-			out = append(out, &v)
-		} else {
-			out = append(out, nil)
-		}
-	}
-	return out
-}
-
-func fetchOne(ctx context.Context, y *yahoo.Client, ticker string) (Data, error) {
-	info, err := y.Info(ctx, ticker)
-	if err != nil {
-		return Data{}, err
-	}
-	d := Data{Num: map[string]*float64{}}
-	d.ShortName = gohoo.AsString(info["shortName"])
-	d.Sector = gohoo.AsString(info["sector"])
+	d.ShortName = gohoo.AsString(s.Info["shortName"])
+	d.Sector = gohoo.AsString(s.Info["sector"])
 	hasData := false
 	for _, k := range Fields[2:] {
-		if v, ok := gohoo.AsFloat(info[k]); ok && !math.IsNaN(v) && !math.IsInf(v, 0) {
+		if v, ok := gohoo.AsFloat(s.Info[k]); ok && !math.IsNaN(v) && !math.IsInf(v, 0) {
 			vv := v
 			d.Num[k] = &vv
 			if k != "marketCap" {
@@ -148,50 +72,43 @@ func fetchOne(ctx context.Context, y *yahoo.Client, ticker string) (Data, error)
 	if !hasData {
 		return Data{}, fmt.Errorf("sin datos de precios: %w", gohoo.ErrNotFound)
 	}
-	d.FcfHistory = fcfHistory(ctx, y, ticker)
+	for _, p := range gohoo.TimeseriesPoints(s.TS, "annualFreeCashFlow") {
+		if len(d.FcfHistory) == FcfYears {
+			break
+		}
+		if !math.IsNaN(p.Value) && !math.IsInf(p.Value, 0) {
+			v := p.Value
+			d.FcfHistory = append(d.FcfHistory, &v)
+		} else {
+			d.FcfHistory = append(d.FcfHistory, nil)
+		}
+	}
 	return d, nil
 }
 
+// EnsureFundamentals arma los datos de salud de cada ticker a partir del caché compartido de datos crudos (company).
 func EnsureFundamentals(ctx context.Context, d *sql.DB, y *yahoo.Client, tickers []string, useCache bool, ttlDays, workers int) (map[string]Data, error) {
-	cutoff := dateutil.Day(time.Now().AddDate(0, 0, -ttlDays))
-	stored, err := repo.FreshFundamentals(d, cutoff)
+	snaps, err := company.Ensure(ctx, d, y, tickers, useCache, ttlDays, workers)
 	if err != nil {
 		return nil, err
 	}
 	data := map[string]Data{}
-	var todo []string
-	for _, t := range tickers {
-		if js, ok := stored[t]; ok && useCache {
-			if parsed, ok := parseData(js); ok {
-				data[t] = parsed
-				continue
-			}
-		}
-		todo = append(todo, t)
-	}
-	logx.Infof("Datos financieros: %d ya disponibles, %d a descargar", len(data), len(todo))
 	var missing []string
-	save := map[string]string{}
-	for k, r := range gohoo.ParallelMap(ctx, todo, workers, func(ctx context.Context, t string) (Data, error) { return fetchOne(ctx, y, t) }) {
-		if r.Err != nil {
-			logx.Debugf("Sin datos financieros para %s: %v", todo[k], r.Err)
-			missing = append(missing, todo[k])
+	for _, t := range tickers {
+		s, ok := snaps[t]
+		if !ok {
 			continue
 		}
-		data[todo[k]] = r.Value
-		js, err := json.Marshal(r.Value)
-		if err != nil {
-			return nil, err
+		if data[t], err = dataFrom(s); err != nil {
+			logx.Debugf("Sin datos financieros para %s: %v", t, err)
+			delete(data, t)
+			missing = append(missing, t)
 		}
-		save[todo[k]] = string(js)
 	}
-	if err := repo.SaveFundamentals(d, save, db.Today()); err != nil {
-		return nil, err
-	}
-	if len(missing) > 0 {
-		logx.Warnf(errs.DatNoFundamentals.Msg("Sin datos financieros para %d tickers (quedan fuera del score final)"), len(missing))
+	if n := len(tickers) - len(data); n > 0 {
+		logx.Warnf(errs.DatNoFundamentals.Msg("Sin datos financieros para %d tickers (quedan fuera del score final)"), n)
 		sort.Strings(missing)
-		logx.Debugf("Sin datos financieros: %v", missing)
+		logx.Debugf("Sin datos financieros útiles: %v", missing)
 	}
 	return data, nil
 }

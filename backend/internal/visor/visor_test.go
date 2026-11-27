@@ -331,3 +331,22 @@ func TestBuildVeteranasMuestraAniosAnualizadoYAcumulado(t *testing.T) {
 		t.Error("las columnas de veteranas deben ser de signo y en %, salvo «fundada»")
 	}
 }
+
+func TestStockUniverseIsScreenedOnceAndFilteredPerSection(t *testing.T) {
+	cfg := config.Config{}
+	cfg.Visor.CapMinBillions, cfg.Visor.VeteranCapMinB = 100, 5
+	cfg.Data.DBPath = filepath.Join(t.TempDir(), "t.db")
+	s := newSession(cfg, nil)
+	s.stocksLoaded, s.stocksCapMin = true, 5e9
+	s.stocks = map[string]Static{"BIG": {MarketCap: ptr(300e9)}, "MID": {MarketCap: ptr(20e9)}, "NOCAP": {}}
+	s.stocksOrder = []string{"BIG", "MID", "NOCAP"}
+
+	_, all, err := s.stockUniverse(t.Context(), 5e9)
+	if err != nil || len(all) != 3 {
+		t.Fatalf("5 B: %v %v", all, err)
+	}
+	statics, big, err := s.stockUniverse(t.Context(), 100e9)
+	if err != nil || len(big) != 1 || big[0] != "BIG" || len(statics) != 1 {
+		t.Errorf("100 B: %v %v %v", big, statics, err)
+	}
+}

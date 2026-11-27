@@ -372,3 +372,31 @@ func orOne(v float64) float64 {
 	}
 	return v
 }
+
+// parseData lee un registro de datos financieros del fixture de referencia.
+func parseData(js string) (Data, bool) {
+	var raw map[string]any
+	if json.Unmarshal([]byte(js), &raw) != nil {
+		return Data{}, false
+	}
+	d := Data{Num: map[string]*float64{}}
+	d.ShortName, _ = raw["shortName"].(string)
+	d.Sector, _ = raw["sector"].(string)
+	for _, k := range Fields[2:] {
+		if v, ok := raw[k].(float64); ok && !math.IsInf(v, 0) {
+			vv := v
+			d.Num[k] = &vv
+		}
+	}
+	if hist, ok := raw["fcf_history"].([]any); ok {
+		for _, h := range hist {
+			if v, ok := h.(float64); ok {
+				vv := v
+				d.FcfHistory = append(d.FcfHistory, &vv)
+			} else {
+				d.FcfHistory = append(d.FcfHistory, nil)
+			}
+		}
+	}
+	return d, true
+}

@@ -10,6 +10,7 @@ package evaluator
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/loc1263/gohoo"
 
+	"topwx/internal/company"
 	"topwx/internal/config"
 	"topwx/internal/db"
 	"topwx/internal/errs"
@@ -55,14 +57,9 @@ type target struct {
 	ticker, universe string
 }
 
-func targets(cfg config.Config) ([]target, error) {
+func targets(d *sql.DB, cfg config.Config) ([]target, error) {
 	var out []target
 	if cfg.Evaluator.Sp500 {
-		d, err := db.Open(cfg.Data.DBPath)
-		if err != nil {
-			return nil, err
-		}
-		defer d.Close()
 		c, err := market.NewConstituents(d, cfg.Tickers.Aliases)
 		if err != nil {
 			return nil, err
@@ -87,7 +84,12 @@ func emptyUniverses(ts []target, cfg config.Config) []string {
 }
 
 func Run(ctx context.Context, cfg config.Config, y *yahoo.Client) (*Payload, error) {
-	ts, err := targets(cfg)
+	d, err := db.Open(cfg.Data.DBPath)
+	if err != nil {
+		return nil, err
+	}
+	defer d.Close()
+	ts, err := targets(d, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -97,13 +99,30 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client) (*Payload, err
 	if len(ts) == 0 {
 		return nil, errs.EvaTooFew.Errorf("no hay empresas que evaluar (revisa [evaluator] sp500)")
 	}
-	logx.Infof("Evaluador: descargando datos fundamentales de %d empresas...", len(ts))
+	tickers := make([]string, len(ts))
+	for i, t := range ts {
+		tickers[i] = t.ticker
+	}
+	logx.Infof("Evaluador: datos fundamentales de %d empresas...", len(ts))
+	snaps, err := company.Ensure(ctx, d, y, tickers, true, cfg.Quant.FundamentalsTTLDays, cfg.Data.SharesWorkers)
+	if err != nil {
+		return nil, err
+	}
 	bench := FetchBenchmark(ctx, y)
 	if isNaN(bench.Ret3M) || isNaN(bench.Ret6M) {
 		logx.Debugf("Sin historial del %s: los rendimientos se miden solo contra cero", benchmarkTicker)
 	}
+	stored := storedBars(d)
 	res := gohoo.ParallelMap(ctx, ts, cfg.Data.SharesWorkers, func(ctx context.Context, t target) (Raw, error) {
-		return Fetch(ctx, y, t.ticker, bench)
+		snap, ok := snaps[t.ticker]
+		if !ok {
+			return Raw{}, fmt.Errorf("sin datos fundamentales: %w", gohoo.ErrNotFound)
+		}
+		bars, ok := stored[t.ticker]
+		if !ok {
+			bars = fetchBars(ctx, y, t.ticker)
+		}
+		return FromSnapshot(t.ticker, snap, bars, bench)
 	})
 	var cs []Company
 	missing := map[string][]string{}

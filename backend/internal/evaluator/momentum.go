@@ -7,11 +7,17 @@ package evaluator
 
 import (
 	"context"
+	"database/sql"
 	"math"
 	"strings"
 
 	"github.com/loc1263/gohoo"
 
+	"topwx/internal/dateutil"
+	"topwx/internal/db"
+	"topwx/internal/logx"
+	"topwx/internal/market"
+	"topwx/internal/repo"
 	"topwx/internal/yahoo"
 )
 
@@ -32,6 +38,32 @@ func fetchBars(ctx context.Context, y *yahoo.Client, ticker string) []gohoo.Bar 
 		return nil
 	}
 	return res.Bars
+}
+
+// storedBars lee de SQLite el último año de cierres que el modelo por score guardó hoy junto con los precios, para no volver a
+// pedirlos a Yahoo. Si el OHLCV no es de hoy devuelve vacío y cada empresa baja su historial.
+func storedBars(d *sql.DB) map[string][]gohoo.Bar {
+	if !db.FetchedToday(d, market.OHLCVFetchedKey) {
+		return nil
+	}
+	closes, err := repo.OHLCVCloses(d, dateutil.Day(dateutil.Today().AddDate(-1, 0, 0)))
+	if err != nil {
+		logx.Debugf("Sin cierres guardados para el evaluador: %v", err)
+		return nil
+	}
+	out := make(map[string][]gohoo.Bar, len(closes))
+	for t, cs := range closes {
+		bars := make([]gohoo.Bar, 0, len(cs))
+		for _, c := range cs {
+			day, err := dateutil.Parse(c.Date)
+			if err != nil {
+				continue
+			}
+			bars = append(bars, gohoo.Bar{Time: day, Close: c.Close})
+		}
+		out[t] = bars
+	}
+	return out
 }
 
 // FetchBenchmark baja el historial del S&P 500 una sola vez para toda la corrida.

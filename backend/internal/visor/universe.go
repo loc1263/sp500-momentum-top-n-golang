@@ -83,6 +83,9 @@ func screen(ctx context.Context, y *yahoo.Client, q gohoo.Query, quoteType, sort
 	return statics, order, nil
 }
 
+// infoFunc entrega el Info de Yahoo de una acción (la sesión del Visor lo pide una sola vez por corrida).
+type infoFunc func(ctx context.Context, ticker string) (map[string]any, error)
+
 func StockUniverse(ctx context.Context, y *yahoo.Client, capMin float64) (map[string]Static, []string, error) {
 	q := gohoo.And(gohoo.Eq("region", "us"), gohoo.Gt("intradaymarketcap", capMin))
 	return screen(ctx, y, q, "EQUITY", "intradaymarketcap", 0)
@@ -92,11 +95,9 @@ func StockUniverse(ctx context.Context, y *yahoo.Client, capMin float64) (map[st
 // Yahoo no tiene un campo de fundación: el año sale del resumen del negocio (FoundedYear). Como pedir el Info de miles de acciones
 // topa con el límite de Yahoo y el año no cambia, se guarda en cachePath y cada corrida solo consulta las acciones que faltan; las
 // que Yahoo no contesta quedan fuera hoy y se reintentan en la próxima corrida. Las cuyo resumen no dice el año también quedan fuera.
-func VeteranUniverse(ctx context.Context, y *yahoo.Client, capMin float64, years, workers int, cachePath string, now time.Time) (map[string]Static, []string, error) {
-	statics, order, err := StockUniverse(ctx, y, capMin)
-	if err != nil {
-		return nil, nil, err
-	}
+//
+// statics y order son las acciones ya filtradas por capitalización (las del screener) e info baja o recuerda el Info de una acción.
+func VeteranUniverse(ctx context.Context, statics map[string]Static, order []string, info infoFunc, years, workers int, cachePath string, now time.Time) (map[string]Static, []string, error) {
 	cache := loadFoundedCache(cachePath)
 	var todo []string
 	for _, t := range order {
@@ -107,11 +108,11 @@ func VeteranUniverse(ctx context.Context, y *yahoo.Client, capMin float64, years
 	if len(todo) > 0 {
 		logx.Infof("Visor: leyendo el año de fundación de %d acciones (%d ya estaban en el caché)...", len(todo), len(order)-len(todo))
 		res := gohoo.ParallelMap(ctx, todo, workers, func(ctx context.Context, t string) (int, error) {
-			info, err := y.Info(ctx, t)
+			in, err := info(ctx, t)
 			if err != nil {
 				return 0, err
 			}
-			return FoundedYear(gohoo.AsString(info["longBusinessSummary"])), nil
+			return FoundedYear(gohoo.AsString(in["longBusinessSummary"])), nil
 		})
 		failed := 0
 		for i, r := range res {

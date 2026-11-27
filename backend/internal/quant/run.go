@@ -340,7 +340,7 @@ func Run(ctx context.Context, cfg config.Config, y *yahoo.Client, useCache bool)
 	if err != nil {
 		return nil, err
 	}
-	if err := EnsureOHLCV(ctx, dl, d, tickers, useCache, cfg.Data.BatchSize); err != nil {
+	if err := EnsureOHLCV(ctx, dl, d, tickers, cfg.Data.BatchSize); err != nil {
 		return nil, err
 	}
 	ohlcv, err := repo.LoadOHLCV(d)

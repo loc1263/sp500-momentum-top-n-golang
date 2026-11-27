@@ -12,6 +12,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"maps"
 	"math"
 	"sort"
 	"strconv"
@@ -217,29 +218,40 @@ func resolveCategories(ctx context.Context, d *sql.DB, y *yahoo.Client, tickers 
 	oldest := dateutil.Today().AddDate(0, 0, -ttlDays)
 	out := map[string]string{}
 	var todo []string
+	noCategory := 0
 	for _, t := range tickers {
 		if s, ok := saved[t]; ok {
 			if day, err := dateutil.Parse(s[1]); err == nil && !day.Before(oldest) {
-				out[t] = s[0]
+				// Una categoría vacía guardada es «Yahoo no la tiene»: no se vuelve a pedir hasta que venza el TTL.
+				if s[0] == "" {
+					noCategory++
+				} else {
+					out[t] = s[0]
+				}
 				continue
 			}
 		}
 		todo = append(todo, t)
 	}
+	if noCategory > 0 {
+		logx.Debugf("ETFs por gestora: %d ETFs sin categoría en Yahoo (consultados hace menos de %d días)", noCategory, ttlDays)
+	}
 	if len(todo) > 0 {
 		fresh := FetchCategories(ctx, y, todo, workers)
-		if err := repo.SaveEtfqCategories(d, fresh); err != nil {
-			return nil, err
-		}
+		toSave := maps.Clone(fresh)
 		var missing []string
 		for _, t := range todo {
 			if c, ok := fresh[t]; ok {
 				out[t] = c
-			} else if s, ok := saved[t]; ok {
+			} else if s, ok := saved[t]; ok && s[0] != "" {
 				out[t] = s[0]
 			} else {
 				missing = append(missing, t)
+				toSave[t] = ""
 			}
+		}
+		if err := repo.SaveEtfqCategories(d, toSave); err != nil {
+			return nil, err
 		}
 		if len(missing) > 0 {
 			logx.Warnf(errs.GesNoCategory.Msg("%d ETFs sin categoría: %s"), len(missing), strings.Join(missing[:min(len(missing), 15)], ", "))

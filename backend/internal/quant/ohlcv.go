@@ -22,11 +22,14 @@ import (
 	"topwx/internal/yahoo"
 )
 
-const HistoryDays = 460
+const HistoryDays = market.OHLCVDays
 
-func EnsureOHLCV(ctx context.Context, dl *market.Downloader, d *sql.DB, tickers []string, useCache bool, batchSize int) error {
-	if useCache && db.FetchedToday(d, "ohlcv_fetched") {
-		logx.Infof("OHLCV: usando caché SQLite (descargado hoy)")
+// EnsureOHLCV asegura el OHLCV de los tickers. Normalmente ya quedó guardado hoy por la descarga de precios (una sola petición por
+// ticker da el cierre ajustado y el OHLCV), incluso con --no-cache, porque esa descarga corrió en esta misma corrida. Solo si no
+// quedó al día (p. ej. base creada antes de este cambio) lo baja aparte.
+func EnsureOHLCV(ctx context.Context, dl *market.Downloader, d *sql.DB, tickers []string, batchSize int) error {
+	if db.FetchedToday(d, market.OHLCVFetchedKey) {
+		logx.Infof("OHLCV: ya descargado hoy junto con los precios")
 		return nil
 	}
 	today := dateutil.Today()
@@ -88,7 +91,7 @@ func EnsureOHLCV(ctx context.Context, dl *market.Downloader, d *sql.DB, tickers 
 	if err := repo.ReplaceOHLCV(d, rows); err != nil {
 		return err
 	}
-	if err := db.SetMeta(d, "ohlcv_fetched", time.Now().Format("2006-01-02")); err != nil {
+	if err := db.SetMeta(d, market.OHLCVFetchedKey, time.Now().Format("2006-01-02")); err != nil {
 		return err
 	}
 	if len(missing) > 0 {

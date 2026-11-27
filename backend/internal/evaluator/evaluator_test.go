@@ -522,7 +522,7 @@ func TestTrendWithoutData(t *testing.T) {
 	}
 }
 
-func company(ticker, industry string, capB float64, pe, roe float64) Company {
+func mkCompany(ticker, industry string, capB float64, pe, roe float64) Company {
 	r := healthy()
 	r.Ticker, r.Name, r.Industry, r.MarketCap, r.PE, r.ROE = ticker, ticker, industry, capB*1e9, pe, roe
 	return Analyze(r, SP500)
@@ -530,11 +530,11 @@ func company(ticker, industry string, capB float64, pe, roe float64) Company {
 
 func TestPeersPickSameIndustryByCap(t *testing.T) {
 	cs := []Company{
-		company("A", "Software", 100, 20, 20),
-		company("B", "Software", 120, 20, 20),
-		company("C", "Software", 10, 20, 20),
-		company("D", "Banks", 100, 20, 20),
-		company("E", "Software", 90, 20, 20),
+		mkCompany("A", "Software", 100, 20, 20),
+		mkCompany("B", "Software", 120, 20, 20),
+		mkCompany("C", "Software", 10, 20, 20),
+		mkCompany("D", "Banks", 100, 20, 20),
+		mkCompany("E", "Software", 90, 20, 20),
 	}
 	cs[3].Sector = "Finance"
 	AttachPeers(cs, 2)
@@ -554,9 +554,9 @@ func TestPeersPickSameIndustryByCap(t *testing.T) {
 
 func TestPeersLevelsAndBest(t *testing.T) {
 	cs := []Company{
-		company("ME", "Software", 100, 10, 30),
-		company("P1", "Software", 100, 20, 15),
-		company("P2", "Software", 100, 25, 10),
+		mkCompany("ME", "Software", 100, 10, 30),
+		mkCompany("P1", "Software", 100, 20, 15),
+		mkCompany("P2", "Software", 100, 25, 10),
 	}
 	AttachPeers(cs, 2)
 	me := cat(cs[0], "peers").Peers
@@ -672,7 +672,7 @@ func TestWriteReplacesAtomicallyAndLeavesNoTempFiles(t *testing.T) {
 	if err := os.WriteFile(path, []byte("viejo"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	p := Build([]Company{company("A", "Software", 100, 20, 20)}, 3)
+	p := Build([]Company{mkCompany("A", "Software", 100, 20, 20)}, 3)
 	if err := Write(path, p); err != nil {
 		t.Fatal(err)
 	}
@@ -693,7 +693,7 @@ func TestWriteReplacesAtomicallyAndLeavesNoTempFiles(t *testing.T) {
 }
 
 func TestWriteProducesValidJSON(t *testing.T) {
-	cs := []Company{company("A", "Software", 100, 20, 20), company("B", "Software", 50, 25, 15)}
+	cs := []Company{mkCompany("A", "Software", 100, 20, 20), mkCompany("B", "Software", 50, 25, 15)}
 	p := Build(cs, 3)
 	path := filepath.Join(t.TempDir(), "sub", "evaluator.json")
 	if err := Write(path, p); err != nil {

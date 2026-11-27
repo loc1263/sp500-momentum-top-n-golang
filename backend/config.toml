@@ -145,7 +145,7 @@ sector_max = 0.40
 mu_shrink = 0.25
 risk_free = 0.04
 equity_premium = 0.05
-# Días que se reutilizan los datos financieros descargados (cambian por trimestre)
+# Días que se reutilizan los datos financieros descargados (cambian por trimestre); los comparten el modelo por score y el evaluador
 fundamentals_ttl_days = 7
 
 [evaluator]

@@ -31,8 +31,36 @@ type Downloader struct {
 
 type FetchResult struct {
 	Rows   []model.PriceRow
+	OHLCV  []repo.OHLCVRow // solo si se pidió con fetch(..., true): las últimas OHLCVDays de cada ticker
 	NoData []string
 	Gone   map[string]bool
+}
+
+// OHLCVDays es la ventana de OHLCV que usa el modelo por score. Sale de la misma descarga que los precios ajustados.
+const OHLCVDays = 460
+
+// ohlcvRows convierte las barras de un ticker en filas OHLCV desde el día from (inclusive); si una fecha se repite gana la última.
+func ohlcvRows(t string, bars []gohoo.Bar, from string) []repo.OHLCVRow {
+	var rs []repo.OHLCVRow
+	seen := map[string]int{}
+	for _, b := range bars {
+		day := dateutil.Day(b.Date())
+		if math.IsNaN(b.Close) || day < from {
+			continue
+		}
+		v := b.Volume
+		if math.IsNaN(v) {
+			v = 0
+		}
+		r := repo.OHLCVRow{Ticker: t, Date: day, Open: b.Open, High: b.High, Low: b.Low, Close: b.Close, Volume: v}
+		if k, dup := seen[day]; dup {
+			rs[k] = r
+			continue
+		}
+		seen[day] = len(rs)
+		rs = append(rs, r)
+	}
+	return rs
 }
 
 func dayRange(start, end string) (time.Time, time.Time, error) {
@@ -45,9 +73,23 @@ func dayRange(start, end string) (time.Time, time.Time, error) {
 }
 
 func (dl *Downloader) Fetch(ctx context.Context, tickers []string, start, end string, batchSize int) (FetchResult, error) {
+	return dl.fetch(ctx, tickers, start, end, batchSize, false)
+}
+
+// fetch baja las barras diarias y saca de ellas los precios ajustados de [start, end). Con withOHLCV pide además la ventana de
+// OHLCVDays hasta hoy (si start es más reciente la adelanta) y devuelve también esas filas: una sola petición por ticker.
+func (dl *Downloader) fetch(ctx context.Context, tickers []string, start, end string, batchSize int, withOHLCV bool) (FetchResult, error) {
 	from, to, err := dayRange(start, end)
 	if err != nil {
 		return FetchResult{}, err
+	}
+	ohlcvFrom := ""
+	if withOHLCV {
+		w := dateutil.Today().AddDate(0, 0, -OHLCVDays)
+		ohlcvFrom = dateutil.Day(w)
+		if w.Before(from) {
+			from = w
+		}
 	}
 	res := FetchResult{Gone: map[string]bool{}}
 	nBatches := (len(tickers) + batchSize - 1) / batchSize
@@ -57,10 +99,14 @@ func (dl *Downloader) Fetch(ctx context.Context, tickers []string, start, end st
 			return res, err
 		}
 		batch := tickers[i:min(i+batchSize, len(tickers))]
-		out := gohoo.ParallelMap(ctx, batch, dl.Workers, func(ctx context.Context, t string) ([]model.PriceRow, error) {
+		type fetched struct {
+			prices []model.PriceRow
+			ohlcv  []repo.OHLCVRow
+		}
+		out := gohoo.ParallelMap(ctx, batch, dl.Workers, func(ctx context.Context, t string) (fetched, error) {
 			bars, err := dl.Y.DailyBars(ctx, t, from, to)
 			if err != nil {
-				return nil, err
+				return fetched{}, err
 			}
 			byDay := map[string]float64{}
 			for _, b := range bars {
@@ -73,16 +119,21 @@ func (dl *Downloader) Fetch(ctx context.Context, tickers []string, start, end st
 				rows = append(rows, model.PriceRow{Ticker: t, Date: day, Close: c})
 			}
 			sort.Slice(rows, func(a, b int) bool { return rows[a].Date < rows[b].Date })
-			return rows, nil
+			f := fetched{prices: rows}
+			if withOHLCV {
+				f.ohlcv = ohlcvRows(t, bars, ohlcvFrom)
+			}
+			return f, nil
 		})
 		got, nRows := 0, 0
 		for k, r := range out {
 			t := batch[k]
 			switch {
-			case r.Err == nil && len(r.Value) > 0:
+			case r.Err == nil && len(r.Value.prices) > 0:
 				got++
-				nRows += len(r.Value)
-				res.Rows = append(res.Rows, r.Value...)
+				nRows += len(r.Value.prices)
+				res.Rows = append(res.Rows, r.Value.prices...)
+				res.OHLCV = append(res.OHLCV, r.Value.ohlcv...)
 				continue
 			case r.Err == nil || yahoo.Classify(r.Err) == yahoo.KindAbsent:
 				res.Gone[t] = true
@@ -132,6 +183,21 @@ func keys(m map[string]bool) []string {
 	return out
 }
 
+// saveOHLCV guarda el OHLCV que salió de la descarga de precios y anota que quedó al día.
+func saveOHLCV(d *sql.DB, rows []repo.OHLCVRow) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	oldest := dateutil.Day(dateutil.Today().AddDate(0, 0, -OHLCVDays))
+	if err := repo.SaveOHLCV(d, rows, oldest); err != nil {
+		return err
+	}
+	return db.SetMeta(d, OHLCVFetchedKey, db.Today())
+}
+
+// OHLCVFetchedKey es la marca (fecha) de la última vez que se guardó el OHLCV.
+const OHLCVFetchedKey = "ohlcv_fetched"
+
 func (dl *Downloader) DownloadPrices(ctx context.Context, d *sql.DB, tickers []string, start, end string, s config.Data) error {
 	known, err := repo.KnownNoData(d, s.NoDataTTLDays)
 	if err != nil {
@@ -150,7 +216,7 @@ func (dl *Downloader) DownloadPrices(ctx context.Context, d *sql.DB, tickers []s
 			len(skip), s.NoDataTTLDays)
 	}
 	logx.Infof("Descargando precios de %d tickers (%s a %s) en lotes de %d...", len(todo), start, end, s.BatchSize)
-	res, err := dl.Fetch(ctx, todo, start, end, s.BatchSize)
+	res, err := dl.fetch(ctx, todo, start, end, s.BatchSize, true)
 	if err != nil {
 		return err
 	}
@@ -161,6 +227,9 @@ func (dl *Downloader) DownloadPrices(ctx context.Context, d *sql.DB, tickers []s
 		return err
 	}
 	if err := repo.SavePrices(d, res.Rows); err != nil {
+		return err
+	}
+	if err := saveOHLCV(d, res.OHLCV); err != nil {
 		return err
 	}
 	if err := repo.RememberNoData(d, keys(res.Gone), uniqueTickers(res.Rows)); err != nil {
@@ -219,7 +288,7 @@ func (dl *Downloader) UpdatePrices(ctx context.Context, d *sql.DB, tickers []str
 			return err
 		}
 		since := dateutil.Day(m.AddDate(0, 0, -s.PriceOverlapDays))
-		res, err := dl.Fetch(ctx, active, since, end, s.BatchSize)
+		res, err := dl.fetch(ctx, active, since, end, s.BatchSize, true)
 		if err != nil {
 			return err
 		}
@@ -262,9 +331,18 @@ func (dl *Downloader) UpdatePrices(ctx context.Context, d *sql.DB, tickers []str
 		if err := repo.SavePrices(d, keep); err != nil {
 			return err
 		}
+		var keepOHLCV []repo.OHLCVRow
+		for _, r := range res.OHLCV {
+			if !redo[r.Ticker] {
+				keepOHLCV = append(keepOHLCV, r)
+			}
+		}
+		if err := saveOHLCV(d, keepOHLCV); err != nil {
+			return err
+		}
 	}
 	if len(refetch) > 0 {
-		res, err := dl.Fetch(ctx, refetch, start, end, s.BatchSize)
+		res, err := dl.fetch(ctx, refetch, start, end, s.BatchSize, true)
 		if err != nil {
 			return err
 		}
@@ -284,6 +362,9 @@ func (dl *Downloader) UpdatePrices(ctx context.Context, d *sql.DB, tickers []str
 			return err
 		}
 		if err := repo.SavePrices(d, res.Rows); err != nil {
+			return err
+		}
+		if err := saveOHLCV(d, res.OHLCV); err != nil {
 			return err
 		}
 		if err := repo.RememberNoData(d, keys(res.Gone), uniqueTickers(res.Rows)); err != nil {
