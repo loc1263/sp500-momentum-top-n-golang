@@ -162,6 +162,7 @@ type companyPage struct {
 	Facts        string
 	Bank         bool
 	Sections     []catView
+	Flows        *flowsView
 }
 
 type catView struct {
@@ -230,7 +231,7 @@ func newCompanyPage(c evaluator.Company, p evaluator.Payload) companyPage {
 	}
 	pg := companyPage{
 		Ticker: c.Ticker, Name: c.Name, TickerHref: tickerURL("acciones", c.Ticker), Verdict: pillView{string(c.Verdict), verdictText(c.Verdict)},
-		Facts: facts, Bank: c.Bank,
+		Facts: facts, Bank: c.Bank, Flows: newFlows(c, fin),
 	}
 	for _, cat := range c.Categories {
 		def := defs[cat.ID]

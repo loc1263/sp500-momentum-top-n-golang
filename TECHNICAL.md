@@ -225,6 +225,13 @@ sus métricas, nivel (`good`, `warn`, `bad`, `info`, `na`) y veredicto. Los umbr
   `quoteSummary` no cuadran con los estados financieros (en MSFT el FCF de `quoteSummary` era 3 mil millones contra 60 reales). Con esas series se
   calculan el EV (capitalización + deuda − caja; sin dato si las monedas difieren), EV/EBITDA, EV/FCF, deuda neta/EBITDA y ROIC
   (EBIT × (1 − tasa) ÷ capital invertido).
+- **Diagramas de flujos** (ficha de la empresa, `internal/evaluator/statements.go` y `internal/site/flows.go`, `sankey.go`): dos diagramas Sankey por ejercicio anual
+  (Yahoo trae hasta 4): *ingresos* (ingresos → costo de ventas y utilidad bruta → gastos operativos (SG&A, I+D) y utilidad operativa → antes de impuestos → impuestos y utilidad neta)
+  y *caja* (utilidad neta, pago en acciones, depreciación y capital de trabajo → flujo operativo → CapEx y flujo libre → recompras, dividendos, pago de deuda y caja retenida).
+  Los datos son series anuales que se suman a la descarga compartida de `internal/company` (`Types`; subir `version` obliga a bajar de nuevo el caché). Las partidas que no se
+  informan se derivan de las demás para que los flujos cuadren (impuestos = antes de impuestos − utilidad neta; capital de trabajo = flujo operativo − utilidad neta − pago en acciones − depreciación).
+  Si el ejercicio tuvo pérdida, flujo libre negativo o la empresa no informa costo de ventas (bancos y aseguradoras), el diagrama no se dibuja y la ficha dice por qué. El SVG sale
+  de Go y se inserta tal cual; en pantallas angostas se desplaza de lado. No hay desglose de ingresos por línea de negocio: Yahoo no lo entrega.
 - **Umbrales de valoración**: EV/EBITDA barato bajo 10 y caro sobre 18; EV/FCF bajo 15 y sobre 30; PEG bajo 1 y sobre 2 (como el P/E: bajo 15 y sobre 30).
   Un resultado negativo es «Sin utilidad», «Sin caja libre» o «Sin crecimiento». Deuda neta/EBITDA: bajo 2× bien, sobre 3× alerta. ROIC: 15 % o más bien, bajo 10 % alerta.
   Payout: bajo 60 % bien, sobre 80 % alerta.
@@ -642,7 +649,7 @@ report, cleanup, pipeline...) está en [`backend/README.md`](backend/README.md).
 | `src/pages/*.astro` | Una página por vista; `lab.astro` redirige a `lab-backtest.html` |
 | `src/components/` | Tablas (`Rows`, `Ths`, `Cell`, `Hint`) y piezas del Lab (`LabBar`, `LabRange`, `LabRows`, `LabChart`) |
 | `src/scripts/table.js`, `pager.js`, `visor.js` | Filtros, búsqueda, orden y paginación de las tablas y del Visor |
-| `src/scripts/empresa.js`, `lab.js`, `fetch-json.js` | Páginas de Alpine: piden el JSON de la vista y lo pintan |
+| `src/scripts/empresa.js`, `lab.js`, `fetch-json.js` | Páginas de Alpine: piden el JSON de la vista y lo pintan (la ficha incluye los diagramas de flujos) |
 | `src/scripts/chart.js` | Cursor y cuadro de valores de los gráficos de capital |
 | `src/scripts/site.js`, `bunny.js` | Tema claro / oscuro, globo de ayuda táctil y el conejito del pie |
 | `src/styles/site.css` | Estilos, temas y reglas para móvil (≤ 640 px) |

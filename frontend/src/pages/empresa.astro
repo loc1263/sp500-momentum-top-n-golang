@@ -97,6 +97,33 @@ import data from '../data/empresa.json';
           </section>
         </template>
       </div>
+
+      <template x-if="c.Flows">
+        <div class="flows">
+          <div class="flows-h">
+            <h3>Estados financieros en diagramas</h3>
+            <label>Ejercicio
+              <select x-model.number="fy"><template x-for="(y, i) in c.Flows.Years" :key="y.Date"><option :value="i" :selected="i === fy" x-text="y.Label + ' · cierre ' + y.Date"></option></template></select>
+            </label>
+          </div>
+
+          <section class="flow-card" aria-labelledby="flow-income">
+            <h4 id="flow-income" x-text="'¿Cómo gana dinero ' + c.Name + '?'"></h4>
+            <p class="muted intro">Recorre cada dólar de ingresos por el estado de resultados: costo de ventas, gastos operativos e impuestos, hasta lo que queda como utilidad.</p>
+            <template x-if="year.Income"><div class="sankey" x-html="year.Income"></div></template>
+            <template x-if="!year.Income"><p class="muted" x-text="year.IncomeNote"></p></template>
+          </section>
+
+          <section class="flow-card" aria-labelledby="flow-cash">
+            <h4 id="flow-cash" x-text="'¿A dónde va la caja de ' + c.Name + '?'"></h4>
+            <p class="muted intro">Parte de la utilidad neta y los ajustes sin efectivo, pasa por el flujo operativo y llega a CapEx, flujo libre, recompras, dividendos, pago de deuda y caja retenida.</p>
+            <template x-if="year.Cash"><div class="sankey" x-html="year.Cash"></div></template>
+            <template x-if="!year.Cash"><p class="muted" x-text="year.CashNote"></p></template>
+          </section>
+
+          <p class="muted note" x-text="'Cifras en ' + c.Flows.Currency + ', anuales, de Yahoo Finance. Los porcentajes son parte de los ingresos (primer diagrama) o del flujo operativo (segundo). Las partidas que la empresa no desglosa se derivan de las demás para que los flujos cuadren. Solo informativo.'"></p>
+        </div>
+      </template>
     </div>
   </template>
 </div>

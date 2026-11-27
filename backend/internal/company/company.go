@@ -32,10 +32,15 @@ var Types = []string{
 	"quarterlyTotalRevenue", "quarterlyOperatingIncome", "quarterlyInterestExpense", "quarterlyStockholdersEquity",
 	"trailingOperatingCashFlow", "trailingFreeCashFlow", "trailingCapitalExpenditure", "trailingEBITDA", "trailingEBIT",
 	"quarterlyInvestedCapital", "quarterlyTaxRateForCalcs", "annualDilutedEPS", "annualGrossProfit",
+	// Estado de resultados y flujo de caja anuales (gráficos de flujos de la ficha de empresa)
+	"annualCostOfRevenue", "annualResearchAndDevelopment", "annualSellingGeneralAndAdministration", "annualPretaxIncome",
+	"annualTaxProvision", "annualTotalOperatingIncomeAsReported", "annualStockBasedCompensation", "annualDepreciationAndAmortization",
+	"annualOperatingCashFlow", "annualCapitalExpenditure", "annualRepurchaseOfCapitalStock", "annualCashDividendsPaid",
+	"annualNetIssuancePaymentsOfDebt",
 }
 
 // version distingue este formato del caché de la tabla fundamentals (que antes guardaba solo los campos del modelo por score).
-const version = 3
+const version = 4
 
 type stored struct {
 	V    int            `json:"v"`

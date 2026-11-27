@@ -9,6 +9,10 @@ export default () => ({
   title: document.title.split(' · ')[0],
   c: null,
   loaded: false,
+  fy: 0, // posición del ejercicio elegido en los diagramas de flujos
+  get year() {
+    return this.c?.Flows?.Years?.[this.fy] ?? {};
+  },
   init() {
     this.load();
     window.addEventListener('hashchange', () => this.load());
@@ -20,6 +24,7 @@ export default () => ({
     const c = key ? await fetchJSON(`empresas/${key}.json`) : null;
     if (key !== decodeURIComponent(location.hash.slice(1)).toUpperCase().replace(/[^A-Za-z0-9._-]/g, '_')) return; // el hash cambió mientras bajaba
     this.c = c;
+    this.fy = 0;
     this.loaded = true;
     if (c) document.title = `${c.Ticker} · ${this.title}`;
   },

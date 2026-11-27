@@ -277,6 +277,21 @@ svg circle { fill: var(--accent); }
   .about dd { margin-bottom: 8px; }
 }
 
+/* Diagramas de flujos de la ficha de empresa (Sankey en SVG que arma Go) */
+.flows { margin-top: var(--space-5); display: grid; gap: var(--space-3); }
+.flows-h { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--space-3); }
+.flows-h h3 { margin: 0; }
+.flows-h label { display: flex; flex-direction: column; gap: 2px; font-size: .75rem; color: var(--muted); }
+.flow-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); box-shadow: var(--shadow); min-width: 0; }
+.flow-card h4 { margin: 0 0 var(--space-1); font-size: .95rem; }
+.sankey { overflow-x: auto; }
+.sankey svg { display: block; width: 100%; min-width: 720px; height: auto; }
+.sankey .lbl { fill: var(--fg); font-size: 12px; }
+.sankey .lbl .n { font-weight: 650; }
+.sankey .lbl .v { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.sankey .lbl.mid { paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.sankey .flow { fill-opacity: .3; }
+
 /* Paleta categórica de las series de los gráficos (orden fijo, sin repetir) */
 :root { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; }
 :root[data-theme="dark"] { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; }

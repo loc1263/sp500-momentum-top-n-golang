@@ -53,3 +53,19 @@ func TestSectorsReadsOnlyTheCurrentFormat(t *testing.T) {
 		t.Errorf("Sectors: %v", got)
 	}
 }
+
+// Los gráficos de flujos de la ficha dependen de estas series; si se quitan, desaparecen sin aviso.
+func TestTypesIncluyeLasSeriesDeFlujos(t *testing.T) {
+	have := map[string]bool{}
+	for _, typ := range Types {
+		if have[typ] {
+			t.Errorf("serie repetida: %s", typ)
+		}
+		have[typ] = true
+	}
+	for _, want := range []string{"annualCostOfRevenue", "annualPretaxIncome", "annualTaxProvision", "annualStockBasedCompensation", "annualOperatingCashFlow", "annualCapitalExpenditure", "annualRepurchaseOfCapitalStock", "annualCashDividendsPaid", "annualNetIssuancePaymentsOfDebt"} {
+		if !have[want] {
+			t.Errorf("falta la serie %s", want)
+		}
+	}
+}

@@ -73,19 +73,20 @@ type Category struct {
 }
 
 type Company struct {
-	Ticker      string     `json:"ticker"`
-	Name        string     `json:"name"`
-	Universe    string     `json:"universe"`
-	Sector      string     `json:"sector,omitempty"`
-	Industry    string     `json:"industry,omitempty"`
-	Currency    string     `json:"currency,omitempty"`
-	FinCurrency string     `json:"fin_currency,omitempty"`
-	Bank        bool       `json:"bank,omitempty"`
-	Price       *float64   `json:"price"`
-	MarketCap   *float64   `json:"market_cap"`
-	AsOf        string     `json:"as_of,omitempty"`
-	Verdict     Level      `json:"verdict"`
-	Categories  []Category `json:"categories"`
+	Ticker      string      `json:"ticker"`
+	Name        string      `json:"name"`
+	Universe    string      `json:"universe"`
+	Sector      string      `json:"sector,omitempty"`
+	Industry    string      `json:"industry,omitempty"`
+	Currency    string      `json:"currency,omitempty"`
+	FinCurrency string      `json:"fin_currency,omitempty"`
+	Bank        bool        `json:"bank,omitempty"`
+	Price       *float64    `json:"price"`
+	MarketCap   *float64    `json:"market_cap"`
+	AsOf        string      `json:"as_of,omitempty"`
+	Verdict     Level       `json:"verdict"`
+	Categories  []Category  `json:"categories"`
+	Statements  []Statement `json:"statements,omitempty"`
 
 	peerVals map[string]float64
 }
@@ -136,7 +137,7 @@ func m(id string, v float64, level Level) Metric {
 
 func Analyze(r Raw, universe string) Company {
 	c := Company{Ticker: r.Ticker, Name: r.Name, Universe: universe, Sector: r.Sector, Industry: r.Industry, Currency: r.Currency,
-		Price: ptr(r.Price), MarketCap: ptr(r.MarketCap), AsOf: r.AsOf, Bank: r.isBank()}
+		Price: ptr(r.Price), MarketCap: ptr(r.MarketCap), AsOf: r.AsOf, Bank: r.isBank(), Statements: r.Statements}
 	if !r.sameCurrency() {
 		c.FinCurrency = r.FinCurrency
 	}

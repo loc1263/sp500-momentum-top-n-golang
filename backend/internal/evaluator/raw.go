@@ -43,6 +43,7 @@ type Raw struct {
 	QRevenue, QOpIncome, QInterest, QEquity  float64
 	AsOf                                     string
 	Trend                                    Trend
+	Statements                               []Statement
 }
 
 func (r Raw) sameCurrency() bool {
@@ -153,6 +154,7 @@ func BuildRaw(ticker string, info, ts map[string]any) Raw {
 		}
 	}
 	r.Trend = buildTrend(ts)
+	r.Statements = buildStatements(ts)
 	return r
 }
 
