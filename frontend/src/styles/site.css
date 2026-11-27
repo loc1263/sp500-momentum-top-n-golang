@@ -321,3 +321,17 @@ details.more p { margin: var(--space-1) 0 0; color: var(--muted); max-width: 90c
 .chart .dot { position: static; display: inline-block; width: 8px; height: 8px; margin: 0 6px 0 0; border-radius: 50%; border: 0; }
 
 [x-cloak] { display: none !important; }
+
+/* Conejito del pie (scripts/bunny.js) */
+.bunny { position: fixed; bottom: 0; left: 0; z-index: 50; pointer-events: none; font-size: 2rem; line-height: 1; }
+.bunny .body { pointer-events: auto; cursor: pointer; background: none; border: 0; padding: 0; font: inherit; line-height: inherit; display: block; }
+.bunny .turn, .bunny .hop { display: block; }
+.bunny .moving { animation: hop .3s ease-out infinite alternate; }
+.bunny .sign {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 4px; white-space: nowrap;
+  background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px;
+  font-size: .9rem; box-shadow: 0 2px 6px rgb(0 0 0 / .2);
+}
+@keyframes hop { from { transform: translateY(0); } to { transform: translateY(-.5rem); } }
+@media (prefers-reduced-motion: reduce) { .bunny { display: none; } }
+@media print { .bunny { display: none; } }

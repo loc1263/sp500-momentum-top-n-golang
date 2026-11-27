@@ -6,5 +6,6 @@ import alpinejs from '@astrojs/alpinejs';
 export default defineConfig({
   base: process.env.SITE_BASE || '/',
   build: { format: 'file' },
+  devToolbar: { enabled: false },
   integrations: [alpinejs({ entrypoint: '/src/alpine' })],
 });
