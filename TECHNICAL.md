@@ -85,6 +85,7 @@ cd ../frontend
 npm install                             # solo la primera vez
 npm run dev                             # desarrollo en http://localhost:4321
 npm run build                           # sitio estático en frontend/dist (npm run preview para verlo)
+npm test                                # tests de los scripts del navegador
 ```
 
 `topwx site` (paquete `internal/site`) lee `output/report.json` (Top actual, ETFs, modelo por score, backtest y About), `output/evaluator.json`
@@ -599,7 +600,7 @@ backend/           # Go: backtest, Top actual, ranking de ETFs, modelo por score
   cmd/topwx/           # línea de comandos: backtest, actual, etfq, quant, evaluator, visor, export, site, prune y pipeline
   internal/           # la lógica, un paquete por responsabilidad (internal/site genera los datos del sitio)
   output/             # JSON de datos que lee topwx site (report.json, evaluator.json, visor.json); se crea solo
-frontend/             # proyecto Astro del sitio estático; src/data y public/*.js los genera topwx site (no se versionan)
+frontend/             # proyecto Astro del sitio estático; src/data y public/ los genera topwx site (no se versionan)
 ```
 
 | Comando | Para qué sirve |
@@ -619,24 +620,37 @@ frontend/             # proyecto Astro del sitio estático; src/data y public/*.
 El detalle de los paquetes de `backend/internal/` (config, db, repo, yahoo, market, engine, backtest, actual, etf, etfq, quant,
 report, cleanup, pipeline...) está en [`backend/README.md`](backend/README.md).
 
-**Sitio (`backend/internal/site/`)**
+**Sitio: datos (`backend/internal/site/`)**
 
 | Archivo | Responsabilidad |
 |---|---|
-| `shell.go`, `templates/layout.html` | Cáscara común: encabezado, pestañas en cinco grupos (Momentum, ETFs, Acciones por score, Análisis fundamental y Visor), Home / About / tema, subtítulo y pie. El Lab tiene su propia cáscara |
-| `site.go`, `build.go` | Paquete y servidor (`Serve`); `build.go` lee los JSON (`LoadInputs`), arma cada página y copia los archivos estáticos; si falta un JSON, la página lo avisa |
-| `visor_page.go`, `visor_format.go`, `templates/visor.html`, `static/visor.js` | Visor: filas ya formateadas por Go; el JS filtra por columna, ordena, pagina, marca filas y descarga CSV con los valores crudos incrustados |
-| `actual_page.go`, `templates/actual.html` | Top actual (Home): un bloque por universo con selector, cambios, suplentes y seguimiento |
-| `etfq_page.go`, `templates/etfq.html` | ETFs por gestora: resumen, filtros y tabla de todos los ETFs |
-| `quant_page.go`, `templates/quant.html` | Modelo por score: cómo se calcula, Markowitz y ranking con tres vistas de columnas |
-| `evaluator_page.go`, `evaluator_xlsx.go`, `evalfmt.go`, `templates/evaluador.html`, `empresa.html`, `static/empresa.js` | Evaluador: listado en Go y una sola página de empresa (`empresa.html#<TICKER>`) que Alpine pinta con la ficha de `empresas/<TICKER>.json` (minigráficos SVG y pares ya formateados por Go) |
-| `lab_page.go`, `chart.go`, `templates/lab_*.html`, `static/lab.js`, `static/chart.js` | Lab: tres páginas (`lab-<vista>.html`) que Alpine pinta con `lab/<vista>/<universo>-<años>.json` (un archivo por universo y período, elegido con el hash `#<universo>-<años>`); gráficos SVG con cursor y valores |
-| `about_page.go`, `templates/about.html` | About: qué se muestra, conceptos, fuentes y límites |
-| `format.go`, `table.go` | Formato es-AR (porcentajes, dinero, miles) y las piezas comunes de las tablas (encabezados, filas, celdas, clases de color) |
-| `static/table.js`, `static/pager.js` | JS común de las tablas: filtros, búsqueda, orden, paginación (`pager.js` también lo usa el Visor), vistas de columnas y selectores. Sin dependencias ni build |
-| `static/site.css`, `static/site.js` | Estilos y tema claro / oscuro |
+| `site.go`, `build.go` | Paquete; `build.go` lee los JSON (`LoadInputs`), arma los datos de cada página y los escribe en `frontend/` (`Build`); si falta un JSON, la página lo avisa |
+| `shell.go` | Cáscara común: encabezado, pestañas en cinco grupos (Momentum, ETFs, Acciones por score, Análisis fundamental y Visor), Home / About / tema, subtítulo y pie |
+| `actual_page.go` | Top actual (Home): un bloque por universo con selector, cambios, suplentes y seguimiento |
+| `etfq_page.go`, `quant_page.go` | ETFs por gestora y modelo por score (cómo se calcula, Markowitz y ranking) |
+| `evaluator_page.go`, `evaluator_xlsx.go`, `evalfmt.go` | Evaluador: listado, ficha de cada empresa (`empresas/<TICKER>.json`) y exportación a Excel |
+| `visor_page.go`, `visor_format.go` | Visor: filas ya formateadas y valores crudos para filtrar, ordenar y descargar CSV |
+| `lab_page.go`, `chart.go` | Lab: un JSON por vista, universo y período (`lab/<vista>/<universo>-<años>.json`); gráficos SVG |
+| `about_page.go` | About: qué se muestra, conceptos, fuentes y límites |
+| `format.go`, `table.go` | Formato es-AR (porcentajes, dinero, miles) y piezas comunes de las tablas (encabezados, filas, celdas, clases de color) |
 
-Los tests están junto al código (`visor_test.go`, `pages_test.go`, `lab_test.go`) y generan el sitio con JSON de ejemplo.
+**Sitio: presentación (`frontend/`, Astro)**
+
+| Ruta | Responsabilidad |
+|---|---|
+| `src/layouts/Layout.astro` | Cáscara común de todas las páginas |
+| `src/pages/*.astro` | Una página por vista; `lab.astro` redirige a `lab-backtest.html` |
+| `src/components/` | Tablas (`Rows`, `Ths`, `Cell`, `Hint`) y piezas del Lab (`LabBar`, `LabRange`, `LabRows`, `LabChart`) |
+| `src/scripts/table.js`, `pager.js`, `visor.js` | Filtros, búsqueda, orden y paginación de las tablas y del Visor |
+| `src/scripts/empresa.js`, `lab.js`, `fetch-json.js` | Páginas de Alpine: piden el JSON de la vista y lo pintan |
+| `src/scripts/chart.js` | Cursor y cuadro de valores de los gráficos de capital |
+| `src/scripts/site.js`, `bunny.js` | Tema claro / oscuro, globo de ayuda táctil y el conejito del pie |
+| `src/styles/site.css` | Estilos, temas y reglas para móvil (≤ 640 px) |
+| `src/**/*.test.js` | Tests de los scripts del navegador (vitest + jsdom) |
+
+El sitio está pensado para PC y smartphones: en móvil las pestañas se acomodan en varias filas, las tablas se desplazan de lado con la primera columna fija, los campos y botones tienen tamaño táctil y las ayudas (`?`) se abren con un toque.
+
+Los tests de Go están junto al código (`visor_test.go`, `pages_test.go`, `lab_test.go`) y generan los datos con JSON de ejemplo; `lab_test.go` también fija el contrato entre `chart.go` y `chart.js`.
 
 **Agregar algo nuevo.** Un comando: una fila en `commands` (`backend/cmd/topwx/main.go`) y su `runX` en `commands.go`. Una página del sitio: un `<nombre>_page.go` que arma los datos, una plantilla en `templates/`, su paso en `build.go` y, si lleva pestaña, una entrada en `tabs` (`shell.go`); las tablas reutilizan `table.go`, `partials.html` y `static/table.js`.
 
@@ -645,6 +659,7 @@ sintéticos. Los indicadores técnicos, Ledoit-Wolf y Markowitz se comparan cont
 
 ```
 cd backend && go test ./...
+cd frontend && npm test        # vitest + jsdom: chart.js y site.js
 ```
 
 **Mantenimiento de los códigos de error.** El catálogo está en `backend/internal/errs`. Los IDs no se reutilizan ni se
@@ -659,7 +674,7 @@ push a `main`:
 1. Restaura la base SQLite desde el caché de Actions (`backend/data`), corre los tests y el pipeline.
 2. Hace commit de `backend/history/history.json` si cambió (el commit del bot no
    dispara otra ejecución).
-3. Arma el sitio con Astro (`npm ci && npm run build` en `frontend/`, con `SITE_BASE` según el nombre del repositorio) y publica `frontend/dist` en GitHub Pages.
+3. Arma el sitio con Astro (`npm ci && npm test && npm run build` en `frontend/`, con `SITE_BASE` según el nombre del repositorio) y publica `frontend/dist` en GitHub Pages.
 
 Requiere activar Settings > Pages > Source = **GitHub Actions**. Si el caché se pierde (GitHub lo borra tras 7 días sin
 uso), la siguiente ejecución vuelve a bajar los precios (varios minutos) y restaura el historial desde el JSON. Si el

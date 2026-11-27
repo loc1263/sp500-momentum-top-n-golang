@@ -1,5 +1,5 @@
 // Páginas del evaluador de empresas: el listado (filtros, orden y veredicto por categoría) y los datos de la ficha de cada empresa
-// (empresas.js), que empresa.html muestra con Alpine: métricas, minigráficos y comparación con pares.
+// (empresas/<TICKER>.json), que empresa.html muestra con Alpine: métricas, minigráficos y comparación con pares.
 //
 // Fecha: 2026-11-19
 
@@ -145,7 +145,7 @@ func companyRow(c evaluator.Company, p evaluator.Payload) trow {
 
 var unsafeFile = regexp.MustCompile(`[^A-Za-z0-9._-]`)
 
-// companyKey es la clave de una empresa en empresas.js y en el hash de empresa.html: el ticker en mayúsculas, con lo raro
+// companyKey es la clave de una empresa en empresas/<TICKER>.json y en el hash de empresa.html: el ticker en mayúsculas, con lo raro
 // reemplazado por «_» (empresa.js aplica la misma regla).
 func companyKey(ticker string) string {
 	return unsafeFile.ReplaceAllString(strings.ToUpper(ticker), "_")

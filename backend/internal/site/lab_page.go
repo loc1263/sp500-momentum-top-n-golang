@@ -1,4 +1,4 @@
-// Páginas del Lab (backtest): una por vista (lab-<vista>.html) que Alpine pinta con los datos de lab-datos.js, ya armados por Go
+// Páginas del Lab (backtest): una por vista (lab-<vista>.html) que Alpine pinta con los datos de lab/<vista>/<clave>.json, ya armados por Go
 // para cada universo y período. El universo y el período elegidos van en el hash (lab-backtest.html#200-10); los selectores solo
 // lo cambian.
 //
@@ -24,7 +24,7 @@ var labViews = []struct{ ID, Label, Title string }{
 
 var seriesColors = []string{"var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"}
 
-// labKey identifica un universo y período dentro de lab-datos.js y en el hash de las páginas del Lab.
+// labKey identifica un universo y período entre los JSON de lab/ y en el hash de las páginas del Lab.
 func labKey(cap string, years float64) string { return cap + "-" + fnum(years) }
 
 func labPage(view string) string { return "lab-" + view + ".html" }
