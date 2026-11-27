@@ -108,7 +108,7 @@ func pub(t *testing.T, out, name string) string  { return read(t, out, "public/"
 func TestBuildPaginas(t *testing.T) {
 	out := buildAll(t)
 	for _, f := range []string{"src/data/index.json", "src/data/visor.json", "src/data/etfq.json", "src/data/evaluador.json", "src/data/empresa.json", "src/data/about.json",
-		"src/data/lab-backtest.json", "public/empresas.js", "public/evaluador.xlsx"} {
+		"src/data/lab-backtest.json", "public/empresas/BRK-B.json", "public/evaluador.xlsx"} {
 		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(f))); err != nil {
 			t.Errorf("falta %s: %v", f, err)
 		}
@@ -161,12 +161,12 @@ func TestBuildPaginas(t *testing.T) {
 
 	wantAll(t, "empresa", page(t, out, "empresa"), `"Page":"empresa"`, `"Href":"evaluador.html"`)
 
-	datos := pub(t, out, "empresas.js")
-	wantAll(t, "empresas.js", datos,
-		"window.EMPRESAS=", `"BRK-B":{`, `"ZZZ":{`, `\u003csvg viewBox`, "18,2 %", "peers-none", `Berkshire \u003cHathaway\u003e`,
+	datos := pub(t, out, "empresas/BRK-B.json") + pub(t, out, "empresas/ZZZ.json")
+	wantAll(t, "empresas/<TICKER>.json", datos,
+		`"Ticker":"BRK-B"`, `"Ticker":"ZZZ"`, "<svg viewBox", "18,2 %", "peers-none", "Berkshire <Hathaway>",
 		`"Left":"18.2"`, "Nota", "Precio 450,50 USD", "Capitalización 1.000 B USD", "Sin sector", "Precio n/d")
-	if strings.Contains(datos, "Berkshire <Hathaway>") {
-		t.Error("el nombre de la empresa no quedó escapado en empresas.js")
+	if _, err := os.Stat(filepath.Join(out, "public", "empresas.js")); err == nil {
+		t.Error("empresas.js ya no se genera")
 	}
 
 	wantAll(t, "about", page(t, out, "about"), `"Capital":"15.000"`, `"Commission":"0,05%"`, `"Limits":[`, `"About":{"Label":"About","Href":"about.html","Active":true}`)

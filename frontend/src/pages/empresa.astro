@@ -1,14 +1,11 @@
 ---
 // Detalle de una empresa del evaluador: una sola página para todas. scripts/empresa.js lee el ticker del hash (empresa.html#AAPL) y
-// Alpine pinta las métricas, minigráficos y pares a partir de empresas.js (datos ya formateados por Go).
+// Alpine pinta las métricas, minigráficos y pares a partir de empresas/<TICKER>.json (datos ya formateados por Go).
 // Fecha: 2026-11-27
 import Layout from '../layouts/Layout.astro';
 import data from '../data/empresa.json';
-
-const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
 <Layout shell={data}>
-  <Fragment slot="head"><script is:inline defer src={`${base}empresas.js`}></script></Fragment>
 <div x-data="empresa" x-cloak>
   <template x-if="!c">
     <div class="head">

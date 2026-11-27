@@ -9,8 +9,8 @@ backend/bin/
 /frontend/dist/
 /frontend/.astro/
 /frontend/src/data/
-/frontend/public/empresas.js
-/frontend/public/lab-datos.js
+/frontend/public/empresas/
+/frontend/public/lab/
 /frontend/public/evaluador.xlsx
 
 # Editor / sistema

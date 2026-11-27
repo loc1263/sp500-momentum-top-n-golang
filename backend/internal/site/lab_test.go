@@ -82,7 +82,7 @@ func TestLab(t *testing.T) {
 	if _, err := Build(in, out); err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"src/data/lab-backtest.json", "src/data/lab-sweep.json", "src/data/lab-compare.json", "public/lab-datos.js"} {
+	for _, f := range []string{"src/data/lab-backtest.json", "src/data/lab-sweep.json", "src/data/lab-compare.json", "public/lab/default.json", "public/lab/backtest/200-2.json"} {
 		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(f))); err != nil {
 			t.Errorf("falta %s: %v", f, err)
 		}
@@ -96,9 +96,9 @@ func TestLab(t *testing.T) {
 		t.Error("el Lab no debería tener el botón About")
 	}
 
-	datos := pub(t, out, "lab-datos.js")
-	wantAll(t, "lab-datos.js", datos,
-		"window.LAB=", `"default":"200-2"`, `"backtest":{"200-2":`, `"sweep":{"200-2":`, `"compare":{"200-2":`,
+	wantAll(t, "lab/default.json", pub(t, out, "lab/default.json"), `"default":"200-2"`)
+	datos := pub(t, out, "lab/backtest/200-2.json") + pub(t, out, "lab/sweep/200-2.json") + pub(t, out, "lab/compare/200-2.json")
+	wantAll(t, "lab/<vista>/200-2.json", datos,
 		`"Value":"200-2","Label":"mega-cap","Selected":true`, `"Label":"2 años (2024–2026)"`, `"Months":4,"Selected":true`, `"Cap0":"15.000,00"`, `"Cap1":"20.000,00"`,
 		"data-chart=", "AAPL", "+20,0%", "-10,0%", `"CalCount":2`, "primer rebalanceo efectivo"[:0]+`"Late":true`, `"First":"2024-04-01"`,
 		"Plazo más consistente"[:0]+`"HasBest":true`, `"SameWinner":true`, "Arranques probados: 4m: 2 · 6m: 2", `"Headline":"Empate: cada modelo gana en 1 de 2 plazos."`,
@@ -120,7 +120,7 @@ func TestLabSinSkip(t *testing.T) {
 	if _, err := Build(in, out); err != nil {
 		t.Fatal(err)
 	}
-	wantAll(t, "compare", pub(t, out, "lab-datos.js"), `"compare":{"200-2":{"Bar":`, `"Empty":true`)
+	wantAll(t, "compare", pub(t, out, "lab/compare/200-2.json"), `"Bar":`, `"Empty":true`)
 }
 
 func TestChartHTML(t *testing.T) {

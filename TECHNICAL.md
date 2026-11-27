@@ -89,14 +89,14 @@ npm run build                           # sitio estático en frontend/dist (npm 
 
 `topwx site` (paquete `internal/site`) lee `output/report.json` (Top actual, ETFs, modelo por score, backtest y About), `output/evaluator.json`
 (Evaluador) y `output/visor.json` (Visor), que dejan `topwx pipeline`, `topwx export`, `topwx evaluator` y `topwx visor`, y escribe en el proyecto
-Astro un JSON por página en `frontend/src/data/` (tablas ya formateadas, gráficos SVG y números es-AR) y, en `frontend/public/`, `empresas.js`,
-`lab-datos.js` y `evaluador.xlsx`. Si falta un JSON, esa página dice qué comando correr y el resto se genera igual. Primero hay que haber corrido
+Astro un JSON por página en `frontend/src/data/` (tablas ya formateadas, gráficos SVG y números es-AR) y, en `frontend/public/`, `empresas/<TICKER>.json`,
+`lab/<vista>/<clave>.json` y `evaluador.xlsx`. Si falta un JSON, esa página dice qué comando correr y el resto se genera igual. Primero hay que haber corrido
 el pipeline al menos una vez. Esos datos no se versionan. Astro (`frontend/src/pages`, `layouts`, `components`) los convierte en una página `.html` por
 vista, sin servidor, y `frontend/dist` se puede publicar en cualquier hosting estático. En una subruta (GitHub Pages) se arma con
 `SITE_BASE=/<repositorio> npm run build`. Requiere Node.js 22.12 o superior.
 
 Para no generar cientos de archivos, el evaluador y el Lab no tienen una página por empresa ni por universo y período: son una página por vista
-y Go deja los datos ya formateados en un `.js` (`empresas.js`, `lab-datos.js`) que Alpine (integración `@astrojs/alpinejs`) pinta en el navegador. La
+y Go deja los datos ya formateados en archivos JSON chicos (`empresas/<TICKER>.json`, `lab/<vista>/<clave>.json`) que el navegador pide solo cuando los necesita y que Alpine (integración `@astrojs/alpinejs`) pinta en el navegador. La
 empresa, el universo y el período se eligen con el hash de la dirección (`empresa.html#AAPL`, `lab-backtest.html#200-10`). Los scripts de Astro
 son módulos, así que el sitio no abre con `file://`: use `npm run preview` o un servidor estático. Sin JavaScript, esas páginas no muestran contenido.
 
@@ -629,8 +629,8 @@ report, cleanup, pipeline...) está en [`backend/README.md`](backend/README.md).
 | `actual_page.go`, `templates/actual.html` | Top actual (Home): un bloque por universo con selector, cambios, suplentes y seguimiento |
 | `etfq_page.go`, `templates/etfq.html` | ETFs por gestora: resumen, filtros y tabla de todos los ETFs |
 | `quant_page.go`, `templates/quant.html` | Modelo por score: cómo se calcula, Markowitz y ranking con tres vistas de columnas |
-| `evaluator_page.go`, `evaluator_xlsx.go`, `evalfmt.go`, `templates/evaluador.html`, `empresa.html`, `static/empresa.js` | Evaluador: listado en Go y una sola página de empresa (`empresa.html#<TICKER>`) que Alpine pinta con los datos de `empresas.js` (minigráficos SVG y pares ya formateados por Go) |
-| `lab_page.go`, `chart.go`, `templates/lab_*.html`, `static/lab.js`, `static/chart.js` | Lab: tres páginas (`lab-<vista>.html`) que Alpine pinta con `lab-datos.js` (una entrada por universo y período, elegida con el hash `#<universo>-<años>`); gráficos SVG con cursor y valores |
+| `evaluator_page.go`, `evaluator_xlsx.go`, `evalfmt.go`, `templates/evaluador.html`, `empresa.html`, `static/empresa.js` | Evaluador: listado en Go y una sola página de empresa (`empresa.html#<TICKER>`) que Alpine pinta con la ficha de `empresas/<TICKER>.json` (minigráficos SVG y pares ya formateados por Go) |
+| `lab_page.go`, `chart.go`, `templates/lab_*.html`, `static/lab.js`, `static/chart.js` | Lab: tres páginas (`lab-<vista>.html`) que Alpine pinta con `lab/<vista>/<universo>-<años>.json` (un archivo por universo y período, elegido con el hash `#<universo>-<años>`); gráficos SVG con cursor y valores |
 | `about_page.go`, `templates/about.html` | About: qué se muestra, conceptos, fuentes y límites |
 | `format.go`, `table.go` | Formato es-AR (porcentajes, dinero, miles) y las piezas comunes de las tablas (encabezados, filas, celdas, clases de color) |
 | `static/table.js`, `static/pager.js` | JS común de las tablas: filtros, búsqueda, orden, paginación (`pager.js` también lo usa el Visor), vistas de columnas y selectores. Sin dependencias ni build |

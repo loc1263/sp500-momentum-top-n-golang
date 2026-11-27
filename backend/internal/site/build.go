@@ -81,7 +81,7 @@ func LoadInputs(p Paths) (Inputs, error) {
 
 type builder struct {
 	data     string // src/data del proyecto Astro: un JSON por página
-	public   string // public/ del proyecto Astro: archivos que carga el navegador (empresas.js, lab-datos.js, evaluador.xlsx)
+	public   string // public/ del proyecto Astro: archivos que carga el navegador (empresas/, lab/, evaluador.xlsx)
 	meta     Meta
 	fallback string
 }
@@ -193,14 +193,25 @@ func writeJSON(path string, v any) error {
 	return os.WriteFile(path, buf.Bytes(), 0o644)
 }
 
-// writeDataScript escribe public/<name> como un .js que asigna los datos a window[global]. Es un .js y no un .json para que la
-// página no tenga que hacer fetch.
-func (b *builder) writeDataScript(name, global string, v any) error {
-	raw, err := json.Marshal(v)
-	if err != nil {
+// writePublic escribe public/<rel> como JSON (sin escapar <, > ni &). Son los archivos que el navegador pide por fetch cuando hacen
+// falta, uno por empresa y uno por vista, universo y período del Lab, en lugar de bajar todo junto.
+func (b *builder) writePublic(rel string, v any) error {
+	path := filepath.Join(b.public, filepath.FromSlash(rel))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(b.public, name), append([]byte("window."+global+"="), append(raw, ';', '\n')...), 0o644)
+	return writeJSON(path, v)
+}
+
+// resetPublic borra lo que una corrida anterior dejó en public/<dir>, y el .js de datos de las versiones que lo bajaban todo junto.
+func (b *builder) resetPublic(dir, oldScript string) error {
+	if err := os.RemoveAll(filepath.Join(b.public, dir)); err != nil {
+		return err
+	}
+	if err := os.Remove(filepath.Join(b.public, oldScript)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 func (b *builder) quant(q *quantData) error {
@@ -216,10 +227,10 @@ type labData struct {
 	Pages   map[string]map[string]any `json:"pages"`
 }
 
-// lab genera las tres páginas del Lab (backtest, plazos y N-0 vs N-1) y public/lab-datos.js con los datos de cada universo y período.
+// lab genera las tres páginas del Lab (backtest, plazos y N-0 vs N-1) y public/lab/<vista>/<universo>-<años>.json con los datos de cada universo y período.
 // El Lab no figura en las pestañas: se llega por la dirección. Sin backtest, las tres páginas dicen qué comando correr.
 func (b *builder) lab(r *report.Report) error {
-	if err := os.Remove(filepath.Join(b.public, "lab-datos.js")); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err := b.resetPublic("lab", "lab-datos.js"); err != nil {
 		return err
 	}
 	missing := func() error {
@@ -283,17 +294,28 @@ func (b *builder) lab(r *report.Report) error {
 			return err
 		}
 	}
-	return b.writeDataScript("lab-datos.js", "LAB", data)
+	for view, byKey := range data.Pages {
+		for key, page := range byKey {
+			if err := b.writePublic("lab/"+view+"/"+key+".json", page); err != nil {
+				return err
+			}
+		}
+	}
+	return b.writePublic("lab/default.json", map[string]string{"default": data.Default})
 }
 
-// companies escribe empresa, la única página de detalle, y public/empresas.js con la ficha ya formateada de cada empresa.
+// companies escribe empresa, la única página de detalle, y public/empresas/<TICKER>.json con la ficha ya formateada de cada empresa.
 func (b *builder) companies(p *evaluator.Payload) error {
 	if err := b.write("empresa.html", "empresa", "evaluador", nil); err != nil {
 		return err
 	}
-	pages := make(map[string]companyPage, len(p.Companies))
-	for _, c := range p.Companies {
-		pages[companyKey(c.Ticker)] = newCompanyPage(c, *p)
+	if err := b.resetPublic("empresas", "empresas.js"); err != nil {
+		return err
 	}
-	return b.writeDataScript("empresas.js", "EMPRESAS", pages)
+	for _, c := range p.Companies {
+		if err := b.writePublic("empresas/"+companyKey(c.Ticker)+".json", newCompanyPage(c, *p)); err != nil {
+			return err
+		}
+	}
+	return nil
 }

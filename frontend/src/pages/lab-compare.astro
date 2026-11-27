@@ -1,5 +1,5 @@
 ---
-// Lab · compare: Alpine lo pinta con la página del universo y período elegidos en lab-datos.js (scripts/lab.js).
+// Lab · compare: Alpine lo pinta con la página del universo y período elegidos en lab/<vista>/<clave>.json (scripts/lab.js).
 // Fecha: 2026-11-27
 import Layout from '../layouts/Layout.astro';
 import Missing from '../components/Missing.astro';
@@ -8,11 +8,8 @@ import LabRange from '../components/LabRange.astro';
 import LabRows from '../components/LabRows.astro';
 import LabChart from '../components/LabChart.astro';
 import data from '../data/lab-compare.json';
-
-const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
 <Layout shell={data}>
-  <Fragment slot="head">{data.Page !== 'missing' && <script is:inline defer src={`${base}lab-datos.js`}></script>}</Fragment>
   {data.Page === 'missing' ? <Missing msg={data.Body} /> : (
   <Fragment>
 <div x-data="lab('compare')" x-cloak>

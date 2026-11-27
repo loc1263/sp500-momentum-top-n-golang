@@ -1,7 +1,7 @@
 # Frontend (Astro)
 
 Sitio estático del proyecto. Los datos de cada página los genera el backend (`topwx site`, o el final de `topwx pipeline`) en
-`src/data/*.json` y `public/` (`empresas.js`, `lab-datos.js`, `evaluador.xlsx`); no se versionan. Astro los convierte en un `.html` por página.
+`src/data/*.json` y `public/` (`empresas/<TICKER>.json`, `lab/<vista>/<clave>.json`, `evaluador.xlsx`); no se versionan. Astro los convierte en un `.html` por página.
 
 ```
 npm install
