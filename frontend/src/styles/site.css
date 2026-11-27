@@ -277,6 +277,14 @@ svg circle { fill: var(--accent); }
   .about dd { margin-bottom: 8px; }
 }
 
+/* Tendencia a 5 años: tarjetas cortas en rejilla */
+.mcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: var(--space-3); }
+.mcard { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-2) var(--space-3) var(--space-3); min-width: 0; background: color-mix(in srgb, var(--accent) 4%, var(--card)); }
+.mcard-h { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.mcard .mval { text-align: left; font-size: 1.15rem; margin: 2px 0 var(--space-1); }
+.mcard svg, .mcard .years { max-width: none; }
+.mcard .note { font-size: .74rem; }
+
 /* Diagramas de flujos de la ficha de empresa (Sankey en SVG que arma Go) */
 .flows { margin-top: var(--space-5); display: grid; gap: var(--space-3); }
 .flows-h { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--space-3); }

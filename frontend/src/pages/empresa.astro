@@ -73,7 +73,23 @@ import data from '../data/empresa.json';
               <p class="muted">Sin datos suficientes de Yahoo Finance.</p>
             </template>
 
-            <template x-if="s.Kind === 'metrics'">
+            <template x-if="s.Kind === 'metrics' && s.ID === 'trend'">
+              <div class="mcards">
+                <template x-for="m in s.Metrics">
+                  <article class="mcard">
+                    <div class="mcard-h">
+                      <span class="mname"><span x-text="m.Name"></span> <span class="hint" tabindex="0" role="img" :aria-label="m.Why" :title="m.Why">?</span></span>
+                      <span class="pill" :class="m.Pill.Level" x-text="m.Pill.Text"></span>
+                    </div>
+                    <div class="mval" x-text="m.Value"></div>
+                    <template x-if="m.Spark"><div x-html="m.Spark"></div></template>
+                    <template x-if="m.Note"><p class="note muted" x-text="m.Note"></p></template>
+                  </article>
+                </template>
+              </div>
+            </template>
+
+            <template x-if="s.Kind === 'metrics' && s.ID !== 'trend'">
               <ul class="rows">
                 <template x-for="m in s.Metrics">
                   <li>
