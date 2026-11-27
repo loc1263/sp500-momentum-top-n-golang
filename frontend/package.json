@@ -10,11 +10,16 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/alpinejs": "^1.0.0",
     "alpinejs": "^3.17.5",
     "astro": "^7.4.13"
+  },
+  "devDependencies": {
+    "jsdom": "^31.0.1",
+    "vitest": "^3.2.7"
   }
 }

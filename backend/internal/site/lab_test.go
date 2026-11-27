@@ -141,6 +141,43 @@ func TestChartHTML(t *testing.T) {
 	}
 }
 
+// chart.js depende de estos nombres y medidas: si cambian aquí, el cursor y el cuadro de valores dejan de funcionar.
+func TestChartHTMLContratoConJS(t *testing.T) {
+	series := []chartSeries{{Name: "Base", Color: "var(--accent)", Points: []chartPoint{{"2024-01-01", 100}, {"2025-01-01", 150}}}}
+	html := string(chartHTML(series, "Capital"))
+	wantAll(t, "chart", html, `viewBox="0 0 800 280"`, `class="tick"`, `<div class="tip" hidden>`)
+	const prefix = `data-chart="`
+	i := strings.Index(html, prefix)
+	if i < 0 {
+		t.Fatal("falta data-chart")
+	}
+	raw := html[i+len(prefix):]
+	raw = raw[:strings.Index(raw, `"`)]
+	raw = strings.NewReplacer("&#34;", `"`, "&quot;", `"`).Replace(raw)
+	var c map[string]any
+	if err := json.Unmarshal([]byte(raw), &c); err != nil {
+		t.Fatalf("data-chart no es JSON válido: %v\n%s", err, raw)
+	}
+	for _, k := range []string{"ml", "iw", "mt", "ih", "x0", "x1", "y0", "y1", "s"} {
+		if _, ok := c[k]; !ok {
+			t.Errorf("data-chart sin la clave %q que lee chart.js", k)
+		}
+	}
+	if ml, iw := c["ml"].(float64), c["iw"].(float64); ml+iw+chartRight != chartW {
+		t.Errorf("márgenes (%g + %g + %g) no suman el ancho %g del viewBox", ml, iw, chartRight, chartW)
+	}
+	s, _ := c["s"].([]any)
+	if len(s) != 1 {
+		t.Fatalf("series = %d, esperaba 1", len(s))
+	}
+	first := s[0].(map[string]any)
+	for _, k := range []string{"n", "c", "p"} {
+		if _, ok := first[k]; !ok {
+			t.Errorf("serie sin la clave %q", k)
+		}
+	}
+}
+
 func TestRangeYAnios(t *testing.T) {
 	if r := newRange("2020-01-01", "2024-01-01", 4, "2020-04-01"); !r.Late || r.YearsText != "(4 años)" {
 		t.Errorf("rango tardío: %+v", r)
