@@ -1,0 +1,5 @@
+---
+// Signo «?» con la ayuda como título.
+const { text } = Astro.props;
+---
+<span class="hint" tabindex="0" role="img" aria-label={text} title={text}>?</span>

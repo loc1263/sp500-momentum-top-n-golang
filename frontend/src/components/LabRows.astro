@@ -1,0 +1,5 @@
+---
+// Filas de una tabla del Lab; rows es la expresión de Alpine de la lista de filas (cada una con Cells).
+const { rows } = Astro.props;
+---
+<template x-for={`r in ${rows}`}><tr><template x-for="c in r.Cells"><td :class="c.Class" x-html="cell(c)"></td></template></tr></template>

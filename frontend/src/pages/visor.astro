@@ -1,0 +1,62 @@
+---
+// Visor de acciones y ETFs: visor.js filtra, ordena y pagina las filas con los valores crudos de <script id="data">.
+// Fecha: 2026-11-27
+import Layout from '../layouts/Layout.astro';
+import Missing from '../components/Missing.astro';
+import data from '../data/visor.json';
+
+const b = data.Body;
+---
+<Layout shell={data}>
+  {data.Page === 'missing' ? <Missing msg={b} /> : (
+  <Fragment>
+  <div class="controls">
+    <div class="seg" role="tablist" aria-label="Tipo de instrumento">
+      {b.Sections.map((s, i) => <button type="button" role="tab" data-sec={s.ID} aria-selected={String(i === 0)} class={i === 0 ? 'active' : undefined}>{s.Label} (<span class="n">{s.Rows.length}</span>)</button>)}
+    </div>
+    <label class="grow">Buscar
+      <input type="search" id="q" placeholder="Ticker, nombre, sector o categoría; varios con comas">
+    </label>
+    <button type="button" class="btn" id="clear" hidden>Limpiar filtros (<span id="clear-n">0</span>)</button>
+    <button type="button" class="btn" id="csv">Descargar CSV</button>
+  </div>
+
+  <p class="muted">Rendimientos acumulados (mensuales a 21 ruedas por mes); Sharpe, beta y volatilidad a 3 años contra SPY. Verde: Sharpe &gt; 1, caída máxima ≥ −25%, distancia al máximo de 52 semanas ≥ −10%, dividendo ≥ 2% y, en ETFs, TER ≤ 0,20%; los rendimientos van en verde si son positivos y en rojo si son negativos. «Verdes» cuenta las celdas verdes de cada fila. Haga clic en un encabezado para ordenar; bajo cada uno hay un filtro (texto, mínimo y máximo, o SUPERA / NO SUPERA). Un clic en una fila la marca (otro clic la desmarca).</p>
+  <p class="muted">«Más de 50 años»: acciones de EE. UU. de empresas fundadas hace más de 50 años (el año sale del resumen del negocio de Yahoo, «founded in…» o «incorporated in…»; si el resumen no lo dice, la empresa no aparece). Los años son calendario completos (cierre de diciembre contra el de diciembre anterior); el acumulado y el anualizado a 5 años componen esos cinco rendimientos anuales.</p>
+
+  {b.Sections.map((s, i) => (
+  <div class="wrap" data-sec={s.ID} hidden={i > 0}>
+    <table>
+      <thead>
+        <tr>
+          {s.Cols.map((c, j) => <th class={c.Text ? undefined : 'r'} aria-sort="none"><button type="button" class="sort" data-col={j}>{c.Label}<span class="arrow"></span></button></th>)}
+        </tr>
+        <tr class="filters">
+          {s.Cols.map((c) => (
+          <th class={c.Text ? undefined : 'r'}>
+            {c.Kind === 'select' ? <select data-col={c.Name} data-key="eq" aria-label={`Filtrar ${c.Label}`}><option value="">Todos</option><option value="SUPERA">SUPERA</option><option value="NO SUPERA">NO SUPERA</option></select>
+            : c.Kind === 'text' ? <input type="search" data-col={c.Name} data-key="text" aria-label={`Filtrar ${c.Label}`} placeholder="Filtrar">
+            : <span class="range-in"><input type="number" step="any" data-col={c.Name} data-key="min" aria-label={`${c.Label} mín`} placeholder="mín"><input type="number" step="any" data-col={c.Name} data-key="max" aria-label={`${c.Label} máx`} placeholder="máx"></span>}
+          </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {s.Rows.map((r) => (
+        <tr data-i={r.Index}>
+          {r.Cells.map((c) => <td class={c.Class || undefined} title={c.Title || undefined}>{c.Href ? <a href={c.Href} target="_blank" rel="noopener noreferrer" title={`Ver ${c.Text} en stockanalysis.com`}><strong>{c.Text}</strong></a> : c.Text}</td>)}
+        </tr>
+        ))}
+        <tr class="empty" hidden><td colspan={s.Cols.length} class="muted">Ningún instrumento coincide con la búsqueda.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  ))}
+  <nav class="pager" id="pager" aria-label="Paginación de la tabla" hidden></nav>
+  <script type="application/json" id="data" set:html={b.Data}></script>
+  </Fragment>
+  )}
+  <script>
+    import '../scripts/visor.js';
+  </script>
+</Layout>

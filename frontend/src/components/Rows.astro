@@ -1,0 +1,12 @@
+---
+// Filas de tabla (trow de Go) con los atributos data-* que lee table.js: data-q (búsqueda), data-href y data-f-<clave> (filtros).
+import Cell from './Cell.astro';
+
+const { rows } = Astro.props;
+const filters = (r) => Object.fromEntries(Object.entries(r.Attrs ?? {}).map(([k, v]) => [`data-f-${k}`, v]));
+---
+{(rows ?? []).map((r) => (
+  <tr data-row class={r.Class || undefined} data-href={r.Href || undefined} data-q={r.Search || undefined} {...filters(r)}>
+    {r.Cells.map((c) => <Cell c={c} />)}
+  </tr>
+))}

@@ -538,12 +538,3 @@ func (pg *cmpPage) fillCharts(pairs []termPair, wanted int) {
 		pg.Charts = append(pg.Charts, cmpChart{Months: x.months, Selected: x.months == chosen, Chart: chartHTML(series, "Capital (US$)")})
 	}
 }
-
-// labPages son los nombres de las páginas del Lab.
-func labPages() []string {
-	files := make([]string, len(labViews))
-	for i, v := range labViews {
-		files[i] = labPage(v.ID)
-	}
-	return files
-}

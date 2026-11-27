@@ -1,0 +1,85 @@
+---
+// Top actual (Home): un bloque por universo; el selector muestra uno a la vez (table.js, data-switch).
+// Fecha: 2026-11-27
+import Layout from '../layouts/Layout.astro';
+import Missing from '../components/Missing.astro';
+import Rows from '../components/Rows.astro';
+import TableScripts from '../components/TableScripts.astro';
+import data from '../data/index.json';
+
+const b = data.Body;
+---
+<Layout shell={data}>
+  {data.Page === 'missing' ? <Missing msg={b} /> : (
+  <Fragment>
+  <div class="tfilters">
+    <label>Universo
+      <select data-switch="u">{b.Options.map((o) => <option value={o.Value} selected={o.Selected}>{o.Label}</option>)}</select>
+    </label>
+  </div>
+  {b.Universe.map((u) => (
+  <section data-case-of="u" data-case={u.Key} hidden={u.Hidden}>
+    <p class="range overview">
+      <strong>Datos al cierre del</strong> {u.AsOf} ·
+      <strong>Plazo</strong> {u.Months} meses ·
+      <strong>Acciones</strong> {u.PickCount} ·
+      <strong>Peso por acción</strong> {u.Weight}
+      {u.NextRebalance && <Fragment> · <strong>Próximo rebalanceo</strong> {u.NextRebalance} <span class="muted">(cada {u.Months} meses desde la primera corrida guardada, {u.Anchor})</span></Fragment>}
+    </p>
+
+    <h2>Top {u.PickCount} de los últimos {u.Months} meses (modelo N-0)</h2>
+    <p class="range"><strong>Ventana de retorno:</strong> {u.From} a {u.AsOf} <span class="muted">({u.Months} meses)</span></p>
+    <p class="sub">Ponderación igual, rebalanceo cada {u.Months} meses. Cap. aprox. = precio × acciones en circulación hoy.</p>
+    {u.Changes ? (
+    <p class="changes"><strong>Cambios vs. {u.Changes.Previous}:</strong>
+      {u.Changes.None ? <Fragment> ninguno, la selección se mantiene.</Fragment> : <Fragment> entran <span class="pos">{u.Changes.Entered}</span> · salen <span class="neg">{u.Changes.Exited}</span> · se mantienen {u.Changes.Kept}</Fragment>}</p>
+    ) : u.FirstRun ? (
+    <p class="muted">Primera corrida guardada: todavía no hay una selección anterior para comparar.</p>
+    ) : null}
+    <div data-table data-page-size="12">
+      <div class="wrap">
+        <table>
+          <thead><tr><th>#</th><th>Ticker</th><th class="r">Retorno {u.Months} meses</th><th class="r">Cap. aprox. (US$ B)</th><th class="r">Precio (US$)</th><th class="r">Peso</th></tr></thead>
+          <tbody><Rows rows={u.Picks} /></tbody>
+        </table>
+      </div>
+      <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+    </div>
+
+    {u.Alternates?.length > 0 && (
+    <Fragment>
+    <h2>Suplentes</h2>
+    <p class="sub">Los puestos siguientes al top {u.PickCount}, como reemplazo posible.</p>
+    <div data-table data-page-size="12">
+      <div class="wrap">
+        <table>
+          <thead><tr><th>#</th><th>Ticker</th><th class="r">Retorno {u.Months} meses</th><th class="r">Cap. aprox. (US$ B)</th><th class="r">Precio (US$)</th></tr></thead>
+          <tbody><Rows rows={u.Alternates} /></tbody>
+        </table>
+      </div>
+      <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+    </div>
+    </Fragment>
+    )}
+
+    {u.Tracking?.length > 0 && (
+    <Fragment>
+    <h2>Seguimiento de selecciones anteriores</h2>
+    <p class="sub">Cómo le fue a cada selección guardada desde que se eligió. Dura {u.Months} meses; después figura como cerrada. Con pocas selecciones guardadas todavía no prueba nada.</p>
+    <div data-table data-page-size="12">
+      <div class="wrap">
+        <table>
+          <thead><tr><th>Elegida el</th><th>Medida hasta</th><th class="r">Días</th><th>Estado</th><th>Acciones</th><th class="r">Retorno (ponderación igual)</th></tr></thead>
+          <tbody><Rows rows={u.Tracking} /></tbody>
+        </table>
+      </div>
+      <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+    </div>
+    </Fragment>
+    )}
+  </section>
+  ))}
+  </Fragment>
+  )}
+  {data.Page !== 'missing' && <TableScripts />}
+</Layout>

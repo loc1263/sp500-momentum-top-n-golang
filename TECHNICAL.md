@@ -75,27 +75,36 @@ Los comandos del backend se corren desde `backend/` (las rutas del config son re
 
 ### Generar y abrir el sitio
 
+El sitio tiene dos partes: Go deja los datos de cada página y Astro (`frontend/`) los pinta en HTML estático.
+
 ```
-topwx pipeline                          # datos + JSON + sitio estático en ../frontend
-topwx site                              # regenera ../frontend desde los JSON de output/ (sin descargar nada)
-topwx site --serve localhost:8080       # además lo sirve por HTTP (Ctrl+C lo detiene)
+topwx pipeline                          # datos + JSON + datos del sitio en ../frontend (src/data y public)
+topwx site                              # regenera esos datos desde los JSON de output/ (sin descargar nada)
 topwx site --out ../frontend --report output/report.json --visor output/visor.json --evaluator output/evaluator.json
+cd ../frontend
+npm install                             # solo la primera vez
+npm run dev                             # desarrollo en http://localhost:4321
+npm run build                           # sitio estático en frontend/dist (npm run preview para verlo)
 ```
 
-El sitio es HTML, CSS y JS plano, sin Node ni build (Alpine va como un solo archivo, `alpine.min.js`): `topwx site` arma las páginas con `html/template` (paquete `internal/site`) a partir de
-`output/report.json` (Top actual, ETFs, modelo por score, backtest y About), `output/evaluator.json` (Evaluador) y `output/visor.json` (Visor),
-que dejan `topwx pipeline`, `topwx export`, `topwx evaluator` y `topwx visor`. Si falta uno, esa página dice qué comando correr y el resto se
-genera igual. Primero hay que haber corrido el pipeline al menos una vez. La carpeta `frontend/` se puede publicar en cualquier hosting estático.
+`topwx site` (paquete `internal/site`) lee `output/report.json` (Top actual, ETFs, modelo por score, backtest y About), `output/evaluator.json`
+(Evaluador) y `output/visor.json` (Visor), que dejan `topwx pipeline`, `topwx export`, `topwx evaluator` y `topwx visor`, y escribe en el proyecto
+Astro un JSON por página en `frontend/src/data/` (tablas ya formateadas, gráficos SVG y números es-AR) y, en `frontend/public/`, `empresas.js`,
+`lab-datos.js` y `evaluador.xlsx`. Si falta un JSON, esa página dice qué comando correr y el resto se genera igual. Primero hay que haber corrido
+el pipeline al menos una vez. Esos datos no se versionan. Astro (`frontend/src/pages`, `layouts`, `components`) los convierte en una página `.html` por
+vista, sin servidor, y `frontend/dist` se puede publicar en cualquier hosting estático. En una subruta (GitHub Pages) se arma con
+`SITE_BASE=/<repositorio> npm run build`. Requiere Node.js 22.12 o superior.
 
 Para no generar cientos de archivos, el evaluador y el Lab no tienen una página por empresa ni por universo y período: son una página por vista
-y Go deja los datos ya formateados en un `.js` (`empresas.js`, `lab-datos.js`) que Alpine pinta en el navegador. La empresa, el universo y el
-período se eligen con el hash de la dirección (`empresa.html#AAPL`, `lab-backtest.html#200-10`). Los datos son `.js` y no `.json` para que el
-sitio también abra desde el disco (`file://`), donde el navegador no deja hacer `fetch`. Sin JavaScript, esas páginas no muestran contenido.
+y Go deja los datos ya formateados en un `.js` (`empresas.js`, `lab-datos.js`) que Alpine (integración `@astrojs/alpinejs`) pinta en el navegador. La
+empresa, el universo y el período se eligen con el hash de la dirección (`empresa.html#AAPL`, `lab-backtest.html#200-10`). Los scripts de Astro
+son módulos, así que el sitio no abre con `file://`: use `npm run preview` o un servidor estático. Sin JavaScript, esas páginas no muestran contenido.
+
 ### Pipeline completo
 
 ```
 cd backend
-topwx pipeline                           # todo: actualiza datos, backtest, Top actual, JSON y sitio estático
+topwx pipeline                           # todo: actualiza datos, backtest, Top actual, JSON y datos del sitio (luego npm run build en frontend/)
 topwx pipeline --tests          # corre antes los tests
 topwx pipeline --no-cache       # descarga todo de nuevo (solo el primer paso que descarga; los demás leen lo que acaba de guardar)
 topwx pipeline --years 7        # backtest de un único período
@@ -584,13 +593,13 @@ Para buscar en el log: `grep TOP-BKT backend/log/topwx_backtest.log`.
 ## Estructura y desarrollo
 
 ```
-backend/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, evaluador de empresas, visor, sitio estático y base SQLite
+backend/           # Go: backtest, Top actual, ranking de ETFs, modelo por score, evaluador de empresas, visor, datos del sitio y base SQLite
   config.toml         # configuración
   history/            # datos que se versionan en git: el historial
   cmd/topwx/           # línea de comandos: backtest, actual, etfq, quant, evaluator, visor, export, site, prune y pipeline
-  internal/           # la lógica, un paquete por responsabilidad (internal/site genera el sitio)
+  internal/           # la lógica, un paquete por responsabilidad (internal/site genera los datos del sitio)
   output/             # JSON de datos que lee topwx site (report.json, evaluator.json, visor.json); se crea solo
-frontend/             # sitio estático generado por topwx site (no se versiona)
+frontend/             # proyecto Astro del sitio estático; src/data y public/*.js los genera topwx site (no se versionan)
 ```
 
 | Comando | Para qué sirve |
@@ -601,9 +610,9 @@ frontend/             # sitio estático generado por topwx site (no se versiona)
 | `topwx quant` | Modelo por score: scores de momentum, de salud financiera y técnico del S&P 500 y Markowitz sobre las mejores (sin backtest) |
 | `topwx evaluator` | Evaluador de empresas: análisis fundamental del S&P 500; escribe `output/evaluator.json` |
 | `topwx visor` | Visor: rendimientos, riesgo y comparación contra SPY de las acciones grandes y los ETFs de mayor AUM; escribe `output/visor.json` |
-| `topwx pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + evaluador + visor + JSON + sitio estático + limpieza |
+| `topwx pipeline` | Pipeline completo: backtest (todos los períodos y universos) + Top actual de cada universo + ETFs + modelo por score + evaluador + visor + JSON + datos del sitio + limpieza |
 | `topwx prune` | Limpieza de lo viejo: corridas del backtest y caché vencida (el pipeline la corre al final) |
-| `topwx site` | Genera el sitio estático en `frontend/` (con `--serve` también lo sirve) |
+| `topwx site` | Genera los datos del sitio en `frontend/` (proyecto Astro; el HTML sale de `npm run build`) |
 | `topwx export` | Escribe el JSON en `output/report.json` (lo hacen solos los comandos al terminar) |
 | `backend/data/`, `backend/log/` | Base SQLite y logs; se crean solos |
 
@@ -650,7 +659,7 @@ push a `main`:
 1. Restaura la base SQLite desde el caché de Actions (`backend/data`), corre los tests y el pipeline.
 2. Hace commit de `backend/history/history.json` si cambió (el commit del bot no
    dispara otra ejecución).
-3. Publica en GitHub Pages la carpeta `frontend/`, que el pipeline genera con `topwx site`.
+3. Arma el sitio con Astro (`npm ci && npm run build` en `frontend/`, con `SITE_BASE` según el nombre del repositorio) y publica `frontend/dist` en GitHub Pages.
 
 Requiere activar Settings > Pages > Source = **GitHub Actions**. Si el caché se pierde (GitHub lo borra tras 7 días sin
 uso), la siguiente ejecución vuelve a bajar los precios (varios minutos) y restaura el historial desde el JSON. Si el

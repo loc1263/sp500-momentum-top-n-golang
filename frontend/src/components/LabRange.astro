@@ -1,0 +1,6 @@
+---
+// Línea «Período» del Lab; r es la expresión de Alpine del objeto con Start, End, YearsText, Late y First.
+const { r } = Astro.props;
+---
+<p class="range"><strong>Período:</strong> <span x-text={`${r}.Start`}></span> a <span x-text={`${r}.End`}></span> <template x-if={`${r}.YearsText`}><span class="muted" x-text={`${r}.YearsText`}></span></template>
+<template x-if={`${r}.Late`}><span class="neg" x-text={`'· primer rebalanceo efectivo: ' + ${r}.First + ' (antes no había suficientes empresas que cumplan el universo)'`}></span></template></p>

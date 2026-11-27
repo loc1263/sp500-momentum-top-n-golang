@@ -4,8 +4,14 @@ backend/log/
 backend/output/
 backend/bin/
 
-# Sitio estático generado por topwx site (carpeta frontend/)
-/frontend/
+# Frontend (Astro): dependencias, salida del build y datos que genera topwx site
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.astro/
+/frontend/src/data/
+/frontend/public/empresas.js
+/frontend/public/lab-datos.js
+/frontend/public/evaluador.xlsx
 
 # Editor / sistema
 .vscode/

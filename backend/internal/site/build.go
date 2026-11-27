@@ -1,15 +1,16 @@
-// Arma el sitio completo: lee los JSON que dejó el backend, genera cada página con la cáscara común y copia los archivos estáticos.
+// Arma los datos del sitio: lee los JSON que dejó el backend y escribe, para el proyecto Astro de frontend/, el JSON ya formateado de
+// cada página (src/data) y los archivos de datos que lee el navegador (public). Astro es quien renderiza el HTML.
 // Si falta un JSON, esa página muestra qué comando correr en lugar de romper el resto del sitio.
 //
-// Fecha: 2026-11-19
+// Fecha: 2026-11-27
 
 package site
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -32,8 +33,6 @@ type Inputs struct {
 
 // Paths son las rutas de los JSON que lee LoadInputs.
 type Paths struct{ Visor, Report, Evaluator string }
-
-var staticFiles = []string{"site.css", "site.js", "pager.js", "table.js", "chart.js", "visor.js", "alpine.min.js", "empresa.js", "lab.js"}
 
 func readJSON[T any](path string) (*T, error) {
 	raw, err := os.ReadFile(path)
@@ -81,23 +80,22 @@ func LoadInputs(p Paths) (Inputs, error) {
 }
 
 type builder struct {
-	out      string
+	data     string // src/data del proyecto Astro: un JSON por página
+	public   string // public/ del proyecto Astro: archivos que carga el navegador (empresas.js, lab-datos.js, evaluador.xlsx)
 	meta     Meta
 	fallback string
-	cache    map[string]*template.Template
 }
 
-// Build escribe todas las páginas y los archivos estáticos en outDir y devuelve la ruta del index.
-func Build(in Inputs, outDir string) (string, error) {
-	b := &builder{out: outDir, meta: metaOf(in.Report), cache: map[string]*template.Template{}}
+// Build escribe los datos de todas las páginas en el proyecto Astro de siteDir y devuelve la carpeta de los JSON de página.
+func Build(in Inputs, siteDir string) (string, error) {
+	b := &builder{data: filepath.Join(siteDir, "src", "data"), public: filepath.Join(siteDir, "public"), meta: metaOf(in.Report)}
 	if in.Visor != nil {
 		b.fallback = strings.Replace(in.Visor.GeneratedAt, "T", " ", 1)
 	}
-	if err := os.MkdirAll(outDir, 0o755); err != nil {
-		return "", err
-	}
-	if err := os.RemoveAll(filepath.Join(outDir, "evaluador")); err != nil {
-		return "", err
+	for _, dir := range []string{b.data, b.public} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return "", err
+		}
 	}
 	steps := []func() error{
 		func() error { return b.visor(in.Visor) },
@@ -113,16 +111,7 @@ func Build(in Inputs, outDir string) (string, error) {
 			return "", err
 		}
 	}
-	for _, name := range staticFiles {
-		data, err := assets.ReadFile("static/" + name)
-		if err != nil {
-			return "", err
-		}
-		if err := os.WriteFile(filepath.Join(outDir, name), data, 0o644); err != nil {
-			return "", err
-		}
-	}
-	return filepath.Join(outDir, "index.html"), nil
+	return b.data, nil
 }
 
 func (b *builder) visor(p *visor.Payload) error {
@@ -161,7 +150,7 @@ func (b *builder) evaluator(p *evaluator.Payload) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(b.out, xlsxFile), book, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(b.public, xlsxFile), book, 0o644); err != nil {
 		return err
 	}
 	return b.companies(p)
@@ -176,36 +165,42 @@ func (b *builder) about(r *report.Report) error {
 
 func (b *builder) missing(file, tabID, msg string) error { return b.write(file, "missing", tabID, msg) }
 
-// write arma file (relativo a la salida) con la cáscara y el contenido de templates/<name>.html; tabID elige la pestaña activa.
+// write arma los datos de file (el nombre de la página, relativo a la raíz del sitio) con la cáscara; name es el componente de Astro
+// que pinta el contenido y tabID elige la pestaña activa.
 func (b *builder) write(file, name, tabID string, body any) error {
-	root := strings.Repeat("../", strings.Count(file, "/"))
-	return b.writeShell(file, name, newShell(tabID, b.meta, b.fallback, root, body))
+	return b.writeShell(file, name, newShell(tabID, b.meta, b.fallback, body))
 }
 
-// writeShell escribe file con una cáscara ya armada (la del Lab tiene pestañas propias).
+// pageFile es el JSON de una página: qué contenido pintar (Page) y la cáscara con ese contenido en Body.
+type pageFile struct {
+	Page string
+	shell
+}
+
+// writeShell escribe los datos de file con una cáscara ya armada (la del Lab tiene pestañas propias).
 func (b *builder) writeShell(file, name string, sh shell) error {
-	t, ok := b.cache[name]
-	if !ok {
-		var err error
-		t, err = template.ParseFS(assets, "templates/layout.html", "templates/partials.html", "templates/"+name+".html")
-		if err != nil {
-			return err
-		}
-		b.cache[name] = t
-	}
-	target := filepath.Join(b.out, filepath.FromSlash(file))
-	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+	return writeJSON(filepath.Join(b.data, strings.TrimSuffix(file, ".html")+".json"), pageFile{Page: name, shell: sh})
+}
+
+// writeJSON escribe v sin escapar <, > ni &: el HTML de las celdas va tal cual y Astro lo inserta con set:html.
+func writeJSON(path string, v any) error {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
 		return err
 	}
-	f, err := os.Create(target)
+	return os.WriteFile(path, buf.Bytes(), 0o644)
+}
+
+// writeDataScript escribe public/<name> como un .js que asigna los datos a window[global]. Es un .js y no un .json para que la
+// página no tenga que hacer fetch.
+func (b *builder) writeDataScript(name, global string, v any) error {
+	raw, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
-	if err := t.ExecuteTemplate(f, "layout.html", sh); err != nil {
-		f.Close()
-		return err
-	}
-	return f.Close()
+	return os.WriteFile(filepath.Join(b.public, name), append([]byte("window."+global+"="), append(raw, ';', '\n')...), 0o644)
 }
 
 func (b *builder) quant(q *quantData) error {
@@ -221,20 +216,23 @@ type labData struct {
 	Pages   map[string]map[string]any `json:"pages"`
 }
 
-// lab genera las tres páginas del Lab (backtest, plazos y N-0 vs N-1), lab-datos.js con los datos de cada universo y período, y
-// lab.html, que lleva al backtest. El Lab no figura en las pestañas: se llega por la dirección.
+// lab genera las tres páginas del Lab (backtest, plazos y N-0 vs N-1) y public/lab-datos.js con los datos de cada universo y período.
+// El Lab no figura en las pestañas: se llega por la dirección. Sin backtest, las tres páginas dicen qué comando correr.
 func (b *builder) lab(r *report.Report) error {
-	// Quita lo que dejó el esquema anterior (una página por universo y período) y las páginas de una corrida previa.
-	if err := os.RemoveAll(filepath.Join(b.out, "lab")); err != nil {
+	if err := os.Remove(filepath.Join(b.public, "lab-datos.js")); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
-	for _, f := range append([]string{"lab.html", "lab-datos.js"}, labPages()...) {
-		if err := os.Remove(filepath.Join(b.out, f)); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return err
+	missing := func() error {
+		for _, v := range labViews {
+			sh := newLabShell(v.ID, b.meta, b.fallback, "Sin datos del Lab. Ejecute topwx backtest (en backend/) y vuelva a generar el sitio.")
+			if err := b.writeShell(labPage(v.ID), "missing", sh); err != nil {
+				return err
+			}
 		}
+		return nil
 	}
 	if r == nil || len(r.Backtest) == 0 {
-		return nil
+		return missing()
 	}
 	pages := map[string]func(*report.Report, labCtx) any{
 		"backtest": func(r *report.Report, c labCtx) any { return newBacktestPage(r, c) },
@@ -277,7 +275,7 @@ func (b *builder) lab(r *report.Report) error {
 		}
 	}
 	if len(best.Periods) == 0 {
-		return nil
+		return missing()
 	}
 	data.Default = labKey(capKeyOf(best.MinCapBillions), defaultYears(best, r.Settings.BacktestYears, r.Settings))
 	for _, v := range labViews {
@@ -285,19 +283,10 @@ func (b *builder) lab(r *report.Report) error {
 			return err
 		}
 	}
-	raw, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(filepath.Join(b.out, "lab-datos.js"), append([]byte("window.LAB="), append(raw, ';', '\n')...), 0o644); err != nil {
-		return err
-	}
-	redirect := `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=` + labPage("backtest") + `"><a href="` + labPage("backtest") + `">Lab</a>`
-	return os.WriteFile(filepath.Join(b.out, "lab.html"), []byte(redirect), 0o644)
+	return b.writeDataScript("lab-datos.js", "LAB", data)
 }
 
-// companies escribe empresa.html, la única página de detalle, y empresas.js con la ficha ya formateada de cada empresa. Es un .js
-// y no un .json para que también abra desde el disco (file://), donde el navegador no deja hacer fetch.
+// companies escribe empresa, la única página de detalle, y public/empresas.js con la ficha ya formateada de cada empresa.
 func (b *builder) companies(p *evaluator.Payload) error {
 	if err := b.write("empresa.html", "empresa", "evaluador", nil); err != nil {
 		return err
@@ -306,9 +295,5 @@ func (b *builder) companies(p *evaluator.Payload) error {
 	for _, c := range p.Companies {
 		pages[companyKey(c.Ticker)] = newCompanyPage(c, *p)
 	}
-	raw, err := json.Marshal(pages)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(b.out, "empresas.js"), append([]byte("window.EMPRESAS="), append(raw, ';', '\n')...), 0o644)
+	return b.writeDataScript("empresas.js", "EMPRESAS", pages)
 }

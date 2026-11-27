@@ -1,6 +1,7 @@
 name: Actualizar datos y publicar
 
-# Corre el pipeline del backend, guarda el historial en git y publica el sitio estático (generado por topwx site) en GitHub Pages.
+# Corre el pipeline del backend, guarda el historial en git y publica en GitHub Pages el sitio estático que arma Astro (frontend/) con los
+# datos que deja topwx site.
 # Requiere: Settings > Pages > Source = "GitHub Actions".
 on:
   schedule:
@@ -67,9 +68,25 @@ jobs:
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # El pipeline dejó los datos en frontend/src/data y frontend/public; Astro los convierte en HTML estático.
+      # En Pages el sitio vive en /<repositorio>/, de ahí SITE_BASE.
+      - name: Sitio estático (Astro)
+        working-directory: frontend
+        env:
+          SITE_BASE: /${{ github.event.repository.name }}
+        run: |
+          npm ci
+          npm run build
+
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: frontend
+          path: frontend/dist
 
   deploy:
     needs: build

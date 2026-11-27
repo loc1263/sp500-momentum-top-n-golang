@@ -1,0 +1,6 @@
+---
+// Celda de tabla (cellView de Go). V es el valor crudo con que table.js ordena (data-v).
+const { c } = Astro.props;
+const link = c.Ext ? { target: '_blank', rel: 'noopener noreferrer', title: `Ver ${c.Text} en stockanalysis.com` } : {};
+---
+<td data-views={c.Views || undefined} class={c.Class || undefined} data-v={c.V || undefined} title={c.Title && !c.Dot ? c.Title : undefined}>{c.Href ? <a href={c.Href} {...link}>{c.Ext || c.Strong ? <strong>{c.Text}</strong> : c.Text}</a> : c.Dot ? <><span class={`dotv ${c.Dot}`} title={c.Title}></span><span class="sr">{c.Text}</span></> : c.PillLevel ? <span class={`pill ${c.PillLevel}`}>{c.Text}</span> : c.HTML ? <Fragment set:html={c.HTML} /> : c.Strong ? <strong>{c.Text}</strong> : c.Text}</td>

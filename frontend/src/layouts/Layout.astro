@@ -1,0 +1,58 @@
+---
+// Cáscara común de todas las páginas (encabezado, pestañas, pie). Recibe la cáscara que arma Go (src/data/<página>.json).
+// Los slots: el contenido de la página y, en «head», los scripts que cada página necesita.
+// Fecha: 2026-11-27
+import '../styles/site.css';
+
+const { shell } = Astro.props;
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{shell.DocTitle}</title>
+  <meta name="description" content="Momentum y scores: estrategia de momentum del S&P 500 con backtest, ETFs y modelo por score de EE. UU.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b63ce'/%3E%3Cpath d='M6 22l7-8 5 5 8-10' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <script is:inline>
+    try {
+      const saved = localStorage.getItem('theme');
+      document.documentElement.dataset.theme = (saved ? saved === 'dark' : true) ? 'dark' : 'light';
+    } catch {}
+  </script>
+  <slot name="head" />
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div class="corner">
+      <a class={`btn${shell.Home.Active ? ' active' : ''}`} href={shell.Home.Href}>{shell.Home.Label}</a>
+      {shell.About.Label && <a class={`btn${shell.About.Active ? ' active' : ''}`} href={shell.About.Href}>{shell.About.Label}</a>}
+      <button id="theme" class="btn" type="button" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">Tema</button>
+    </div>
+    <h1>{shell.SiteName}</h1>
+    <h2 class="section">{shell.Title}</h2>
+    <p class="sub">{shell.Sub}</p>
+  </header>
+
+  <nav class="tabs" aria-label="Secciones">
+    {shell.Groups.map((g) => (
+      <div class="group">
+        {g.Label && <span class={`cap${g.On ? ' on' : ''}`}>{g.Label}</span>}
+        <div class="row">
+          {g.Links.map((l) => <a class={`tab${l.Active ? ' active' : ''}`} href={l.Href} aria-current={l.Active ? 'page' : undefined}>{l.Label}</a>)}
+        </div>
+      </div>
+    ))}
+  </nav>
+
+  <slot />
+
+  <footer>{shell.Footer}</footer>
+</main>
+<script>
+  import '../scripts/site.js';
+</script>
+</body>
+</html>

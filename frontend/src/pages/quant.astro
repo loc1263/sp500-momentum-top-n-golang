@@ -1,0 +1,142 @@
+---
+// Modelo por score: cómo se calcula, carteras de Markowitz y ranking del S&P 500 con tres vistas de columnas (table.js).
+// Fecha: 2026-11-27
+import Layout from '../layouts/Layout.astro';
+import Missing from '../components/Missing.astro';
+import Rows from '../components/Rows.astro';
+import Ths from '../components/Ths.astro';
+import Hint from '../components/Hint.astro';
+import TableScripts from '../components/TableScripts.astro';
+import data from '../data/quant.json';
+
+const b = data.Body;
+---
+<Layout shell={data}>
+  {data.Page === 'missing' ? <Missing msg={b} /> : (
+  <Fragment>
+  <p class="range overview">
+    <strong>Datos al cierre del</strong> {b.AsOf} ·
+    <strong>Acciones rankeadas</strong> {b.Ranked} de {b.Universe} <span class="muted">(las del S&amp;P 500 con los tres scores)</span> ·
+    <strong>Score final</strong> 0 a 100 <span class="muted">(promedio de los scores de momentum, de salud financiera y técnico)</span>
+  </p>
+
+  <h2>Cómo se calcula</h2>
+  <div class="cards how">
+    <div class="item"><strong>Momentum</strong><p>Cuánto subió cada acción en 12 y 6 meses, sin contar el último. 100 = la mejor.</p></div>
+    <div class="item"><strong>Salud financiera</strong>
+      <p>Calidad de los últimos balances publicados, en 4 grupos de indicadores.</p>
+      <details>
+        <summary>Ver grupos</summary>
+        <ul>
+          <li><b>Rentabilidad:</b> ROE, ROA y márgenes.</li>
+          <li><b>Solvencia:</b> deuda/patrimonio, deuda neta/EBITDA, caja/deuda.</li>
+          <li><b>Liquidez:</b> liquidez corriente y prueba ácida.</li>
+          <li><b>Caja:</b> flujo libre y operativo, conversión de utilidad y años con flujo positivo. Pesa el doble.</li>
+        </ul>
+        <p>Bancos y aseguradoras se miden solo con rentabilidad.</p>
+      </details>
+    </div>
+    <div class="item"><strong>Técnico</strong>
+      <p>Estado del precio y el volumen, en 4 grupos de indicadores.</p>
+      <details>
+        <summary>Ver grupos</summary>
+        <ul>
+          <li><b>Tendencia:</b> medias móviles de 20, 50 y 200 ruedas, ADX.</li>
+          <li><b>Impulso:</b> MACD, RSI, estocástico, Bollinger.</li>
+          <li><b>Volumen:</b> OBV y MFI.</li>
+          <li><b>Posición:</b> lugar en el rango de 52 semanas.</li>
+        </ul>
+        <p>RSI, estocástico y MFI premian la zona alcista y penalizan la sobrecompra.</p>
+      </details>
+    </div>
+    <div class="item"><strong>Score final</strong><p>Promedio de los tres{b.WeightsNote}. Markowitz se calcula sobre las {b.TopN} primeras.</p></div>
+  </div>
+
+  <h2>Las {b.TopN} mejores y sus pesos (Markowitz)</h2>
+  <p class="sub">{b.Constraints}</p>
+  <details class="more">
+    <summary>Cómo se estiman retorno y riesgo</summary>
+    <p>{b.Estimation}</p>
+  </details>
+  {b.RelaxedNote && <p class="best">{b.RelaxedNote}</p>}
+  {b.NoMaxReturnNote && <p class="best">{b.NoMaxReturnNote}</p>}
+  <div class="wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ticker</th><th>Empresa</th><th>Sector</th>
+          <th class="r">Score<Hint text="Score final, de 0 a 100: promedio de los scores de momentum, salud financiera y técnico." /></th>
+          <th class="r">Retorno esp.<Hint text="Retorno anual esperado de la acción: mezcla su retorno de 12 meses con un retorno de largo plazo." /></th>
+          <th class="r">Vol. anual<Hint text="Volatilidad anual: cuánto oscila el precio en un año. Más alta = más riesgo." /></th>
+          {b.MkHead.map((h) => <th class="r">{h.Label}{h.Help && <Hint text={h.Help} />}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {b.MkRows.map((r) => (
+        <tr>
+          <td><a href={r.Href} target="_blank" rel="noopener noreferrer" title={`Ver ${r.Ticker} en stockanalysis.com`}><strong>{r.Ticker}</strong></a></td>
+          <td>{r.Name}</td>
+          <td class="muted" title={r.SectorTitle || undefined}>{r.Sector}</td>
+          <td class="r"><strong>{r.Score}</strong></td>
+          <td class={`r ${r.ExpClass}`}>{r.ExpRet}</td>
+          <td class="r">{r.Vol}</td>
+          {r.Weights.map((w) => <td class={`r ${w.Class}`}>{w.Text}</td>)}
+        </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        {b.MkFoot.map((f) => (
+        <tr>
+          <td colspan="6">{f.Label}{f.Help && <Hint text={f.Help} />}</td>
+          {f.Cells.map((c) => <td class={`r ${c.Class}`}>{c.Text}</td>)}
+        </tr>
+        ))}
+      </tfoot>
+    </table>
+  </div>
+
+  <h3>Peso por sector</h3>
+  <div class="wrap narrow">
+    <table>
+      <thead>
+        <tr><th>Sector</th>{b.SectorHead.map((h) => <th class="r">{h.Label}{h.Help && <Hint text={h.Help} />}</th>)}</tr>
+      </thead>
+      <tbody>
+        {b.SectorRows.map((r) => <tr><td>{r.Name}</td>{r.Cells.map((c) => <td class={`r ${c.Class}`}>{c.Text}</td>)}</tr>)}
+      </tbody>
+    </table>
+  </div>
+  <p class="sub note">En negrita, los sectores que llegan al tope de {b.SectorCap}.</p>
+
+  <h2>Ranking del S&amp;P 500</h2>
+  <p class="sub">{b.RankingNote}</p>
+  <details class="more">
+    <summary>Qué significan las columnas</summary>
+    <p>Porcentajes: ROE, márgenes, flujo de caja libre (FCF) sobre ventas, capitalización y utilidad, y distancia a las EMA. «Deuda/Patr.» = deuda sobre patrimonio; «Años FCF+» = parte de los últimos 4 años con flujo libre positivo.</p>
+  </details>
+
+  <div data-table data-page-size="12">
+    <div class="tfilters">
+      <label>Buscar <input type="search" data-search placeholder="ticker o empresa"></label>
+      <label>Sector
+        <select data-filter="sector"><option value="">Todos</option>{b.Sectors.map((s) => <option>{s}</option>)}</select>
+      </label>
+      <label>Detalle
+        <select data-view>{b.Views.map((v) => <option value={v.Value} selected={v.Selected}>{v.Label}</option>)}</select>
+      </label>
+      <span class="muted" data-count></span>
+    </div>
+    <div class="wrap">
+      <table>
+        <thead><tr><Ths cols={b.Cols} /></tr></thead>
+        <tbody><Rows rows={b.Rows} />
+          <tr class="empty" hidden><td colspan={b.ColSpan} class="muted">Ninguna acción cumple el filtro.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+  </div>
+  </Fragment>
+  )}
+  <TableScripts />
+</Layout>

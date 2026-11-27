@@ -1,8 +1,10 @@
-// Interactividad del Visor sobre el HTML que arma Go: pestañas, búsqueda de varios tickers, filtros por columna, orden,
+// Interactividad del Visor sobre el HTML que pinta Astro: pestañas, búsqueda de varios tickers, filtros por columna, orden,
 // paginación, marca de fila y CSV. Trabaja con los valores crudos del <script id="data"> y solo mueve / oculta las filas.
-// Sin dependencias ni build. Lógica equivalente a frontend/src/lib/visor.js.
+// Sin dependencias.
 //
 // Fecha: 2026-11-19
+
+import './pager.js';
 
 (() => {
   const PAGE_SIZE = 12;

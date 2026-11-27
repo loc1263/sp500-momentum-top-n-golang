@@ -1,12 +1,25 @@
-<!-- Lab · N-0 vs N-1: modelo actual contra el skip-month, plazo por plazo, por mitades del período y en el tiempo.
-     Alpine lo pinta con la página del universo y período elegidos en lab-datos.js (lab.js).
-     Fecha: 2026-11-20 -->
-{{define "content"}}
+---
+// Lab · compare: Alpine lo pinta con la página del universo y período elegidos en lab-datos.js (scripts/lab.js).
+// Fecha: 2026-11-27
+import Layout from '../layouts/Layout.astro';
+import Missing from '../components/Missing.astro';
+import LabBar from '../components/LabBar.astro';
+import LabRange from '../components/LabRange.astro';
+import LabRows from '../components/LabRows.astro';
+import LabChart from '../components/LabChart.astro';
+import data from '../data/lab-compare.json';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<Layout shell={data}>
+  <Fragment slot="head">{data.Page !== 'missing' && <script is:inline defer src={`${base}lab-datos.js`}></script>}</Fragment>
+  {data.Page === 'missing' ? <Missing msg={data.Body} /> : (
+  <Fragment>
 <div x-data="lab('compare')" x-cloak>
   <template x-if="!p"><p class="muted" x-text="loaded ? 'No hay datos del Lab. Ejecute topwx backtest (en backend/).' : 'Cargando…'"></p></template>
   <template x-if="p">
     <div>
-      {{template "labbar"}}
+      <LabBar />
       <template x-if="p.Empty">
         <p class="muted">Sin resultados del modelo skip-month para este universo y período. Ejecute topwx backtest --sweep (en backend/).</p>
       </template>
@@ -18,7 +31,7 @@
           </div>
 
           <h2>Plazo por plazo</h2>
-          {{template "labrange" "p.Range1"}}
+          <LabRange r="p.Range1" />
           <div class="wrap">
             <table>
               <thead>
@@ -30,7 +43,7 @@
                   <th class="r">N-0</th><th class="r">N-1</th><th class="r">N-0</th><th class="r">N-1</th><th>Gana</th>
                 </tr>
               </thead>
-              <tbody>{{template "labrows" "p.Rows"}}</tbody>
+              <tbody><LabRows rows="p.Rows" /></tbody>
             </table>
           </div>
           <p class="sub note" x-text="'«Típico» = mediana de los arranques posibles, con US$ ' + p.Capital + ' iniciales. Una diferencia pequeña en «Gana» no prueba que un modelo sea mejor.'"></p>
@@ -38,7 +51,7 @@
           <template x-if="p.HasHalves">
             <div>
               <h2>¿Se sostiene en el tiempo?</h2>
-              {{template "labrange" "p.Range1"}}
+              <LabRange r="p.Range1" />
               <p class="sub">El período se parte en dos mitades (corte cerca del <span x-text="p.Split"></span>). Si un modelo gana en las dos, su ventaja no depende de un solo tramo del mercado. <strong x-text="p.HalvesText"></strong></p>
               <div class="wrap">
                 <table>
@@ -46,7 +59,7 @@
                     <tr class="groups"><th></th><th colspan="3">Primera mitad (anual)</th><th colspan="3">Segunda mitad (anual)</th><th></th></tr>
                     <tr><th>Plazo</th><th class="r">N-0</th><th class="r">N-1</th><th>Gana</th><th class="r">N-0</th><th class="r">N-1</th><th>Gana</th><th>Se sostiene</th></tr>
                   </thead>
-                  <tbody>{{template "labrows" "p.HalfRows"}}</tbody>
+                  <tbody><LabRows rows="p.HalfRows" /></tbody>
                 </table>
               </div>
               <p class="sub note">Con períodos cortos cada mitad tiene pocos rebalanceos: mejor mirar 6 años o más.</p>
@@ -68,6 +81,6 @@
     </div>
   </template>
 </div>
-{{end}}
-
-{{define "scripts"}}<script src="{{.Root}}lab-datos.js" defer></script><script src="{{.Root}}chart.js" defer></script><script src="{{.Root}}lab.js" defer></script><script src="{{.Root}}alpine.min.js" defer></script>{{end}}
+  </Fragment>
+  )}
+</Layout>

@@ -26,7 +26,7 @@ func TestPipelineSteps(t *testing.T) {
 	cfg := config.Default()
 	steps := BuildSteps(cfg, Options{Config: "config.toml", NoCache: true, Years: 7, Tests: true}, "topwx")
 	n := names(steps)
-	if n[0] != "Tests" || !reflect.DeepEqual(n[len(n)-3:], []string{"Exportar JSON para el sitio", "Generar el sitio estático (HTML, CSS y JS)", "Limpieza de datos y reportes viejos"}) {
+	if n[0] != "Tests" || !reflect.DeepEqual(n[len(n)-3:], []string{"Exportar JSON para el sitio", "Generar los datos del sitio (JSON para Astro)", "Limpieza de datos y reportes viejos"}) {
 		t.Fatalf("pasos: %v", n)
 	}
 	if len(steps) != 1+1+3+1+1+1+1+1+1+1 {

@@ -1,0 +1,5 @@
+---
+// Gráfico de capital (SVG que armó Go); chart es la expresión de Alpine con el HTML.
+const { chart } = Astro.props;
+---
+<div x-html={chart} x-effect={`initCharts($el, ${chart})`}></div>

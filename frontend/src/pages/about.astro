@@ -1,0 +1,37 @@
+---
+// Acerca de: qué es la aplicación, qué muestra cada sección, conceptos, datos y límites.
+// Fecha: 2026-11-27
+import Layout from '../layouts/Layout.astro';
+import Missing from '../components/Missing.astro';
+import data from '../data/about.json';
+
+const b = data.Body;
+---
+<Layout shell={data}>
+  {data.Page === 'missing' ? <Missing msg={b} /> : (
+<div class="about">
+  <h2>Qué es esta aplicación</h2>
+  <p>Evalúa una estrategia de <strong>momentum</strong> sobre el S&amp;P 500: cada <em>N</em> meses se compran, con ponderación igual, las {b.TopN} acciones que más subieron en los últimos <em>N</em> meses. Muestra qué habría pasado (backtest) y qué elegiría hoy. Plazo de referencia: {b.Months} meses; capital inicial: US$ {b.Capital}.</p>
+  <p class="muted">Herramienta de análisis personal y educativa. <strong>No es una recomendación de inversión.</strong></p>
+
+  <h2>Qué muestra cada sección</h2>
+  <div class="cards">{b.Sections.map((i) => <div class="item"><strong>{i.Name}</strong><p>{i.Text}</p></div>)}</div>
+
+  <h2>Conceptos clave</h2>
+  <div class="cards">{b.Concepts.map((i) => <div class="item"><strong>{i.Name}</strong><p>{i.Text}</p></div>)}</div>
+
+  <h2>Filtros</h2>
+  <p><strong>Universo:</strong> índice completo, large-cap + mega-cap (desde US$ 10.000 M) o mega-cap (desde US$ 200.000 M). <strong>Período:</strong> años simulados hacia atrás, hasta la fecha de la corrida.</p>
+
+  <h2>Datos</h2>
+  <dl>{b.Sources.map((i) => <Fragment><dt>{i.Name}</dt><dd>{i.Text}</dd></Fragment>)}</dl>
+
+  <h2>Qué incluyen los resultados</h2>
+  <p>Comisión de {b.Commission} por lado al armar la cartera y por las posiciones que cambian en cada rebalanceo. Cada plazo se mide con todas las fechas de arranque posibles y se informa la mediana.</p>
+  <details open>
+    <summary>Límites a tener presentes</summary>
+    <ul>{b.Limits.map((l) => <li>{l}</li>)}</ul>
+  </details>
+</div>
+  )}
+</Layout>

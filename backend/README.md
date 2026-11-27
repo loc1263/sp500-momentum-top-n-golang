@@ -56,7 +56,7 @@ internal/quant      scores de momentum, salud y técnico, Markowitz (puntos inte
 internal/evaluator  evaluador de empresas: análisis fundamental del S&P 500 (propio, solo usa gohoo y la lista de tickers)
 internal/visor      visor: rendimientos, riesgo y comparación contra SPY de acciones grandes y ETFs (propio, solo usa gohoo)
 internal/report     el JSON de datos (Top actual, ETFs, modelo por score y backtest)
-internal/site       el sitio estático (html/template + CSS y JS planos, sin Node): Visor, Top actual, ETFs, Quant, Evaluador, Lab y About
+internal/site       datos del sitio (un JSON por página para el proyecto Astro de ../frontend): Visor, Top actual, ETFs, Quant, Evaluador, Lab y About
 internal/xlsx       escritor mínimo de archivos .xlsx (colores y formatos de número) con solo la biblioteca estándar; lo usa el sitio
 internal/history    historial del Top actual y de ETFs en JSON versionado (la base SQLite es solo caché)
 internal/cleanup    limpieza de reportes, corridas y caché vencida

@@ -199,13 +199,12 @@ func runExport(args []string) error {
 }
 
 func runSite(ctx context.Context, args []string) error {
-	f := newFlags("site", "Genera el sitio estático (HTML + CSS + JS plano, sin Node) a partir de los JSON del backend")
+	f := newFlags("site", "Genera los datos del sitio (un JSON por página para el proyecto Astro de frontend/) a partir de los JSON del backend")
 	paths := site.Paths{}
 	f.StringVar(&paths.Visor, "visor", "", "JSON del Visor (default: [visor] output del config)")
 	f.StringVar(&paths.Report, "report", "", "JSON del reporte: Top actual, ETFs y About (default: [output] report_json del config)")
 	f.StringVar(&paths.Evaluator, "evaluator", "", "JSON del evaluador (default: [evaluator] output del config)")
-	out := f.String("out", "../frontend", "Carpeta donde se escribe el sitio")
-	serve := f.String("serve", "", "Después de generar, sirve el sitio en esta dirección (ej. localhost:8080)")
+	out := f.String("out", "../frontend", "Proyecto Astro donde se escriben los datos (src/data y public)")
 	if stop, err := f.parse(args); stop {
 		return err
 	}
@@ -222,16 +221,12 @@ func runSite(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	index, err := site.Build(in, *out)
+	dir, err := site.Build(in, *out)
 	if err != nil {
 		return err
 	}
-	console.Println("Sitio generado: " + index)
-	if *serve == "" {
-		return nil
-	}
-	console.Println("Sirviendo en http://" + *serve + " (Ctrl+C para detener)")
-	return site.Serve(ctx, *out, *serve)
+	console.Println("Datos del sitio generados: " + dir + " (para armar el HTML: npm run build en " + *out + ")")
+	return nil
 }
 
 func runPrune(args []string) error {

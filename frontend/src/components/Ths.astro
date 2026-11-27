@@ -1,0 +1,9 @@
+---
+// Encabezados ordenables (tcol de Go) que lee table.js.
+import Hint from './Hint.astro';
+
+const { cols } = Astro.props;
+---
+{cols.map((c) => (
+  <th data-views={c.Views || undefined} class={c.Num ? 'r' : undefined} data-type={c.Num ? 'num' : 'text'} data-dir={c.Dir} data-initial={c.Initial || undefined} aria-sort={c.AriaSort}><button type="button" class="sort">{c.Label}<span class="arrow">{c.Arrow}</span></button>{c.Help && <Hint text={c.Help} />}</th>
+))}

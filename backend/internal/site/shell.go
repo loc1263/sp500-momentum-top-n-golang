@@ -1,5 +1,5 @@
 // Cáscara común del sitio: pestañas agrupadas, botones Home / About / tema, título, subtítulo y pie de página.
-// Todas las páginas se generan desde Go; el Lab tiene su propia cáscara (newLabShell).
+// Los datos de cada página se arman en Go y Astro los pinta; el Lab tiene su propia cáscara (newLabShell).
 //
 // Fecha: 2026-11-19
 
@@ -87,7 +87,6 @@ type navGroup struct {
 
 type shell struct {
 	SiteName, DocTitle, Title, Sub, Footer string
-	Root                                   string // prefijo relativo a la raíz del sitio («» o «../»)
 	Groups                                 []navGroup
 	Home, About                            navLink
 	Body                                   any
@@ -105,8 +104,8 @@ func (t tab) title(m Meta) string {
 	return "Top N del S&P 500"
 }
 
-// newShell arma la cáscara de la pestaña current. root es el prefijo para llegar a la raíz desde la página («../» en subcarpetas).
-func newShell(current string, m Meta, generatedFallback, root string, body any) shell {
+// newShell arma la cáscara de la pestaña current.
+func newShell(current string, m Meta, generatedFallback string, body any) shell {
 	cur := aboutTab
 	var groups []navGroup
 	for _, t := range tabs {
@@ -130,7 +129,7 @@ func newShell(current string, m Meta, generatedFallback, root string, body any) 
 	}
 	title := cur.title(m)
 	return shell{
-		SiteName: siteName, DocTitle: siteName + " · " + title, Title: title, Sub: sub, Footer: footer(generated, cur.Note, m), Root: root,
+		SiteName: siteName, DocTitle: siteName + " · " + title, Title: title, Sub: sub, Footer: footer(generated, cur.Note, m),
 		Groups: groups, Home: navLink{Label: "Home", Href: tabs[0].href(), Active: current == tabs[0].ID},
 		About: navLink{Label: aboutTab.Label, Href: aboutTab.href(), Active: current == aboutTab.ID}, Body: body,
 	}
@@ -170,7 +169,7 @@ func newLabShell(view string, m Meta, generatedFallback string, body any) shell 
 		generated = generatedFallback
 	}
 	return shell{
-		SiteName: siteName, DocTitle: siteName + " · " + title, Title: title, Sub: sub, Footer: footer(generated, "", m), Root: "",
+		SiteName: siteName, DocTitle: siteName + " · " + title, Title: title, Sub: sub, Footer: footer(generated, "", m),
 		Groups: []navGroup{group}, Home: navLink{Label: "Volver a la app", Href: tabs[0].href()}, Body: body,
 	}
 }

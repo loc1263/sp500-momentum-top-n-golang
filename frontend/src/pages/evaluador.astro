@@ -1,0 +1,67 @@
+---
+// Evaluador de empresas: listado con filtros (mercado, sector, veredicto, texto), orden y un punto de color por categoría.
+// Cada fila lleva a su página (empresa.html#<TICKER>). table.js filtra, ordena y pagina.
+// Fecha: 2026-11-27
+import Layout from '../layouts/Layout.astro';
+import Missing from '../components/Missing.astro';
+import Rows from '../components/Rows.astro';
+import Ths from '../components/Ths.astro';
+import Hint from '../components/Hint.astro';
+import TableScripts from '../components/TableScripts.astro';
+import data from '../data/evaluador.json';
+
+const b = data.Body;
+---
+<Layout shell={data}>
+  {data.Page === 'missing' ? <Missing msg={b} /> : (
+  <Fragment>
+  <p class="range overview">
+    <strong>Empresas evaluadas</strong> {b.Total} <span class="muted">({b.Universes})</span> ·
+    <strong>Datos generados</strong> {b.Date} <span class="muted">(Yahoo Finance, últimos estados publicados)</span> ·
+    <strong>Qué evalúa</strong> {b.Categories} categorías <span class="muted">(rentabilidad, crecimiento, caja, deuda, valoración, tendencia y competidores)</span>
+  </p>
+
+  <div data-table data-page-size="12">
+    <div class="controls">
+      <label>Mercado
+        <select data-filter="universe">{b.UniverseOp.map((o) => <option value={o.Value} selected={o.Selected}>{o.Label}</option>)}</select>
+      </label>
+      <label>Sector
+        <select data-filter="sector"><option value="">Todos</option>{b.Sectors.map((s) => <option>{s}</option>)}</select>
+      </label>
+      <label>Veredicto
+        <select data-filter="verdict"><option value="">Todos</option>{b.Verdicts.map((v) => <option value={v.Value}>{v.Label}</option>)}</select>
+      </label>
+      <label class="check"><input type="checkbox" data-filter-bool="solid"> Sólida</label>
+      <label class="check"><input type="checkbox" data-filter-bool="cheap"> Barata</label>
+      <label class="grow">Buscar
+        <input type="search" data-search placeholder="Ticker o nombre">
+      </label>
+      <a class="btn" href="evaluador.xlsx" download={`evaluador-${b.Date}.xlsx`} title="Todas las empresas y todas sus métricas en Excel, con color por nivel y sin aplicar los filtros">Exportar Excel</a>
+    </div>
+    <p class="muted">Haga clic en una empresa para ver su análisis. El veredicto resume las categorías: «Bien» si el promedio es alto y ninguna es una alerta, «Alerta» si es bajo.
+      La columna «Sólida y barata» es aparte: marca las empresas con Rentabilidad y Caja en «Bien» y poca deuda frente a lo que generan (sólida) y con P/E, EV/EBITDA y EV/FCF sin ninguno caro (barata). Es un filtro para revisar, no una recomendación; los bancos no califican como sólidos porque no tienen sección de deuda.</p>
+    <div class="wrap">
+      <table>
+        <thead>
+          <tr>
+            <Ths cols={b.Cols} />
+            {b.CatCols.map((c) => <th class="cat" title={c.Title}>{c.Title}<Hint text={c.Why} /></th>)}
+          </tr>
+        </thead>
+        <tbody><Rows rows={b.Rows} />
+          <tr class="empty" hidden><td colspan={b.ColSpan} class="muted">Ninguna empresa coincide con los filtros.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <nav class="pager" aria-label="Paginación de la tabla" hidden></nav>
+  </div>
+  <p class="muted legend">
+    Puntos de las categorías:
+    <span class="dotv good"></span> bien · <span class="dotv warn"></span> atención · <span class="dotv bad"></span> alerta ·
+    <span class="dotv na"></span> sin datos. En Valoración, «bien» es barata y «alerta» cara.
+  </p>
+  </Fragment>
+  )}
+  <TableScripts />
+</Layout>

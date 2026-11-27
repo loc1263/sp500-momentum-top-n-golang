@@ -108,7 +108,7 @@ func BuildSteps(cfg config.Config, o Options, self string) []Step {
 	}
 	steps = append(steps, Step{Name: "Exportar JSON para el sitio", Cmd: cmd("export")})
 	if !o.SkipSite {
-		steps = append(steps, Step{Name: "Generar el sitio estático (HTML, CSS y JS)", Cmd: cmd("site")})
+		steps = append(steps, Step{Name: "Generar los datos del sitio (JSON para Astro)", Cmd: cmd("site")})
 	}
 	if !o.SkipPrune {
 		steps = append(steps, Step{Name: "Limpieza de datos y reportes viejos", Cmd: cmd("prune")})
@@ -135,7 +135,7 @@ func Main(args []string) int {
 	fs.BoolVar(&o.SkipQuant, "skip-quant", false, "Omite el modelo por score (scores y Markowitz)")
 	fs.BoolVar(&o.SkipEvaluator, "skip-evaluator", false, "Omite el evaluador de empresas")
 	fs.BoolVar(&o.SkipVisor, "skip-visor", false, "Omite el visor de acciones grandes y ETFs")
-	fs.BoolVar(&o.SkipSite, "skip-site", false, "Omite la generación del sitio estático")
+	fs.BoolVar(&o.SkipSite, "skip-site", false, "Omite la generación de los datos del sitio")
 	fs.BoolVar(&o.SkipPrune, "skip-prune", false, "Omite la limpieza final de datos y reportes viejos")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {

@@ -65,15 +65,12 @@ func TestQuant(t *testing.T) {
 	if _, err := Build(in, out); err != nil {
 		t.Fatal(err)
 	}
-	html := read(t, out, "quant.html")
-	wantAll(t, "quant.html", html,
-		"Regeneron &lt;X&gt;", `data-views="ind tec"`, `data-views="sal"`, `data-views="tec"`, `<tr data-row class="top"`, "88,4", "n/d", "(pesos 1 / 2 / 1)",
-		"Sin un año de precios (no tienen momentum): NEW.", "No hay cartera de máximo retorno", "el tope se subió a 40%", `class="r main"`, `class="r atcap"`,
-		"Realty", `title="Real Estate"`, "Retorno esperado de la cartera", "Sharpe (tasa libre de riesgo de 4%)", "Máx. Sharpe", "Las 2 mejores y sus pesos",
-		"&#43;15,9%", "55%", "3/4"[:0]+"4/4", `<option value="sal">Salud: score por grupo</option>`, `<a class="tab active" href="quant.html" aria-current="page">`, "Mom. 12-1")
-	if strings.Contains(html, "Regeneron <X>") {
-		t.Error("el nombre no quedó escapado")
-	}
+	quant := page(t, out, "quant")
+	wantAll(t, "quant", quant,
+		"Regeneron <X>", `"Views":"ind tec"`, `"Views":"sal"`, `"Views":"tec"`, `"Class":"top"`, "88,4", "n/d", "(pesos 1 / 2 / 1)",
+		"Sin un año de precios (no tienen momentum): NEW.", "No hay cartera de máximo retorno", "el tope se subió a 40%", `"Class":"main"`, `"Class":"atcap"`,
+		"Realty", `"SectorTitle":"Real Estate"`, "Retorno esperado de la cartera", "Sharpe (tasa libre de riesgo de 4%)", "Máx. Sharpe", `"TopN":2`,
+		"+15,9%", "55%", "4/4", `{"Value":"sal","Label":"Salud: score por grupo"`, `"Href":"quant.html","Active":true`, "Mom. 12-1")
 }
 
 func TestLab(t *testing.T) {
@@ -85,22 +82,21 @@ func TestLab(t *testing.T) {
 	if _, err := Build(in, out); err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"lab.html", "lab-backtest.html", "lab-sweep.html", "lab-compare.html", "lab-datos.js", "lab.js", "chart.js"} {
+	for _, f := range []string{"src/data/lab-backtest.json", "src/data/lab-sweep.json", "src/data/lab-compare.json", "public/lab-datos.js"} {
 		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(f))); err != nil {
 			t.Errorf("falta %s: %v", f, err)
 		}
 	}
-	wantAll(t, "lab.html", read(t, out, "lab.html"), `url=lab-backtest.html`)
 
-	bt := read(t, out, "lab-backtest.html")
+	bt := page(t, out, "lab-backtest")
 	wantAll(t, "backtest", bt,
-		"<title>Momentum y Scores · Lab: Backtest</title>", `href="site.css"`, `href="index.html">Volver a la app</a>`, `<a class="tab active" href="lab-backtest.html" aria-current="page">`,
-		`href="lab-sweep.html"`, `href="lab-compare.html"`, "¿Cómo leer esta página?", `x-data="lab('backtest')"`, `src="lab-datos.js"`, `src="alpine.min.js"`, "Calendario base"[:0]+"Calendarios de arranque posibles")
-	if strings.Contains(bt, ">Acerca") || strings.Contains(bt, ">About<") {
+		`"DocTitle":"Momentum y Scores · Lab: Backtest"`, `"Label":"Volver a la app","Href":"index.html"`, `"Href":"lab-backtest.html","Active":true`,
+		`"Href":"lab-sweep.html"`, `"Href":"lab-compare.html"`)
+	if strings.Contains(bt, `"Label":"About"`) {
 		t.Error("el Lab no debería tener el botón About")
 	}
 
-	datos := read(t, out, "lab-datos.js")
+	datos := pub(t, out, "lab-datos.js")
 	wantAll(t, "lab-datos.js", datos,
 		"window.LAB=", `"default":"200-2"`, `"backtest":{"200-2":`, `"sweep":{"200-2":`, `"compare":{"200-2":`,
 		`"Value":"200-2","Label":"mega-cap","Selected":true`, `"Label":"2 años (2024–2026)"`, `"Months":4,"Selected":true`, `"Cap0":"15.000,00"`, `"Cap1":"20.000,00"`,
@@ -124,7 +120,7 @@ func TestLabSinSkip(t *testing.T) {
 	if _, err := Build(in, out); err != nil {
 		t.Fatal(err)
 	}
-	wantAll(t, "compare", read(t, out, "lab-datos.js"), `"compare":{"200-2":{"Bar":`, `"Empty":true`)
+	wantAll(t, "compare", pub(t, out, "lab-datos.js"), `"compare":{"200-2":{"Bar":`, `"Empty":true`)
 }
 
 func TestChartHTML(t *testing.T) {

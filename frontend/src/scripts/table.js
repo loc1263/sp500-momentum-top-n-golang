@@ -1,4 +1,4 @@
-// Interactividad común de las tablas armadas por Go: filtros (select, casilla, búsqueda de texto), orden por columna, paginación,
+// Interactividad común de las tablas armadas en las páginas de Astro: filtros (select, casilla, búsqueda de texto), orden por columna, paginación,
 // clic en la fila y selector que muestra un bloque a la vez. Solo mueve y oculta las filas que ya están en el HTML.
 //
 // Contrato (todo en atributos data-*):
@@ -12,6 +12,8 @@
 //   select[data-switch=k]   muestra el [data-case-of=k][data-case=valor] elegido y oculta los demás
 //
 // Fecha: 2026-11-19
+
+import './pager.js';
 
 (() => {
   const collator = new Intl.Collator('es');

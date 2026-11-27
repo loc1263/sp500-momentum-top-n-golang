@@ -101,43 +101,41 @@ func buildAll(t *testing.T) string {
 	return out
 }
 
+// page lee el JSON de una página (src/data) y pub, un archivo de public/, del proyecto Astro que dejó Build en out.
+func page(t *testing.T, out, name string) string { return read(t, out, "src/data/"+name+".json") }
+func pub(t *testing.T, out, name string) string  { return read(t, out, "public/"+name) }
+
 func TestBuildPaginas(t *testing.T) {
 	out := buildAll(t)
-	for _, f := range []string{"index.html", "visor.html", "etfq.html", "evaluador.html", "empresa.html", "empresas.js", "evaluador.xlsx", "about.html", "site.css", "site.js", "table.js", "visor.js", "alpine.min.js", "empresa.js"} {
+	for _, f := range []string{"src/data/index.json", "src/data/visor.json", "src/data/etfq.json", "src/data/evaluador.json", "src/data/empresa.json", "src/data/about.json",
+		"src/data/lab-backtest.json", "public/empresas.js", "public/evaluador.xlsx"} {
 		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(f))); err != nil {
 			t.Errorf("falta %s: %v", f, err)
 		}
 	}
 
-	wantAll(t, "visor.html", read(t, out, "visor.html"),
-		"https://stockanalysis.com/stocks/brk.b/", "https://stockanalysis.com/etf/voo/", `Acciones (<span class="n">2</span>)`, `class="pos r"`, "5122", "12.345",
-		`<script src="visor.js" defer>`, "<title>Momentum y Scores · Visor de acciones y ETFs</title>", `<a class="tab active" href="visor.html" aria-current="page">`,
-		"Corrida del 2026-11-18.", "comisión de 0,05% por lado")
-	visorHTML := read(t, out, "visor.html")
-	if strings.Contains(visorHTML, "<Hathaway>") || strings.Contains(visorHTML, "Berkshire <Hathaway>") {
-		t.Error("el nombre con < > no quedó escapado en el Visor")
-	}
+	visor := page(t, out, "visor")
+	wantAll(t, "visor", visor,
+		"https://stockanalysis.com/stocks/brk.b/", "https://stockanalysis.com/etf/voo/", `"Label":"Acciones"`, `"Class":"pos r"`, "5122", "12.345",
+		`"DocTitle":"Momentum y Scores · Visor de acciones y ETFs"`, `"Href":"visor.html","Active":true`, "Corrida del 2026-11-18.", "comisión de 0,05% por lado",
+		"Berkshire <Hathaway>")
 
-	wantAll(t, "index.html", read(t, out, "index.html"),
-		"Top 4 del S&amp;P 500", `<option value="0">índice completo</option>`, `<option value="200" selected>mega-cap</option>`, "&#43;25,0%", "3.000", "200,50", "100,0%",
-		"Primera corrida guardada", "Cambios vs. 2026-10-01:", `<span class="pos">NVDA</span>`, "Suplentes", "-10,0%", "Seguimiento de selecciones anteriores", "en curso",
-		"Ventana de retorno", `<a class="tab active" href="index.html" aria-current="page">`)
+	wantAll(t, "index", page(t, out, "index"),
+		`"Title":"Top 4 del S&P 500"`, `{"Value":"0","Label":"índice completo"`, `{"Value":"200","Label":"mega-cap","Selected":true}`, "+25,0%", "3.000", "200,50", "100,0%",
+		`"FirstRun":true`, `"Previous":"2026-10-01"`, `"Entered":"NVDA"`, `"Alternates":[{`, "-10,0%", `"Tracking":[{`, "en curso",
+		`"From":`, `"Href":"index.html","Active":true`)
 
-	etfq := read(t, out, "etfq.html")
-	wantAll(t, "etfq.html", etfq,
-		"iShares &lt;Core&gt;", `data-f-scored="0"`, `data-f-scored="1"`, `data-v="87"`, "TER &gt; 0,50% y AUM &lt; 100 M", "Ret. 3m", "Ret. 12m", "&#43;5,0%", "-2,0%", "n/d",
-		"<option>Árbol</option>", "500,0 B", `aria-sort="ascending"`, "Score final = 75% momentum &#43; 25% calidad", "Referencia sin riesgo</strong> VUSB", "3 ETFs más quedaron fuera")
-	if strings.Contains(etfq, "iShares <Core>") {
-		t.Error("el nombre del ETF no quedó escapado")
-	}
+	etfq := page(t, out, "etfq")
+	wantAll(t, "etfq", etfq,
+		"iShares <Core>", `"scored":"0"`, `"scored":"1"`, `"V":"87"`, "TER > 0,50% y AUM < 100 M", "Ret. 3m", "Ret. 12m", "+5,0%", "-2,0%", "n/d",
+		`"Árbol"`, "500,0 B", `"AriaSort":"ascending"`, "Score final = 75% momentum + 25% calidad", `"RiskFree":"VUSB"`, `"NotRanked":3`)
 
-	wantAll(t, "evaluador.html", read(t, out, "evaluador.html"),
-		`data-href="empresa.html#BRK-B"`, `data-q="brk-b berkshire &lt;hathaway&gt;"`, `<span class="dotv good"`, `<span class="pill good">Bien</span>`, "1,0 B"[:0]+"1.000 B USD",
-		"Pares", "2 de S&amp;P 500"[:0]+"2 de S&amp;P 500", `<option value="good">Bien</option>`,
-		"Sólida y barata", `data-filter-bool="solid"`, `data-filter-bool="cheap"`, `data-f-solid="0"`, `data-f-cheap="0"`, `<td class="muted" data-v="3">—</td>`)
+	evaluador := page(t, out, "evaluador")
+	wantAll(t, "evaluador", evaluador,
+		`"Href":"empresa.html#BRK-B"`, `"Search":"brk-b berkshire <hathaway>"`, `"Dot":"good"`, `"PillLevel":"good"`, `"Text":"Bien"`, "1.000 B USD",
+		"Pares", "2 de S&P 500", `{"Value":"good","Label":"Bien","Selected":false}`, "Sólida y barata", `"solid":"0"`, `"cheap":"0"`, `"Class":"muted","Text":"—"`, `"Date":"2026-11-18"`)
 
-	wantAll(t, "evaluador.html", read(t, out, "evaluador.html"), `href="evaluador.xlsx"`, `download="evaluador-2026-11-18.xlsx"`, "Exportar Excel")
-	book := read(t, out, "evaluador.xlsx")
+	book := pub(t, out, "evaluador.xlsx")
 	zr, err := zip.NewReader(strings.NewReader(book), int64(len(book)))
 	if err != nil {
 		t.Fatalf("evaluador.xlsx no es un zip válido: %v", err)
@@ -161,10 +159,9 @@ func TestBuildPaginas(t *testing.T) {
 		}
 	}
 
-	pagina := read(t, out, "empresa.html")
-	wantAll(t, "empresa.html", pagina, `href="site.css"`, `href="evaluador.html"`, `src="empresas.js"`, `src="alpine.min.js"`, `x-data="empresa"`)
+	wantAll(t, "empresa", page(t, out, "empresa"), `"Page":"empresa"`, `"Href":"evaluador.html"`)
 
-	datos := read(t, out, "empresas.js")
+	datos := pub(t, out, "empresas.js")
 	wantAll(t, "empresas.js", datos,
 		"window.EMPRESAS=", `"BRK-B":{`, `"ZZZ":{`, `\u003csvg viewBox`, "18,2 %", "peers-none", `Berkshire \u003cHathaway\u003e`,
 		`"Left":"18.2"`, "Nota", "Precio 450,50 USD", "Capitalización 1.000 B USD", "Sin sector", "Precio n/d")
@@ -172,22 +169,16 @@ func TestBuildPaginas(t *testing.T) {
 		t.Error("el nombre de la empresa no quedó escapado en empresas.js")
 	}
 
-	wantAll(t, "about.html", read(t, out, "about.html"), "capital inicial: US$ 15.000", "Comisión de 0,05% por lado", "Límites a tener presentes", `<a class="btn active" href="about.html">About</a>`)
+	wantAll(t, "about", page(t, out, "about"), `"Capital":"15.000"`, `"Commission":"0,05%"`, `"Limits":[`, `"About":{"Label":"About","Href":"about.html","Active":true}`)
 }
 
 func TestBuildSinJSON(t *testing.T) {
 	out := t.TempDir()
-	stale := filepath.Join(out, "evaluador")
-	os.MkdirAll(stale, 0o755)
-	writeFile(t, stale, "VIEJA.html", "x")
 	if _, err := Build(Inputs{}, out); err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"index.html", "visor.html", "etfq.html", "evaluador.html", "about.html"} {
-		wantAll(t, f, read(t, out, f), "Ejecute topwx", `class="best error"`)
-	}
-	if _, err := os.Stat(filepath.Join(stale, "VIEJA.html")); err == nil {
-		t.Error("quedó una página vieja de empresa en evaluador/")
+	for _, f := range []string{"index", "visor", "etfq", "evaluador", "quant", "about", "lab-backtest", "lab-sweep", "lab-compare"} {
+		wantAll(t, f, page(t, out, f), "Ejecute topwx", `"Page":"missing"`)
 	}
 }
 
@@ -300,9 +291,9 @@ func TestOrdenYArchivos(t *testing.T) {
 }
 
 func TestShell(t *testing.T) {
-	sh := newShell("visor", Meta{TopN: 4}, "2026-11-18 20:29:17", "../", nil)
-	if len(sh.Groups) != 5 || sh.Root != "../" {
-		t.Errorf("grupos = %d, raíz = %q", len(sh.Groups), sh.Root)
+	sh := newShell("visor", Meta{TopN: 4}, "2026-11-18 20:29:17", nil)
+	if len(sh.Groups) != 5 {
+		t.Errorf("grupos = %d", len(sh.Groups))
 	}
 	if sh.Home.Active || sh.Home.Href != "index.html" || sh.About.Href != "about.html" {
 		t.Errorf("Home = %+v, About = %+v", sh.Home, sh.About)
@@ -310,19 +301,19 @@ func TestShell(t *testing.T) {
 	if !strings.Contains(sh.Footer, "Generado el 2026-11-18 20:29:17.") || !strings.Contains(sh.Footer, "Visor: foto de hoy") {
 		t.Errorf("pie inesperado: %s", sh.Footer)
 	}
-	if got := newShell("actual", Meta{TopN: 4}, "", "", nil); got.Title != "Top 4 del S&P 500" || !got.Home.Active {
+	if got := newShell("actual", Meta{TopN: 4}, "", nil); got.Title != "Top 4 del S&P 500" || !got.Home.Active {
 		t.Errorf("Home con reporte: %+v", got)
 	}
-	if got := newShell("actual", Meta{}, "", "", nil).Title; got != "Top N del S&P 500" {
+	if got := newShell("actual", Meta{}, "", nil).Title; got != "Top N del S&P 500" {
 		t.Errorf("título de Home sin reporte = %q", got)
 	}
-	if got := newShell("about", Meta{RunDate: "2026-11-18"}, "", "", nil); !got.About.Active || strings.Contains(got.Sub, "Corrida") {
+	if got := newShell("about", Meta{RunDate: "2026-11-18"}, "", nil); !got.About.Active || strings.Contains(got.Sub, "Corrida") {
 		t.Errorf("About: %+v", got)
 	}
-	if got := newShell("etfq", Meta{}, "", "", nil).Groups[1].Links[0].Href; got != "etfq.html" {
+	if got := newShell("etfq", Meta{}, "", nil).Groups[1].Links[0].Href; got != "etfq.html" {
 		t.Errorf("enlace de ETFs = %q", got)
 	}
-	if got := newShell("quant", Meta{}, "", "", nil).Groups[2].Links[0].Href; got != "quant.html" {
+	if got := newShell("quant", Meta{}, "", nil).Groups[2].Links[0].Href; got != "quant.html" {
 		t.Errorf("enlace de Quant = %q", got)
 	}
 }

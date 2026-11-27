@@ -1,12 +1,25 @@
-<!-- Lab · Backtest: curva de capital, historial de selecciones y calendarios de arranque por plazo (un bloque por plazo).
-     Alpine lo pinta con la página del universo y período elegidos en lab-datos.js (lab.js).
-     Fecha: 2026-11-20 -->
-{{define "content"}}
+---
+// Lab · backtest: Alpine lo pinta con la página del universo y período elegidos en lab-datos.js (scripts/lab.js).
+// Fecha: 2026-11-27
+import Layout from '../layouts/Layout.astro';
+import Missing from '../components/Missing.astro';
+import LabBar from '../components/LabBar.astro';
+import LabRange from '../components/LabRange.astro';
+import LabRows from '../components/LabRows.astro';
+import LabChart from '../components/LabChart.astro';
+import data from '../data/lab-backtest.json';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<Layout shell={data}>
+  <Fragment slot="head">{data.Page !== 'missing' && <script is:inline defer src={`${base}lab-datos.js`}></script>}</Fragment>
+  {data.Page === 'missing' ? <Missing msg={data.Body} /> : (
+  <Fragment>
 <div x-data="lab('backtest')" x-cloak>
   <template x-if="!p"><p class="muted" x-text="loaded ? 'No hay datos del Lab. Ejecute topwx backtest (en backend/).' : 'Cargando…'"></p></template>
   <template x-if="p">
     <div>
-      {{template "labbar"}}
+      <LabBar />
       <div class="toolbar">
         <label>Plazo
           <select @change="term = Number($event.target.value)"><template x-for="t in p.Terms"><option :value="t.Months" :selected="t.Months === term" x-text="t.Months + ' meses'"></option></template></select>
@@ -25,31 +38,31 @@
           </p>
 
           <h2>Curva de capital</h2>
-          {{template "labrange" "t.Range1"}}
+          <LabRange r="t.Range1" />
           <p class="sub">En gris, los demás calendarios de arranque posibles del mismo plazo.</p>
-          {{template "labchart" "t.Chart"}}
+          <LabChart chart="t.Chart" />
 
           <h2>Historial de selecciones (calendario base)</h2>
-          {{template "labrange" "t.Range2"}}
+          <LabRange r="t.Range2" />
           <p class="sub">Capital = valor al entrar a los tickers de la fila. Gan/Pérd = acumulado vs. capital inicial.</p>
           <div class="wrap">
             <table>
               <thead>
                 <tr><th>Fecha</th><template x-for="h in t.HistHeads"><th x-text="'#' + h"></th></template><th class="r">Capital (US$)</th><th class="r">Ganancia acumulada</th></tr>
               </thead>
-              <tbody>{{template "labrows" "t.History"}}</tbody>
+              <tbody><LabRows rows="t.History" /></tbody>
             </table>
           </div>
 
           <h2>Calendarios de arranque posibles (<span x-text="t.CalCount"></span>)</h2>
-          {{template "labrange" "t.Range3"}}
+          <LabRange r="t.Range3" />
           <p class="sub" x-text="'El mismo plazo de ' + t.Months + ' meses empezando en cada uno de los ' + t.Months + ' meses posibles.'"></p>
           <div class="wrap">
             <table>
               <thead>
                 <tr><th>Desde</th><th>Hasta</th><th>Primer rebalanceo</th><th class="r">Rebalanceos</th><th class="r">Capital final (US$)</th><th class="r">Ganancia total</th><th class="r">Rendimiento anual</th></tr>
               </thead>
-              <tbody>{{template "labrows" "t.CalRows"}}</tbody>
+              <tbody><LabRows rows="t.CalRows" /></tbody>
             </table>
           </div>
         </section>
@@ -57,6 +70,6 @@
     </div>
   </template>
 </div>
-{{end}}
-
-{{define "scripts"}}<script src="{{.Root}}lab-datos.js" defer></script><script src="{{.Root}}chart.js" defer></script><script src="{{.Root}}lab.js" defer></script><script src="{{.Root}}alpine.min.js" defer></script>{{end}}
+  </Fragment>
+  )}
+</Layout>
