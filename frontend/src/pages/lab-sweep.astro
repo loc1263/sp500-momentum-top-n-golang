@@ -21,8 +21,8 @@ import data from '../data/lab-sweep.json';
         <div>
           <div class="best">
             <p class="line">
-              <strong x-text="'Plazo más consistente: ' + p.Steady.Months + ' meses.'"></strong>
-              Su resultado típico es <strong :class="p.Steady.MedianClass" x-text="p.Steady.Median + ' anual'"></strong>
+              <strong x-text="'Plazo más consistente: ' + p.Steady.Months + ' meses.'"></strong>{' '}
+              Su resultado típico es <strong :class="p.Steady.MedianClass" x-text="p.Steady.Median + ' anual'"></strong>{' '}
               (mediana de <span x-text="p.Steady.Calendars"></span> arranques posibles). US$ <span x-text="p.Capital"></span> terminaron entre US$ <span x-text="p.Steady.CapMin"></span> y US$ <span x-text="p.Steady.CapMax"></span>.
             </p>
             <template x-if="p.SameWinner">

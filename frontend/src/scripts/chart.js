@@ -58,8 +58,11 @@
         row.append(swatch, `${s.n}: ${usd.format(p[1])}`);
         tip.appendChild(row);
       }
-      tip.style.left = `${(Math.min(x(date) + 12, W - 190) / W) * 100}%`;
       tip.hidden = false;
+      // En píxeles reales: en pantallas angostas el SVG se encoge y el cuadro (ancho fijo) no debe salirse del gráfico
+      const bw = chart.clientWidth;
+      const left = (x(date) / W) * bw + 12;
+      tip.style.left = `${Math.max(4, left + tip.offsetWidth > bw - 4 ? (x(date) / W) * bw - tip.offsetWidth - 12 : left)}px`;
     });
   }
 
