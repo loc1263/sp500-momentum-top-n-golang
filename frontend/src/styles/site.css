@@ -3,23 +3,29 @@
 
 :root {
   color-scheme: light;
-  --bg: #f1f3f6; --card: #ffffff; --th: #e9edf2; --fg: #12171d; --muted: #5a6475; --line: #d3d9e2;
-  --pos: #1a7f37; --neg: #c8202d; --accent: #0b63ce; --accent-soft: rgba(11, 99, 206, .09);
-  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .04);
+  /* Tema claro: gradientes azul-lavanda (#F8F7FF → #DDE3F5 → #B7C7E8, texto #202B4D, acento #526A9D) */
+  --bg: #e8ecf4; --bg-image: linear-gradient(180deg, #f8f7ff 0%, #dde3f5 100%);
+  --card: #f8f7ff; --th: #dde3f5; --fg: #202b4d; --muted: #526a9d; --line: #b7c7e8;
+  --pos: #1a7f37; --neg: #c8202d; --accent: #526a9d; --accent-soft: rgba(82, 106, 157, .12);
+  --shadow: 0 1px 2px rgba(32, 43, 77, .08), 0 1px 3px rgba(32, 43, 77, .05);
   --radius: 6px; --radius-sm: 4px;
+  --on-accent: #fff;
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0a0d11; --card: #10151c; --th: #161d27; --fg: #e4e9f0; --muted: #8f9aad; --line: #232c3a;
-  --pos: #3fb950; --neg: #ff7b72; --accent: #58a6ff; --accent-soft: rgba(88, 166, 255, .12);
+  /* Tema oscuro: grafito (#0E0E10, #232327, #3E3E45, #63636E, #9A9AA6, #C9C9D2, #F2F2F5) */
+  --bg: #0e0e10; --bg-image: linear-gradient(180deg, #0e0e10 0%, #17171a 100%);
+  --card: #232327; --th: #3e3e45; --fg: #f2f2f5; --muted: #9a9aa6; --line: #3e3e45;
+  --pos: #2fe06a; --neg: #ff3b3b; --accent: #c9c9d2; --accent-soft: rgba(201, 201, 210, .12);
+  --on-accent: #0e0e10;
   --shadow: none;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  margin: 0; background: var(--bg); color: var(--fg);
+  margin: 0; background: var(--bg) var(--bg-image) fixed; color: var(--fg);
   font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
@@ -73,7 +79,7 @@ input, select {
 .seg button:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
 .seg button:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-left: -1px; }
 .seg button:only-child { border-radius: var(--radius-sm); }
-.seg button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.seg button.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn, #theme { border-radius: var(--radius-sm); }
 .btn:disabled { opacity: .4; cursor: default; }
 
@@ -106,6 +112,7 @@ tr.marked td:first-child { background: color-mix(in srgb, var(--accent) 22%, var
 tr.empty { cursor: default; }
 td.pos { background: color-mix(in srgb, var(--pos) 18%, transparent); }
 td.neg { background: color-mix(in srgb, var(--neg) 18%, transparent); }
+:root[data-theme="dark"] td.pos, :root[data-theme="dark"] td.neg { background: none; }
 td.name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
 
 .pager {
